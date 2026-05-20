@@ -1,0 +1,25 @@
+{
+  "_comment": "이 파일을 config.json 으로 복사하고 값을 채워주세요.",
+  "google": {
+    "credentials_file": "credentials.json",
+    "drive_root_folder_name": "공동구매_셀러_아카이브",
+    "_drive_help": "Drive 내 'My Drive' 아래에 이 이름으로 폴더를 만들거나 기존 폴더를 사용합니다."
+  },
+  "gemini": {
+    "api_key": "여기에_GEMINI_API_KEY_붙여넣기",
+    "model": "gemini-2.0-flash-exp",
+    "_help": "https://aistudio.google.com/app/apikey 에서 무료 발급"
+  },
+  "scraper": {
+    "delay_min_seconds": 2,
+    "delay_max_seconds": 4,
+    "max_stories_per_highlight": 50,
+    "max_posts_per_seller": 100,
+    "browser_profile_dir": "data/browser_profile",
+    "_help": "딜레이가 짧을수록 빠르지만 차단 위험 증가"
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 5000
+  }
+}

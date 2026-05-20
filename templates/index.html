@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>넥스트포트 공동구매 워크스페이스</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/chat-widget.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">N</div>
+        <div class="brand-text">
+          <div class="brand-title">넥스트포트</div>
+          <div class="brand-sub">공동구매 워크스페이스</div>
+        </div>
+      </div>
+
+      <div class="brand-switcher" id="brandSwitcher">
+        <div class="bs-label">브랜드</div>
+        <div class="bs-list" id="brandList">
+          <div class="bs-item active" data-brand-id="">📊 전체</div>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <button class="side-item active" data-tab="home">
+          <span class="ico">🏠</span><span>홈 (캘린더)</span>
+        </button>
+        <button class="side-item" data-tab="campaigns">
+          <span class="ico">👥</span><span>셀러 캠페인</span>
+        </button>
+        <button class="side-item" data-tab="dashboard">
+          <span class="ico">📊</span><span>대시보드 (정산)</span>
+        </button>
+        <button class="side-item" data-tab="meetings">
+          <span class="ico">🎤</span><span>미팅 / 녹취록</span>
+        </button>
+        <div class="side-sep">콘텐츠 도구</div>
+        <button class="side-item" data-tab="archive">
+          <span class="ico">📂</span><span>셀러 아카이브</span>
+        </button>
+        <button class="side-item" data-tab="schedule">
+          <span class="ico">📅</span><span>스케줄링 시트 생성</span>
+        </button>
+        <button class="side-item" data-tab="products">
+          <span class="ico">🏷️</span><span>제품 정보</span>
+        </button>
+        <button class="side-item" data-tab="settings">
+          <span class="ico">⚙️</span><span>설정</span>
+        </button>
+      </nav>
+
+      <div class="side-status">
+        <div class="backup-status" id="backupStatusPanel">
+          <div class="b-title">💾 백업 상태 확인 중…</div>
+        </div>
+        <div class="status-row" id="pillGemini">Gemini…</div>
+        <button id="btnIgLogin" class="btn-secondary side-btn">📷 인스타 로그인</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- TAB: HOME (big calendar + today widget) -->
+      <section class="tab-pane active" id="tab-home">
+        <div class="page-head">
+          <div>
+            <h1 id="calTitle">캘린더</h1>
+            <p class="page-sub">미팅 · 발송 · 라이브 일정 한눈에. 빈 칸 클릭 = 새 이벤트, 이벤트 클릭 = 수정.</p>
+          </div>
+          <div class="cal-controls">
+            <button class="btn-secondary" data-cal-nav="prev">◀</button>
+            <button class="btn-secondary" data-cal-nav="today">오늘</button>
+            <button class="btn-secondary" data-cal-nav="next">▶</button>
+          </div>
+        </div>
+
+        <div class="home-grid">
+          <section class="panel home-cal">
+            <div id="calendar" class="calendar"></div>
+            <div class="cal-legend">
+              <span class="leg"><span class="leg-swatch" style="background:#c9a368"></span>진행중</span>
+              <span class="leg"><span class="leg-swatch" style="background:#d8e4f1"></span>예정</span>
+              <span class="leg"><span class="leg-swatch" style="background:#e8d9b8"></span>준비중</span>
+              <span class="leg"><span class="leg-swatch" style="background:#d2cfc4"></span>완료</span>
+              <span class="leg"><span class="leg-swatch" style="background:repeating-linear-gradient(45deg,#e6e3d8,#e6e3d8 3px,#ddd9cc 3px,#ddd9cc 6px)"></span>미정</span>
+              <span class="leg">🎤 미팅 · 🎁 발송 · 📌 기타 = 점</span>
+            </div>
+          </section>
+
+          <aside class="today-side">
+            <section class="panel">
+              <div class="panel-head"><h2>🔥 오늘 / 마감 임박</h2></div>
+              <div id="todayUrgent" class="today-list"><div class="empty">불러오는 중…</div></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h2>⚠️ 지연</h2></div>
+              <div id="todayOverdue" class="today-list"><div class="empty">없음</div></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h2>📅 이번 2주</h2></div>
+              <div id="todayWeek" class="today-list"><div class="empty">없음</div></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h2>⏸ 일정 미정</h2></div>
+              <div id="todayUndated" class="today-list"><div class="empty">없음</div></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <!-- TAB: CAMPAIGNS -->
+      <section class="tab-pane" id="tab-campaigns">
+        <!-- 상세 모드 — JS가 채움. 숨김 상태로 시작 -->
+        <div id="campDetailView" hidden></div>
+
+        <!-- 목록 모드 -->
+        <div id="campListView">
+        <div class="page-head">
+          <h1>셀러 캠페인 (누적)</h1>
+          <p class="page-sub">행 클릭 = 단독 컨트롤 타워 페이지. ✎ = 빠른 편집 다이얼로그.</p>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>전체 캠페인</h2>
+            <div class="head-actions">
+              <select id="campFilter" class="filter-sel">
+                <option value="">전체 상태</option>
+                <option>진행중</option>
+                <option>예정</option>
+                <option>준비중</option>
+                <option>미정</option>
+                <option>완료</option>
+              </select>
+              <button id="btnAddCampaign" class="btn-secondary">+ 캠페인 추가</button>
+            </div>
+          </div>
+          <div class="seller-table-wrap">
+            <table class="seller-table" id="campaignTable">
+              <thead>
+                <tr>
+                  <th>셀러</th>
+                  <th>브랜드 / 제품</th>
+                  <th>차수</th>
+                  <th>컨택</th>
+                  <th>단계</th>
+                  <th>라이브 기간</th>
+                  <th>발송</th>
+                  <th>시트</th>
+                  <th>상태</th>
+                  <th>작업</th>
+                </tr>
+              </thead>
+              <tbody id="campaignTableBody">
+                <tr><td colspan="10" class="empty">불러오는 중…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        </div>
+      </section>
+
+      <!-- TAB: DASHBOARD -->
+      <section class="tab-pane" id="tab-dashboard">
+        <div class="page-head">
+          <div>
+            <h1>대시보드 (정산 / 매출)</h1>
+            <p class="page-sub">캠페인별 매출 · 비용 · 공헌이익 한눈에. 셀 클릭 = 직접 편집. 공헌이익 / 비율 자동 계산.</p>
+          </div>
+        </div>
+
+        <section class="panel" id="dashTotalsPanel">
+          <div class="panel-head"><h2>완료된 캠페인 총합</h2></div>
+          <div class="dash-totals" id="dashTotals"><div class="empty">불러오는 중…</div></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>캠페인별 상세</h2>
+            <span class="hint">숫자 셀 클릭해서 직접 수정 → Enter 저장</span>
+          </div>
+          <div class="dash-table-wrap">
+            <table class="dash-table" id="dashTable">
+              <tbody><tr><td class="empty">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- TAB: MEETINGS -->
+      <section class="tab-pane" id="tab-meetings">
+        <div class="page-head">
+          <h1>미팅 / 녹취록</h1>
+          <p class="page-sub">미팅 추가 → 녹음 파일 업로드 → Gemini가 자동으로 트랜스크립션 + 요약 + 액션아이템 추출. 수동 수정 가능.</p>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>미팅 목록</h2>
+            <button id="btnAddMeeting" class="btn-secondary">+ 미팅 추가</button>
+          </div>
+          <div id="meetingList" class="meeting-list">
+            <div class="empty">미팅 없음. [+ 미팅 추가]로 시작하세요.</div>
+          </div>
+        </section>
+      </section>
+
+      <!-- TAB: ARCHIVE (레퍼런스용) -->
+      <section class="tab-pane" id="tab-archive">
+        <div class="page-head">
+          <h1>셀러 아카이브 (레퍼런스)</h1>
+          <p class="page-sub">레퍼런스 셀럽들의 콘텐츠를 모아두는 곳. 스케줄링 시트 만들 때 여기서 자료를 끌어옵니다.</p>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>셀러 명단</h2>
+            <div class="head-actions">
+              <button id="btnRefresh" class="btn-text">↻ 새로고침</button>
+              <button id="btnAddSeller" class="btn-secondary">+ 셀러 추가</button>
+            </div>
+          </div>
+
+          <div class="seller-table-wrap">
+            <table class="seller-table" id="sellerTable">
+              <thead>
+                <tr>
+                  <th class="col-id">#</th>
+                  <th class="col-name">셀러</th>
+                  <th class="col-handle">인스타그램</th>
+                  <th class="col-followers">팔로워</th>
+                  <th class="col-posts">게시물</th>
+                  <th class="col-items">누적</th>
+                  <th class="col-last">마지막 업데이트</th>
+                  <th class="col-notes">노트</th>
+                  <th class="col-actions">작업</th>
+                </tr>
+              </thead>
+              <tbody id="sellerTableBody">
+                <tr><td colspan="9" class="empty">셀러 불러오는 중…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="logPanel" hidden>
+          <div class="panel-head">
+            <h2>진행 상황</h2>
+            <button id="btnCloseLog" class="btn-text">닫기</button>
+          </div>
+          <div id="logBox" class="log-box"></div>
+        </section>
+      </section>
+
+      <!-- TAB: SCHEDULE -->
+      <section class="tab-pane" id="tab-schedule">
+        <div class="page-head">
+          <h1>스케줄링 시트 생성</h1>
+          <p class="page-sub">셀러와 제품 정보를 입력하면 모범 시트 양식대로 스케줄링 시트를 자동 생성합니다.</p>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>1. 대상 셀러 (시트를 받을 사람)</h2>
+          </div>
+          <div class="form-grid">
+            <label>셀러 별명
+              <input id="sch_target_name" placeholder="예: 지나님" />
+            </label>
+            <label>인스타그램 ID
+              <input id="sch_target_handle" placeholder="예: jiinalgoo (@ 빼고)" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>2. 제품 정보</h2>
+            <button class="btn-text" id="btnLoadProduct">제품 불러오기</button>
+          </div>
+          <div class="form-grid">
+            <label>제품명
+              <input id="sch_product_name" placeholder="예: 하루픽스 오메가369 밸런스" />
+            </label>
+            <label>핵심 USP (한 줄)
+              <input id="sch_usp" placeholder="예: 백사 50명 직접 검사 / 식물성 / 비린내 ZERO" />
+            </label>
+            <label class="full">상세 정보 / 셀링포인트 (Gemini가 캡션 생성에 사용)
+              <textarea id="sch_product_detail" rows="4" placeholder="예: 식물성 오메가369... 환경비웃 1,4,2,3,17... 광동헬스사이언스 GMP 인증..."></textarea>
+            </label>
+            <label>가격 / 혜택
+              <input id="sch_price" placeholder="예: 9만원 이상 무료배송, 공구가 = 최저가" />
+            </label>
+            <label>금지 멘트
+              <input id="sch_avoid" placeholder="예: 광고 느낌 멘트 X / 효능 단정 X" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>3. 공구 일정 & N차</h2>
+          </div>
+          <div class="form-grid">
+            <label>차수
+              <input id="sch_round" type="number" min="1" value="1" />
+              <span class="hint">1차 / 2차 / 3차…</span>
+            </label>
+            <label>시작일
+              <input id="sch_start" type="date" />
+            </label>
+            <label>종료일
+              <input id="sch_end" type="date" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>4. 참고 셀럽 (아카이브에서 선택)</h2>
+            <span class="hint">스토리 슬롯에 들어갈 레퍼런스 이미지 출처</span>
+          </div>
+          <div id="schRefSellers" class="ref-seller-grid">
+            <div class="empty">셀러 불러오는 중…</div>
+          </div>
+        </section>
+
+        <section class="panel sticky-bottom">
+          <div class="panel-head">
+            <h2>5. 시트 생성</h2>
+            <span id="schStatus" class="hint"></span>
+          </div>
+          <div class="action-row">
+            <button id="btnGenerateSheet" class="btn-primary big">📊 스케줄링 시트 생성</button>
+            <a id="schResultLink" class="btn-secondary" hidden target="_blank">생성된 시트 열기 ↗</a>
+          </div>
+          <div id="schProgressBox" class="log-box" hidden></div>
+        </section>
+      </section>
+
+      <!-- TAB: PRODUCTS -->
+      <section class="tab-pane" id="tab-products">
+        <div class="page-head">
+          <h1>제품 정보</h1>
+          <p class="page-sub">반복 사용하는 제품 정보를 저장해두세요. 시트 만들 때 한 번에 불러올 수 있습니다.</p>
+        </div>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>저장된 제품</h2>
+            <button id="btnAddProduct" class="btn-secondary">+ 제품 추가</button>
+          </div>
+          <div id="productList" class="product-list">
+            <div class="empty">제품 불러오는 중…</div>
+          </div>
+        </section>
+      </section>
+
+      <!-- TAB: SETTINGS -->
+      <section class="tab-pane" id="tab-settings">
+        <div class="page-head">
+          <h1>설정</h1>
+          <p class="page-sub">API 키, Drive 연결, 스크래퍼 옵션 등.</p>
+        </div>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>현재 상태</h2>
+          </div>
+          <div id="settingsStatus" style="font-size:13px;line-height:1.8">불러오는 중…</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>설정 파일 위치</h2>
+          </div>
+          <div class="path-row">C:\Users\user\Documents\harufix-cowork-tool\config.json</div>
+          <p class="hint" style="margin-top:8px">메모장으로 열어 직접 수정 가능</p>
+        </section>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <dialog id="addSellerDialog">
+    <form id="addSellerForm">
+      <h3>셀러 추가</h3>
+      <label>이름 (별명)<input name="name" required placeholder="예: 야곰" /></label>
+      <label>인스타그램 ID (@ 빼고)<input name="instagram" required placeholder="예: ya_gomi" /></label>
+      <label>표시 이름 (선택)<input name="display_name" placeholder="예: 야곰이" /></label>
+      <label>노트 (선택)<textarea name="notes" rows="2" placeholder="셀러 특징, 콘텐츠 스타일 등"></textarea></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="cancel-add">취소</button>
+        <button type="submit" class="btn-primary">추가</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="editSellerDialog">
+    <form id="editSellerForm">
+      <h3>셀러 정보 수정</h3>
+      <input type="hidden" name="id" />
+      <label>이름 (별명)<input name="name" required /></label>
+      <label>인스타그램 ID (@ 빼고)<input name="instagram" required /></label>
+      <label>표시 이름<input name="display_name" /></label>
+      <label>노트<textarea name="notes" rows="3"></textarea></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-seller">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-edit">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog">
+    <div class="detail-content">
+      <div class="detail-head">
+        <h3 id="detailTitle">셀러 상세</h3>
+        <button class="btn-text" data-action="close-detail">닫기</button>
+      </div>
+      <div id="detailBody"></div>
+    </div>
+  </dialog>
+
+  <dialog id="productDialog">
+    <form id="productForm">
+      <h3 id="productDialogTitle">제품 추가</h3>
+      <input type="hidden" name="id" />
+      <label>제품명<input name="name" required placeholder="예: 하루픽스 오메가369 밸런스" /></label>
+      <label>핵심 USP<input name="usp" placeholder="한 줄 요약" /></label>
+      <label>상세 정보<textarea name="detail" rows="4"></textarea></label>
+      <label>가격/혜택<input name="price" /></label>
+      <label>금지 멘트<input name="avoid" /></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-product">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-product">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- CAMPAIGN DIALOG -->
+  <dialog id="campaignDialog">
+    <form id="campaignForm" class="big-form">
+      <h3 id="campaignDialogTitle">캠페인 추가</h3>
+      <input type="hidden" name="id" />
+      <div class="form-grid">
+        <label>셀러 이름 *<input name="seller_name" required placeholder="예: 양미라" /></label>
+        <label>인스타 핸들<input name="seller_handle" placeholder="예: yangmira_official" /></label>
+        <label>브랜드 *
+          <select name="brand_id" id="campBrandSelect" required>
+            <option value="">(선택)</option>
+          </select>
+        </label>
+        <label>제품<input name="product" placeholder="예: 오메가369 밸런스" /></label>
+        <label>차수 (N차)<input name="round" type="number" min="1" value="1" /></label>
+        <label>컨택 방식
+          <select name="contact_type">
+            <option value="direct">🟠 직접 영업 (DM/이메일)</option>
+            <option value="inbound">🔵 외부 유입 (메가셀러 등)</option>
+          </select>
+        </label>
+        <label>현재 단계
+          <select name="stage">
+            <option value="contact">컨택</option>
+            <option value="confirmed">셀러 컨펌</option>
+            <option value="shipped">제품 발송</option>
+            <option value="received">수령 확인</option>
+            <option value="sheet_drafted">시트 작성</option>
+            <option value="sheet_confirmed">시트 컨펌</option>
+            <option value="live">라이브</option>
+            <option value="complete">완료</option>
+          </select>
+        </label>
+        <label>상태 (요약)
+          <select name="status">
+            <option>예정</option>
+            <option>진행중</option>
+            <option>준비중</option>
+            <option>미정</option>
+            <option>완료</option>
+          </select>
+        </label>
+        <label>라이브 시작일<input name="live_start" type="date" /></label>
+        <label>라이브 종료일<input name="live_end" type="date" /></label>
+        <label>발송 수량<input name="shipment_qty" type="number" min="0" placeholder="0" /></label>
+        <label>발송일<input name="shipment_date" type="date" /></label>
+        <label class="full">스케줄링 시트 URL<input name="sheet_url" placeholder="https://docs.google.com/spreadsheets/d/..." /></label>
+        <label class="full">노트<textarea name="notes" rows="2"></textarea></label>
+      </div>
+
+      <div class="seller-link-box" id="sellerLinkBox" hidden>
+        <div class="slb-head">📱 셀러용 모바일 플레이북</div>
+        <div class="slb-tunnel-row">
+          <span id="slbTunnelStatus" class="slb-tunnel-off">🔒 비공개 (너 PC만 접속 가능)</span>
+          <button type="button" class="btn-secondary slb-tunnel-toggle" data-action="toggle-tunnel">셀러 공개 켜기</button>
+        </div>
+        <div class="slb-slug-row">
+          <span class="slb-slug-label">URL 슬러그</span>
+          <input type="text" name="seller_slug" id="sellerSlugInput" placeholder="예: jina-1" />
+          <button type="button" class="btn-text slb-slug-save" data-action="save-slug">저장</button>
+        </div>
+        <div class="slb-url" id="sellerLinkUrl"></div>
+        <div class="slb-actions">
+          <button type="button" class="btn-secondary" data-action="copy-seller-link">🔗 링크 복사</button>
+          <button type="button" class="btn-secondary" data-action="preview-seller-page">📱 모바일 미리보기</button>
+          <button type="button" class="btn-secondary" data-action="edit-seller-schedule">📅 스케줄 편집</button>
+          <button type="button" class="btn-secondary" data-action="import-from-sheet">📥 시트에서 가져오기</button>
+          <button type="button" class="btn-secondary" data-action="edit-seller-faq">💬 무물 편집</button>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-campaign">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-campaign">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 모바일 미리보기 다이얼로그 -->
+  <dialog id="mobilePreviewDialog" class="mobile-preview-dialog">
+    <div class="mp-head">
+      <h3 id="mpTitle">📱 모바일 미리보기</h3>
+      <button type="button" class="btn-text" data-action="close-mobile-preview">닫기</button>
+    </div>
+    <div class="mp-frame-wrap">
+      <iframe id="mpFrame" src="about:blank"></iframe>
+    </div>
+  </dialog>
+
+  <!-- 스케줄 편집 다이얼로그 -->
+  <dialog id="scheduleEditDialog" class="schedule-edit-dialog">
+    <div class="se-head">
+      <h3 id="seTitle">📅 일일 스케줄 편집</h3>
+      <button type="button" class="btn-text" data-action="close-schedule-edit">닫기</button>
+    </div>
+    <div class="se-auto">
+      <div class="se-auto-title">⚡ 자동 일자 생성 — 입력하면 일자가 한꺼번에 만들어짐</div>
+      <div class="se-auto-grid">
+        <label>📣 기본 노출 시작
+          <input type="date" id="seAutoPreStart" />
+        </label>
+        <label>↓ 끝 (= 마켓 전날)
+          <input type="date" id="seAutoPreEnd" />
+        </label>
+        <label>슬롯/일
+          <input type="number" id="seAutoPreSlots" value="5" min="1" max="10" />
+        </label>
+
+        <label>🔴 본 스케줄링 시작 (마켓일)
+          <input type="date" id="seAutoLiveStart" />
+        </label>
+        <label>↓ 끝 (마감일)
+          <input type="date" id="seAutoLiveEnd" />
+        </label>
+        <label>슬롯/일
+          <input type="number" id="seAutoLiveSlots" value="7" min="1" max="15" />
+        </label>
+
+        <label>🌟 사후 (선택)
+          <input type="date" id="seAutoPostStart" />
+        </label>
+        <label>↓ 끝
+          <input type="date" id="seAutoPostEnd" />
+        </label>
+        <label>슬롯/일
+          <input type="number" id="seAutoPostSlots" value="3" min="0" max="10" />
+        </label>
+      </div>
+      <div class="se-auto-actions">
+        <button type="button" class="btn-primary" data-action="auto-generate-schedule">⚡ 일자 자동 생성</button>
+        <button type="button" class="btn-secondary" data-action="add-schedule-day">+ 빈 날짜 추가</button>
+        <span class="hint">⚡ 자동 생성하면 기존 일자에 추가됩니다 (덮어쓰기 X)</span>
+      </div>
+    </div>
+    <div class="se-list" id="seList"></div>
+    <div class="dialog-actions" style="padding: 0 22px 22px 22px">
+      <span class="spacer"></span>
+      <button type="button" class="btn-primary" data-action="save-schedule">저장</button>
+    </div>
+  </dialog>
+
+  <!-- FAQ 편집 다이얼로그 -->
+  <dialog id="faqEditDialog" class="schedule-edit-dialog">
+    <div class="se-head">
+      <h3>💬 무물 (Q&A) 편집</h3>
+      <button type="button" class="btn-text" data-action="close-faq-edit">닫기</button>
+    </div>
+    <div class="se-toolbar">
+      <button type="button" class="btn-secondary" data-action="add-faq-item">+ 항목 추가</button>
+      <span class="hint">셀러 자주 묻는 질문 + 대처법</span>
+    </div>
+    <div class="se-list" id="faqList"></div>
+    <div class="dialog-actions" style="padding: 0 22px 22px 22px">
+      <span class="spacer"></span>
+      <button type="button" class="btn-primary" data-action="save-faq">저장</button>
+    </div>
+  </dialog>
+
+  <!-- EVENT DIALOG (캘린더 직접 추가/수정) -->
+  <dialog id="eventDialog">
+    <form id="eventForm">
+      <h3 id="eventDialogTitle">이벤트 추가</h3>
+      <input type="hidden" name="id" />
+      <label>날짜 *<input name="date" type="date" required /></label>
+      <label>시간 (선택)<input name="time" type="time" /></label>
+      <label>종류
+        <select name="kind">
+          <option value="meeting">🎤 미팅</option>
+          <option value="shipment">🎁 발송</option>
+          <option value="live_start">🔴 라이브 시작</option>
+          <option value="live_end">⚪ 라이브 종료</option>
+          <option value="deadline">⏰ 마감</option>
+          <option value="other" selected>📌 기타</option>
+        </select>
+      </label>
+      <label>제목 *<input name="title" required placeholder="예: 양미라 미팅" /></label>
+      <label>노트<textarea name="notes" rows="2"></textarea></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-event">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-event">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MEETING DIALOG -->
+  <dialog id="meetingDialog">
+    <form id="meetingForm" class="big-form">
+      <h3 id="meetingDialogTitle">미팅 추가</h3>
+      <input type="hidden" name="id" />
+      <div class="form-grid">
+        <label>제목 *<input name="title" required placeholder="예: 양미라 1차 사전 미팅" /></label>
+        <label>연관 캠페인
+          <select name="campaign_id">
+            <option value="">(없음)</option>
+          </select>
+        </label>
+        <label>날짜<input name="date" type="date" /></label>
+        <label>시간<input name="time" type="time" /></label>
+        <label class="full">참석자 (쉼표 구분)<input name="attendees" placeholder="예: 나, 양미라" /></label>
+        <label class="full">안건<textarea name="agenda" rows="3"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="cancel-meeting">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MEETING DETAIL DIALOG (녹취 + 분석 + 수동 메모) -->
+  <dialog id="meetingDetailDialog">
+    <div class="detail-content meeting-detail">
+      <div class="detail-head">
+        <h3 id="mdTitle">미팅 상세</h3>
+        <div>
+          <button class="btn-text" data-action="edit-meeting-meta">메타 수정</button>
+          <button class="btn-text" data-action="delete-meeting-from-detail">삭제</button>
+          <button class="btn-text" data-action="close-meeting-detail">닫기</button>
+        </div>
+      </div>
+      <div id="mdBody"></div>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="chat-widget" class="chat-widget collapsed">
+    <button class="chat-fab" id="chatFab" title="AI 어시스턴트">💬</button>
+    <div class="chat-panel">
+      <div class="chat-header">
+        <span class="chat-title">
+          <span class="dot"></span>
+          🤖 AI 어시스턴트
+        </span>
+        <div class="chat-header-actions">
+          <button class="chat-icon-btn" id="chatNewBtn" title="새 대화">↻</button>
+          <button class="chat-icon-btn" id="chatCloseBtn" title="접기">─</button>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-preview" id="chatPreview" hidden></div>
+      <div class="chat-input-row">
+        <button class="chat-attach-btn" id="chatAttachBtn" title="이미지 첨부">📎</button>
+        <input type="file" id="chatImageInput" accept="image/*" hidden />
+        <textarea id="chatInput" placeholder="메시지 입력 · 이미지는 드래그/붙여넣기" rows="1"></textarea>
+        <button class="chat-send-btn" id="chatSendBtn" title="전송">↑</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/chat-widget.js"></script>
+</body>
+</html>

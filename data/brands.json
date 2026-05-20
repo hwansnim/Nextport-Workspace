@@ -1,0 +1,22 @@
+{
+  "brands": [
+    {
+      "id": "harufix",
+      "name": "하루픽스",
+      "category": "건강식품",
+      "color": "#c9a368",
+      "emoji": "🌿",
+      "active": true,
+      "notes": "오메가369 밸런스 외"
+    },
+    {
+      "id": "ivenoff",
+      "name": "이브노프",
+      "category": "수면",
+      "color": "#7a9bbe",
+      "emoji": "🌙",
+      "active": true,
+      "notes": "수면 브랜드"
+    }
+  ]
+}

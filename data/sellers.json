@@ -1,0 +1,52 @@
+{
+  "sellers": [
+    {
+      "id": "001",
+      "name": "야곰",
+      "instagram": "ya_gomi",
+      "display_name": "야곰이",
+      "notes": "다이어트 식단/운동/꿀템 위주, 14kg 감량",
+      "active": true
+    },
+    {
+      "id": "002",
+      "name": "박예은",
+      "instagram": "_ye_eun",
+      "display_name": "박예은",
+      "notes": "B&A 비교, 첫경과 인포그래픽, 공구-마음카드 (매우 잘함)",
+      "active": true
+    },
+    {
+      "id": "003",
+      "name": "이지비메",
+      "instagram": "22easy_diet",
+      "display_name": "이지비메",
+      "notes": "식사-체조 비기, 산책 운동 일상 톤",
+      "active": true
+    },
+    {
+      "id": "004",
+      "name": "지나",
+      "instagram": "jbe_gini",
+      "display_name": "지나",
+      "notes": "미센화하운 제품 촬영",
+      "active": true
+    },
+    {
+      "id": "005",
+      "name": "은조피",
+      "instagram": "eun_jeong8",
+      "display_name": "은조피",
+      "notes": "일상-제품 자연 비치, 체크리스트 카드",
+      "active": true
+    },
+    {
+      "id": "006",
+      "name": "지나라",
+      "instagram": "sang_sh",
+      "display_name": "지나라",
+      "notes": "약곰/성준 유사 톤",
+      "active": true
+    }
+  ]
+}

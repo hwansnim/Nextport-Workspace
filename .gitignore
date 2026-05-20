@@ -1,0 +1,35 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local 전용 (절대 git 에 안 들어감)
+config.json
+cloudflared.exe
+data/browser_profile/
+data/local_archive/
+data/meetings/*.m4a
+data/meetings/*.mp3
+data/meetings/*.wav
+data/chat_uploads/
+data/tunnel.json
+
+# 로그 / 빌드
+logs/
+*.log
+data/generated/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# 작업 메모
+대화로그_*.txt

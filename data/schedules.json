@@ -1,0 +1,95 @@
+{
+  "schedules": [
+    {
+      "id": "sc001",
+      "seller_name": "지나",
+      "seller_handle": "jbe_gini",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 1,
+      "start": "",
+      "end": "",
+      "status": "완료",
+      "sheet_url": "https://docs.google.com/spreadsheets/d/1ANH2HqqfM8d52TuY6xYXn3gLIXqoF0J2-TAzkK4Pg1s/edit?gid=1484615763#gid=1484615763",
+      "notes": "1차 진행 완료"
+    },
+    {
+      "id": "sc002",
+      "seller_name": "지나",
+      "seller_handle": "jbe_gini",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 2,
+      "start": "",
+      "end": "",
+      "status": "예정",
+      "sheet_url": "",
+      "notes": "2차 진행 예정"
+    },
+    {
+      "id": "sc003",
+      "seller_name": "양미라",
+      "seller_handle": "",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 1,
+      "start": "2026-05-18",
+      "end": "2026-05-24",
+      "status": "준비중",
+      "sheet_url": "https://docs.google.com/spreadsheets/d/1EAjSBflZz-sk6GruFA-pV4-TrAPMjzuBnS_wVIQsDO4/edit?gid=1484615763#gid=1484615763",
+      "notes": ""
+    },
+    {
+      "id": "sc004",
+      "seller_name": "한연아",
+      "seller_handle": "",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 1,
+      "start": "2026-05-27",
+      "end": "2026-06-14",
+      "status": "예정",
+      "sheet_url": "",
+      "notes": ""
+    },
+    {
+      "id": "sc005",
+      "seller_name": "오늘희",
+      "seller_handle": "",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 1,
+      "start": "",
+      "end": "",
+      "status": "미정",
+      "sheet_url": "",
+      "notes": "일정 미정"
+    },
+    {
+      "id": "sc006",
+      "seller_name": "윰니",
+      "seller_handle": "",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 1,
+      "start": "2026-06-08",
+      "end": "2026-06-11",
+      "status": "예정",
+      "sheet_url": "",
+      "notes": ""
+    },
+    {
+      "id": "sc007",
+      "seller_name": "느루",
+      "seller_handle": "",
+      "brand": "하루픽스",
+      "product": "오메가369 밸런스",
+      "round": 1,
+      "start": "",
+      "end": "",
+      "status": "미정",
+      "sheet_url": "",
+      "notes": "일정 미정"
+    }
+  ]
+}

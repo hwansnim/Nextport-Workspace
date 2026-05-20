@@ -1,0 +1,51 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "text": "지나님 인스타 jjinalgoo 이거임 이름.",
+      "image": null,
+      "at": "2026-05-15T00:59:52"
+    },
+    {
+      "role": "assistant",
+      "text": "지나님 인스타 정보 알려줘서 고마워! 근데 내가 셀러 개인 정보를 저장하거나 수정하는 기능은 없어. 캠페인 관련해서 궁금한 거나 추가할 거 있으면 말해줘!",
+      "image": null,
+      "tool_calls": [],
+      "at": "2026-05-15T00:59:55"
+    },
+    {
+      "role": "user",
+      "text": "수정햇어 너 이거 수정해봐",
+      "image": null,
+      "at": "2026-05-15T01:03:03"
+    },
+    {
+      "role": "assistant",
+      "text": "지나님 1차, 2차 캠페인 인스타 핸들 모두 jjinalgoo로 수정했어 ✓",
+      "image": null,
+      "tool_calls": [
+        {
+          "name": "find_campaign",
+          "args": {
+            "seller_name": "지나"
+          }
+        },
+        {
+          "name": "update_campaign",
+          "args": {
+            "campaign_id": "c001",
+            "seller_handle": "jjinalgoo"
+          }
+        },
+        {
+          "name": "update_campaign",
+          "args": {
+            "campaign_id": "c002",
+            "seller_handle": "jjinalgoo"
+          }
+        }
+      ],
+      "at": "2026-05-15T01:03:14"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "meetings": [
+    {
+      "id": "m001",
+      "campaign_id": "c006",
+      "title": "[윰니님] 1차 마켓 사전 줌미팅",
+      "date": "2026-05-14",
+      "time": "18:00",
+      "attendees": [
+        "김동환"
+      ],
+      "agenda": "",
+      "audio_file": "H:\\내 드라이브\\넥스트포트\\공구\\녹취\\20260514_[윰니님]_1차_마켓_사전_줌미팅_m001.m4a",
+      "transcript": "",
+      "summary": "",
+      "decisions": [],
+      "action_items": [],
+      "key_points": [],
+      "follow_up_topics": [],
+      "manual_notes": "",
+      "created_at": "2026-05-14T23:10:19",
+      "updated_at": "2026-05-14T23:54:54",
+      "analysis_status": "error",
+      "audio_location": "drive",
+      "audio_filename": "20260514_[윰니님]_1차_마켓_사전_줌미팅_m001.m4a",
+      "audio_folder": "H:\\내 드라이브\\넥스트포트\\공구\\녹취"
+    }
+  ]
+}

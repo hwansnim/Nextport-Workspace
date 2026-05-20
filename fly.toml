@@ -1,0 +1,33 @@
+# 넥스트포트 공구 워크스페이스 — Fly.io 배포 설정
+# 사용자가 'fly launch' 실행하면 자동으로 적용됨
+
+app = "nextport-workspace"
+primary_region = "nrt"  # Tokyo (한국에서 가장 가까운 무료 리전)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  ENV_MODE = "cloud"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[mounts]]
+  source = "nextport_data"
+  destination = "/app/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[deploy]
+  release_command = "echo 'release done'"

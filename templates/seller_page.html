@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>공구 플레이북</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="/static/seller-page.css" />
+  <meta name="theme-color" content="#1a1e2d" />
+</head>
+<body data-token="{{ token }}">
+  <div class="sp-app">
+    <header class="sp-header">
+      <div class="sp-brand-row">
+        <span class="sp-brand-pill" id="spBrandPill">로딩…</span>
+        <span class="sp-d" id="spD"></span>
+      </div>
+      <div class="sp-title-row">
+        <h1 class="sp-title" id="spTitle">불러오는 중…</h1>
+        <select class="sp-round-switch" id="spRoundSwitch" hidden></select>
+      </div>
+      <div class="sp-sub" id="spSub"></div>
+    </header>
+
+    <nav class="sp-tabs">
+      <button class="sp-tab active" data-sp-tab="schedule">📅 일정</button>
+      <button class="sp-tab" data-sp-tab="settle">💰 정산</button>
+      <button class="sp-tab" data-sp-tab="product">📦 제품</button>
+      <button class="sp-tab" data-sp-tab="faq">💬 무물</button>
+    </nav>
+
+    <main class="sp-main">
+      <section class="sp-pane active" id="sp-schedule">
+        <div class="sp-section-title">📌 이 캠페인 주요 일정</div>
+        <div class="sp-events" id="spEvents">
+          <div class="sp-empty">로딩…</div>
+        </div>
+        <div class="sp-section-title">📅 일자별 액션</div>
+        <div class="sp-list" id="spSchedule">
+          <div class="sp-empty">로딩…</div>
+        </div>
+      </section>
+
+      <section class="sp-pane" id="sp-settle">
+        <div id="spSettle">
+          <div class="sp-empty">로딩…</div>
+        </div>
+      </section>
+
+      <section class="sp-pane" id="sp-product">
+        <div id="spProduct">
+          <div class="sp-empty">로딩…</div>
+        </div>
+      </section>
+
+      <section class="sp-pane" id="sp-faq">
+        <div class="sp-faq-list" id="spFaq">
+          <div class="sp-empty">로딩…</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="sp-foot">
+      <span>넥스트포트 · 공구 플레이북</span>
+    </footer>
+  </div>
+
+  <!-- 액션 상세 시트 (바텀시트) -->
+  <div class="sp-sheet" id="spSheet" hidden>
+    <div class="sp-sheet-backdrop" data-sp-close></div>
+    <div class="sp-sheet-card">
+      <button class="sp-sheet-close" data-sp-close>✕</button>
+      <div id="spSheetBody"></div>
+    </div>
+  </div>
+
+  <script src="/static/seller-page.js"></script>
+</body>
+</html>
