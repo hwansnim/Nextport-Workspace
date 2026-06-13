@@ -3346,6 +3346,70 @@ def api_pipeline_list():
     })
 
 
+@app.route("/api/pipeline/manual", methods=["POST"])
+def api_pipeline_manual_add():
+    """수동으로 진행 예정 셀러 추가 — 인플루언서 DB에 없어도 박을 수 있음."""
+    payload = request.get_json(force=True) or {}
+    seller_name = (payload.get("seller_name") or "").strip()
+    instagram_id = (payload.get("instagram_id") or "").strip().lstrip("@")
+    if not seller_name and not instagram_id:
+        return jsonify({"error": "셀러명 또는 인스타ID 중 1개 필수"}), 400
+
+    influencers = _load_influencers()
+    # 인스타ID 중복이면 기존 record 사용
+    existing = None
+    if instagram_id:
+        existing = next((x for x in influencers
+                         if (x.get("instagram_id") or "").lower() == instagram_id.lower()), None)
+    if existing:
+        existing["pipeline_stage"] = payload.get("pipeline_stage") or "진행예정"
+        for k in ("seller_name", "follower_count", "owner", "email", "phone",
+                  "kakao_id", "notes", "category"):
+            if payload.get(k):
+                existing[k] = payload[k]
+        _save_influencers(influencers)
+        return jsonify({"ok": True, "influencer": existing, "created": False})
+
+    nums = []
+    for it in influencers:
+        m = re.match(r"inf(\d+)", str(it.get("id", "")))
+        if m:
+            nums.append(int(m.group(1)))
+    new_id = f"inf{(max(nums) if nums else 0) + 1:05d}"
+
+    new_inf = {
+        "id": new_id,
+        "instagram_id": instagram_id or f"manual_{new_id}",
+        "url": f"https://www.instagram.com/{instagram_id}/" if instagram_id else "",
+        "seller_name": seller_name,
+        "status": payload.get("status") or "수동등록",
+        "follower_count": payload.get("follower_count") or "",
+        "category": payload.get("category") or "",
+        "owner": payload.get("owner") or "",
+        "email": payload.get("email") or "",
+        "phone": payload.get("phone") or "",
+        "kakao_id": payload.get("kakao_id") or "",
+        "notes": payload.get("notes") or "수동 추가",
+        "first_reply_date": "",
+        "reply_account": "",
+        "last_sent_date": "",
+        "last_sent_account_id": "",
+        "send_count": 0,
+        "history_text": "",
+        "history": [],
+        "used_account_ids": [],
+        "reply_received": False,
+        "last_reply_at": None,
+        "pipeline_stage": payload.get("pipeline_stage") or "진행예정",
+        "meetings": [],
+        "imported_at": datetime.now().isoformat(timespec="seconds"),
+        "manually_added": True,
+    }
+    influencers.append(new_inf)
+    _save_influencers(influencers)
+    return jsonify({"ok": True, "influencer": new_inf, "created": True})
+
+
 @app.route("/api/pipeline/<inf_id>", methods=["PATCH"])
 def api_pipeline_patch(inf_id):
     """파이프라인 단계 변경 / next_action 수정."""

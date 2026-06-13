@@ -706,6 +706,325 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ═══ Phase I: 메타 광고관리자 3탭 ═══ */
+
+.meta-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 14px;
+  background: #fff;
+  border-radius: 8px 8px 0 0;
+  overflow-x: auto;
+}
+.meta-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.meta-tab:hover { background: #fafaf6; color: #333; }
+.meta-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+.meta-tab .mt-count {
+  display: inline-block;
+  background: #f0ede5;
+  color: #666;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.meta-tab.active .mt-count { background: var(--accent); color: #fff; }
+
+.meta-table-wrap {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  overflow-x: auto;
+}
+.meta-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.meta-table thead {
+  background: #fafaf6;
+  border-bottom: 2px solid var(--border);
+}
+.meta-table thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.meta-table tbody td {
+  padding: 12px;
+  border-bottom: 1px solid #f0ede5;
+}
+.meta-table tbody tr.meta-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.meta-table tbody tr.meta-row:hover { background: #fff5e8; }
+.meta-name { display: flex; flex-direction: column; gap: 2px; }
+.meta-name b { font-size: 13.5px; }
+.meta-name .hint { font-size: 11px; color: var(--muted); }
+
+.meta-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.meta-status.s-진행중 { background: #e8f5e8; color: #2e7d32; }
+.meta-status.s-준비중 { background: #f5f5f5; color: #666; }
+.meta-status.s-완료 { background: #ede7f6; color: #5e35b1; }
+.meta-status.s-중단 { background: #ffebee; color: #c62828; }
+.meta-good { color: #2e7d32; font-weight: 700; }
+.meta-bad { color: #c62828; font-weight: 700; }
+
+/* 토글 스위치 (메타 광고관리자 스타일) */
+.meta-toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+.meta-toggle input { opacity: 0; width: 0; height: 0; }
+.meta-toggle span {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #ccc;
+  transition: 0.2s;
+  border-radius: 18px;
+}
+.meta-toggle span::before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+.meta-toggle input:checked + span { background: #2e7d32; }
+.meta-toggle input:checked + span::before { transform: translateX(14px); }
+
+/* ═══ Phase I: 셀러 노출 미리보기 ═══ */
+.seller-preview-card {
+  background: linear-gradient(135deg, #fff 0%, #fafaf6 100%);
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  padding: 18px 22px;
+}
+.spc-head { margin-bottom: 14px; }
+.spc-head h3 { margin: 0 0 4px; font-size: 16px; color: var(--accent); }
+.spc-section {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+.spc-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+}
+.spc-value { font-size: 14px; }
+.spc-timeline { display: flex; flex-direction: column; gap: 4px; }
+.spc-tl-row { display: flex; gap: 12px; padding: 4px 0; font-size: 13px; }
+.spc-tl-date {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 90px;
+}
+.spc-list { padding-left: 20px; margin: 4px 0; font-size: 13px; line-height: 1.6; }
+.spc-banner-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.spc-banner {
+  padding: 4px 12px;
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #888;
+}
+.spc-banner.spc-done {
+  background: #e8f5e8;
+  color: #2e7d32;
+  border-color: #4caf50;
+  font-weight: 600;
+}
+.spc-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══ Phase I: 설정 토글 스위치 ═══ */
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+.settings-toggle input { display: none; }
+.settings-toggle-track {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  background: #ccc;
+  border-radius: 14px;
+  transition: 0.2s;
+  flex-shrink: 0;
+}
+.settings-toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.settings-toggle input:checked + .settings-toggle-track { background: var(--accent); }
+.settings-toggle input:checked + .settings-toggle-track::after { transform: translateX(22px); }
+.settings-toggle-label { display: flex; flex-direction: column; gap: 2px; }
+.settings-toggle-label b { font-size: 14px; }
+.settings-toggle-label .hint { font-size: 12px; color: var(--muted); }
+
+/* ═══ Phase I: 회신 인플루언서 흰영역 수정 ═══ */
+/* 영역 우측 빈 공간 줄이고 패딩 보정 */
+#tab-replies .panel { background: #fff; }
+#tab-replies .dm-table-wrap {
+  background: #fff;
+  overflow-x: auto;
+}
+#tab-replies .replies-table {
+  min-width: 1300px;  /* 14컬럼이라 가로 길게 - 가로 스크롤로 처리 */
+}
+
+/* ═══ Phase I: 모바일 모드 (골격만 — Phase J에서 풀 폴리시) ═══ */
+.mobile-hamburger {
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 8500;
+  width: 44px;
+  height: 44px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 22px;
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  cursor: pointer;
+}
+.mobile-nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 8000;
+}
+
+body.mobile-mode .mobile-hamburger { display: block; }
+body.mobile-mode .sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  bottom: 0;
+  width: 280px;
+  z-index: 8200;
+  transition: left 0.25s;
+  overflow-y: auto;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+body.mobile-mode.mobile-nav-open .sidebar { left: 0; }
+body.mobile-mode.mobile-nav-open .mobile-nav-backdrop { display: block; }
+body.mobile-mode .main {
+  margin-left: 0 !important;
+  padding: 70px 14px 20px;
+}
+body.mobile-mode .page-head h1 { font-size: 20px; }
+body.mobile-mode .page-head p { font-size: 12px; }
+
+/* 모바일에서 가로 스크롤 표는 그대로 두되 폰트 줄임 */
+body.mobile-mode table { font-size: 11.5px; }
+body.mobile-mode th, body.mobile-mode td { padding: 6px 8px; }
+
+/* 모바일에서 그리드는 1열 */
+body.mobile-mode .ad-section-grid,
+body.mobile-mode .ad-banner-grid,
+body.mobile-mode .daily-stats,
+body.mobile-mode .cam-meta-grid,
+body.mobile-mode .pipe-detail-contact {
+  grid-template-columns: 1fr !important;
+}
+
+/* 모바일에서 인박스 1열 → 리스트만 보이고 thread 클릭 시 풀스크린 */
+body.mobile-mode .inbox-layout {
+  grid-template-columns: 1fr;
+  height: auto;
+}
+body.mobile-mode .inbox-thread {
+  position: fixed;
+  inset: 0;
+  z-index: 8400;
+  border-radius: 0;
+  display: none;
+}
+body.mobile-mode .inbox-thread:not(:empty) { display: flex; }
+
+/* 모바일에서 캠페인 디테일 광고 6섹션 */
+body.mobile-mode .ad-section-grid { gap: 8px; }
+
+/* 모바일에서 가이드 좌측 목차는 숨김 */
+body.mobile-mode .guide-toc { display: none; }
+body.mobile-mode .guide-layout { grid-template-columns: 1fr; }
+
+/* 토스트 컨테이너 모바일 조정 */
+body.mobile-mode #toastContainer {
+  top: auto !important;
+  bottom: 20px;
+  right: 14px !important;
+  left: 14px;
+  width: auto;
+}
+
 /* ═══ Phase G: 공동구매 가이드 ═══ */
 
 .guide-layout {

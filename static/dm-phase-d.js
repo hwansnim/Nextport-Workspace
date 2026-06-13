@@ -459,6 +459,32 @@
     if (what === "pipe-detail") {
       return openPipelineDetail(trg.dataset.id);
     }
+    if (what === "pipe-manual-add") {
+      const seller = prompt("셀러명:");
+      if (!seller) return;
+      const handle = prompt("인스타ID (선택, @ 빼고):") || "";
+      const owner = prompt("담당자 (선택):") || "";
+      const phone = prompt("전화번호 (선택):") || "";
+      const email = prompt("이메일 (선택):") || "";
+      try {
+        const r = await api("/api/pipeline/manual", {
+          method: "POST",
+          body: JSON.stringify({
+            seller_name: seller,
+            instagram_id: handle,
+            owner, phone, email,
+            pipeline_stage: "진행예정",
+          }),
+        });
+        window.showToast?.({
+          icon: "🎯",
+          title: r.created ? "수동 추가 완료" : "기존 인플루언서 박힘",
+          body: seller, accent: true,
+        });
+        await loadPipeline();
+      } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
     if (what === "pipe-detail-close") {
       return closePipelineDetail();
     }

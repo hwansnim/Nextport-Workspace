@@ -159,18 +159,17 @@
           <table class="seller-table" id="campaignTable"><tbody id="campaignTableBody"></tbody></table>
         </div>
 
-        <!-- ─── v2: 메타 광고관리자 스타일 ─────────────── -->
-        <!-- 캠페인 목록 모드 -->
+        <!-- ─── v2: 메타 광고관리자 스타일 (3탭 + 행단위) ─── -->
         <div id="camV2ListView">
           <div class="page-head">
             <div>
               <h1>📣 셀러 캠페인</h1>
-              <p class="page-sub">캠페인(셀러+브랜드) → 세트(차수) → 공동구매(광고). 광고 안에서 모든 작업 관리.</p>
+              <p class="page-sub">메타 광고관리자 카피. 캠페인 / 세트(차수) / 마켓(공동구매) 3단계 행단위.</p>
             </div>
           </div>
 
           <div class="cam-toolbar">
-            <input type="search" id="camV2Search" placeholder="🔍 셀러명 / 브랜드 / 제품" />
+            <input type="search" id="camV2Search" placeholder="🔍 셀러 / 브랜드 / 제품" />
             <select id="camV2TypeFilter" class="filter-sel">
               <option value="">전체 타입</option>
               <option value="메가">메가</option>
@@ -185,11 +184,99 @@
               <option value="중단">중단</option>
             </select>
             <span class="hint" id="camV2Stat" style="margin-left:auto">로딩…</span>
-            <button class="btn-primary" data-v2="cam-new">+ 캠페인 추가</button>
+            <button class="btn-primary" data-v2="cam-new">+ 캠페인 만들기</button>
           </div>
 
-          <div class="cam-grid" id="camV2Grid">
-            <div class="empty" style="grid-column:1/-1;padding:40px;text-align:center;color:#888">로딩…</div>
+          <!-- 3탭 헤더 (메타 광고관리자 스타일) -->
+          <div class="meta-tabs">
+            <button class="meta-tab active" data-meta-tab="campaigns">
+              <span class="mt-ico">📣</span>
+              <span class="mt-label">캠페인</span>
+              <span class="mt-count" id="metaCntCampaigns">0</span>
+            </button>
+            <button class="meta-tab" data-meta-tab="sets">
+              <span class="mt-ico">🎬</span>
+              <span class="mt-label">세트 (차수)</span>
+              <span class="mt-count" id="metaCntSets">0</span>
+            </button>
+            <button class="meta-tab" data-meta-tab="markets">
+              <span class="mt-ico">🛒</span>
+              <span class="mt-label">마켓 (공동구매)</span>
+              <span class="mt-count" id="metaCntMarkets">0</span>
+            </button>
+          </div>
+
+          <!-- 캠페인 탭 -->
+          <div class="meta-pane active" id="metaPaneCampaigns">
+            <div class="meta-table-wrap">
+              <table class="meta-table">
+                <thead>
+                  <tr>
+                    <th style="width:36px"><input type="checkbox" /></th>
+                    <th style="width:46px">설정</th>
+                    <th>캠페인</th>
+                    <th style="width:90px">타입</th>
+                    <th style="width:100px">게재</th>
+                    <th style="width:90px">차수</th>
+                    <th style="width:90px">마켓</th>
+                    <th style="width:120px">총 매출</th>
+                    <th style="width:120px">총 비용</th>
+                    <th style="width:80px">마진율</th>
+                    <th style="width:110px">마켓일정</th>
+                    <th style="width:80px"></th>
+                  </tr>
+                </thead>
+                <tbody id="metaCampaignsBody"><tr><td colspan="12" class="empty">로딩…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 세트 탭 -->
+          <div class="meta-pane" id="metaPaneSets" hidden>
+            <div class="meta-table-wrap">
+              <table class="meta-table">
+                <thead>
+                  <tr>
+                    <th style="width:36px"><input type="checkbox" /></th>
+                    <th style="width:46px">설정</th>
+                    <th>세트 (차수)</th>
+                    <th>캠페인</th>
+                    <th style="width:100px">게재</th>
+                    <th style="width:80px">마켓</th>
+                    <th style="width:120px">매출</th>
+                    <th style="width:120px">비용</th>
+                    <th style="width:80px">마진율</th>
+                    <th style="width:80px"></th>
+                  </tr>
+                </thead>
+                <tbody id="metaSetsBody"><tr><td colspan="10" class="empty">로딩…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 마켓 탭 -->
+          <div class="meta-pane" id="metaPaneMarkets" hidden>
+            <div class="meta-table-wrap">
+              <table class="meta-table">
+                <thead>
+                  <tr>
+                    <th style="width:36px"><input type="checkbox" /></th>
+                    <th style="width:46px">설정</th>
+                    <th>마켓 (공동구매)</th>
+                    <th>세트</th>
+                    <th>캠페인</th>
+                    <th style="width:100px">게재</th>
+                    <th style="width:100px">시작일</th>
+                    <th style="width:100px">종료일</th>
+                    <th style="width:120px">매출</th>
+                    <th style="width:120px">비용</th>
+                    <th style="width:80px">마진율</th>
+                    <th style="width:80px"></th>
+                  </tr>
+                </thead>
+                <tbody id="metaMarketsBody"><tr><td colspan="12" class="empty">로딩…</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -319,6 +406,24 @@
                     <div id="adReelsList" class="ad-list-cards"></div>
                     <button class="btn-secondary" data-v2="ad-reel-add">+ 릴스 추가</button>
                   </div>
+                </div>
+
+                <!-- 7. 매출 / 비용 -->
+                <div class="ad-section">
+                  <div class="ad-sec-head">💰 매출 / 비용</div>
+                  <div class="ad-sec-body" id="adRevenueBody"></div>
+                </div>
+
+                <!-- 8. 스케줄링 자동 생성 -->
+                <div class="ad-section">
+                  <div class="ad-sec-head">⚡ 스케줄링 자동 생성</div>
+                  <div class="ad-sec-body" id="adSchedAutoBody"></div>
+                </div>
+
+                <!-- 9. 셀러 노출 미리보기 -->
+                <div class="ad-section ad-section-wide">
+                  <div class="ad-sec-head">👁 셀러 노출 미리보기 (이대로 전달)</div>
+                  <div class="ad-sec-body" id="adSellerPreview"></div>
                 </div>
 
               </div>
@@ -715,6 +820,7 @@
                 <option value="종료">종료</option>
               </select>
               <input type="text" id="pipelineSearch" placeholder="🔍 셀러명 / 인스타" style="font-size:12px;padding:5px 9px;width:220px" />
+              <button class="btn-primary" data-v2="pipe-manual-add">+ 수동 추가</button>
             </div>
           </div>
           <div class="dm-table-wrap">
@@ -1206,8 +1312,44 @@
       <section class="tab-pane" id="tab-settings">
         <div class="page-head">
           <h1>설정</h1>
-          <p class="page-sub">API 키, Drive 연결, 스크래퍼 옵션 등.</p>
+          <p class="page-sub">API 키, Drive 연결, 스크래퍼 옵션, 화면 모드 등.</p>
         </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>📱 화면 모드</h2>
+          </div>
+          <div style="padding:14px 16px">
+            <label class="settings-toggle">
+              <input type="checkbox" id="mobileModeToggle" />
+              <span class="settings-toggle-track"></span>
+              <span class="settings-toggle-label">
+                <b>모바일 보기</b>
+                <span class="hint">사이드바 → 하단 햄버거 / 표 → 카드 / 폰트 크기 자동 조정</span>
+              </span>
+            </label>
+            <div class="hint" style="margin-top:10px;font-size:11.5px">
+              ⚠️ 토글 OFF여도 화면 너비가 760px 미만이면 자동으로 모바일 모드 적용
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>☁️ Google Drive sync</h2>
+            <div class="head-actions">
+              <button class="btn-secondary" onclick="triggerDriveSync(true)">지금 sync</button>
+            </div>
+          </div>
+          <div style="padding:14px 16px;font-size:13px">
+            <div id="settingsDriveStatus">상태 확인 중…</div>
+            <div class="hint" style="margin-top:8px">
+              주기: 5분 자동 · 폴더: <b>[넥스트포트 공동구매 워크스페이스]</b><br>
+              계정: <code>hwansnim@gmail.com</code> · 대상: 활동 로그 + 데이터 7개 파일
+            </div>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-head">
             <h2>현재 상태</h2>
@@ -1613,6 +1755,7 @@ username2	password2	sender_name2"></textarea>
   <script src="/static/dm-phase-d.js"></script>
   <script src="/static/campaigns-v2.js"></script>
   <script src="/static/activity-tracker.js"></script>
+  <script src="/static/mobile-mode.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)
