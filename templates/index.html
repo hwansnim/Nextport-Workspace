@@ -148,53 +148,177 @@
 
       <!-- TAB: CAMPAIGNS -->
       <section class="tab-pane" id="tab-campaigns">
-        <!-- 상세 모드 — JS가 채움. 숨김 상태로 시작 -->
+        <!-- 옛 v1 컨테이너 (사용 안 함, JS 충돌 방지용 placeholder) -->
         <div id="campDetailView" hidden></div>
-
-        <!-- 목록 모드 -->
-        <div id="campListView">
-        <div class="page-head">
-          <h1>셀러 캠페인 (누적)</h1>
-          <p class="page-sub">행 클릭 = 단독 컨트롤 타워 페이지. ✎ = 빠른 편집 다이얼로그.</p>
+        <div id="campListView" hidden>
+          <table class="seller-table" id="campaignTable"><tbody id="campaignTableBody"></tbody></table>
         </div>
 
-        <section class="panel">
-          <div class="panel-head">
-            <h2>전체 캠페인</h2>
-            <div class="head-actions">
-              <select id="campFilter" class="filter-sel">
-                <option value="">전체 상태</option>
-                <option>진행중</option>
-                <option>예정</option>
-                <option>준비중</option>
-                <option>미정</option>
-                <option>완료</option>
-              </select>
-              <button id="btnAddCampaign" class="btn-secondary">+ 캠페인 추가</button>
+        <!-- ─── v2: 메타 광고관리자 스타일 ─────────────── -->
+        <!-- 캠페인 목록 모드 -->
+        <div id="camV2ListView">
+          <div class="page-head">
+            <div>
+              <h1>📣 셀러 캠페인</h1>
+              <p class="page-sub">캠페인(셀러+브랜드) → 세트(차수) → 공동구매(광고). 광고 안에서 모든 작업 관리.</p>
             </div>
           </div>
-          <div class="seller-table-wrap">
-            <table class="seller-table" id="campaignTable">
-              <thead>
-                <tr>
-                  <th>셀러</th>
-                  <th>브랜드 / 제품</th>
-                  <th>차수</th>
-                  <th>컨택</th>
-                  <th>단계</th>
-                  <th>라이브 기간</th>
-                  <th>발송</th>
-                  <th>시트</th>
-                  <th>상태</th>
-                  <th>작업</th>
-                </tr>
-              </thead>
-              <tbody id="campaignTableBody">
-                <tr><td colspan="10" class="empty">불러오는 중…</td></tr>
-              </tbody>
-            </table>
+
+          <div class="cam-toolbar">
+            <input type="search" id="camV2Search" placeholder="🔍 셀러명 / 브랜드 / 제품" />
+            <select id="camV2TypeFilter" class="filter-sel">
+              <option value="">전체 타입</option>
+              <option value="메가">메가</option>
+              <option value="마이크로">마이크로</option>
+              <option value="벤더">벤더</option>
+            </select>
+            <select id="camV2StatusFilter" class="filter-sel">
+              <option value="">전체 상태</option>
+              <option value="준비중">준비중</option>
+              <option value="진행중">진행중</option>
+              <option value="완료">완료</option>
+              <option value="중단">중단</option>
+            </select>
+            <span class="hint" id="camV2Stat" style="margin-left:auto">로딩…</span>
+            <button class="btn-primary" data-v2="cam-new">+ 캠페인 추가</button>
           </div>
-        </section>
+
+          <div class="cam-grid" id="camV2Grid">
+            <div class="empty" style="grid-column:1/-1;padding:40px;text-align:center;color:#888">로딩…</div>
+          </div>
+        </div>
+
+        <!-- 캠페인 디테일 모드 (선택된 캠페인) -->
+        <div id="camV2DetailView" hidden>
+          <div class="cam-breadcrumb">
+            <button class="btn-text" data-v2="cam-back">← 캠페인 목록</button>
+            <span class="cam-bc-sep">›</span>
+            <span class="cam-bc-current" id="camBcCampaign"></span>
+            <span class="cam-bc-sep" id="camBcSetSep" hidden>›</span>
+            <span class="cam-bc-current" id="camBcSet" hidden></span>
+          </div>
+
+          <!-- 캠페인 메타 정보 -->
+          <section class="panel" id="camMetaPanel">
+            <div class="panel-head">
+              <h2>📌 캠페인 정보</h2>
+              <div class="head-actions">
+                <button class="btn-text" data-v2="cam-edit-meta">✎ 편집</button>
+              </div>
+            </div>
+            <div class="cam-meta-grid" id="camMetaBody"></div>
+          </section>
+
+          <!-- 세트(차수) 리스트 -->
+          <section class="panel">
+            <div class="panel-head">
+              <h2>🎬 세트 (공구 차수)</h2>
+              <div class="head-actions">
+                <button class="btn-secondary" data-v2="cam-add-set">+ 다음 차수 추가</button>
+              </div>
+            </div>
+            <div class="cam-sets" id="camSetsBody"></div>
+          </section>
+
+          <!-- 광고(공동구매) 디테일 — 세트 선택 시 표시 -->
+          <div id="camAdDetailWrap" hidden>
+            <section class="panel cam-ad-detail">
+              <div class="panel-head">
+                <h2>🛒 공동구매 디테일</h2>
+                <div class="head-actions">
+                  <span class="hint" id="camAdStatusLabel"></span>
+                  <select id="camAdStatusSel" class="filter-sel">
+                    <option value="준비중">준비중</option>
+                    <option value="진행중">진행중</option>
+                    <option value="완료">완료</option>
+                    <option value="중단">중단</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 6 섹션 그리드 -->
+              <div class="ad-section-grid">
+
+                <!-- 1. 제품 발송 -->
+                <div class="ad-section">
+                  <div class="ad-sec-head">📦 제품 발송</div>
+                  <div class="ad-sec-body">
+                    <label class="ad-field">
+                      <span>마지막 발송일</span>
+                      <input type="date" id="adProductSentDate" />
+                    </label>
+                    <button class="btn-secondary" data-v2="ad-save-product">저장</button>
+                  </div>
+                </div>
+
+                <!-- 2. 스케줄링 -->
+                <div class="ad-section">
+                  <div class="ad-sec-head">📅 스케줄링</div>
+                  <div class="ad-sec-body">
+                    <label class="ad-field">
+                      <span>시작일</span>
+                      <input type="date" id="adSchedStart" />
+                    </label>
+                    <label class="ad-field">
+                      <span>종료일</span>
+                      <input type="date" id="adSchedEnd" />
+                    </label>
+                    <div class="ad-sub-head">세부 일정</div>
+                    <div id="adSchedItems" class="ad-list-mini"></div>
+                    <div class="ad-add-row">
+                      <input type="date" id="adSchedNewDate" />
+                      <input type="text" id="adSchedNewLabel" placeholder="라이브 / 공구 오픈 / 마감 등" />
+                      <button class="btn-text" data-v2="ad-sched-add">+ 추가</button>
+                    </div>
+                    <button class="btn-secondary" data-v2="ad-save-sched">전체 저장</button>
+                  </div>
+                </div>
+
+                <!-- 3. 이벤트 -->
+                <div class="ad-section">
+                  <div class="ad-sec-head">🎁 이벤트 관리</div>
+                  <div class="ad-sec-body">
+                    <div id="adEventList" class="ad-list-mini"></div>
+                    <div class="ad-add-row">
+                      <input type="text" id="adEventNew" placeholder="이벤트 내용 (예: 1+1, 추첨 5명 사은품)" />
+                      <button class="btn-text" data-v2="ad-event-add">+ 추가</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. 구글 드라이브 -->
+                <div class="ad-section">
+                  <div class="ad-sec-head">🔗 셀러 전달용 자료 (Drive)</div>
+                  <div class="ad-sec-body">
+                    <div id="adDriveList" class="ad-list-mini"></div>
+                    <div class="ad-add-row">
+                      <input type="text" id="adDriveNewLabel" placeholder="라벨 (예: 제품 사진)" style="flex:0 0 35%" />
+                      <input type="url" id="adDriveNewUrl" placeholder="https://drive.google.com/..." />
+                      <button class="btn-text" data-v2="ad-drive-add">+ 추가</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 5. 배너 -->
+                <div class="ad-section ad-section-wide">
+                  <div class="ad-sec-head">🖼️ 배너 (오픈피드 / 가격 / 이벤트)</div>
+                  <div class="ad-sec-body">
+                    <div class="ad-banner-grid" id="adBannerGrid"></div>
+                  </div>
+                </div>
+
+                <!-- 6. 릴스 -->
+                <div class="ad-section ad-section-wide">
+                  <div class="ad-sec-head">🎬 릴스 기획안 + 영상</div>
+                  <div class="ad-sec-body">
+                    <div id="adReelsList" class="ad-list-cards"></div>
+                    <button class="btn-secondary" data-v2="ad-reel-add">+ 릴스 추가</button>
+                  </div>
+                </div>
+
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -1150,6 +1274,7 @@ username2	password2	sender_name2"></textarea>
   <script src="/static/dm-v2-widget.js"></script>
   <script src="/static/dm-queue-inbox.js"></script>
   <script src="/static/dm-phase-d.js"></script>
+  <script src="/static/campaigns-v2.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)

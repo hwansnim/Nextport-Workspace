@@ -3236,6 +3236,29 @@ def api_campaigns_v2_one(cam_id):
         if k in payload:
             cam[k] = payload[k]
     _save_campaigns_v2(items)
+
+    # 마켓 일정 → 캘린더 sync
+    try:
+        events = load_events()
+        tag = f"camcal_{cam['id']}_market"
+        events = [e for e in events if e.get("id") != tag]
+        mk = cam.get("market_schedule")
+        if mk and len(mk) >= 8:
+            # YYYY-MM-DD 형식이면 직접 박고, 아니면 텍스트 그대로 type=campaign_market
+            date_match = re.match(r"^(\d{4}-\d{2}-\d{2})", mk)
+            if date_match:
+                events.append({
+                    "id": tag,
+                    "title": f"[{cam.get('seller_name') or ''}] 마켓 시작",
+                    "date": date_match.group(1),
+                    "type": "campaign_market",
+                    "linked_campaign_id": cam["id"],
+                    "note": mk,
+                })
+                save_events(events)
+    except Exception as e:
+        log.warning(f"마켓 일정 캘린더 sync 실패 (무시): {e}")
+
     return jsonify({"ok": True, "campaign": cam})
 
 
@@ -3276,9 +3299,72 @@ def api_campaigns_v2_add_set(cam_id):
     return jsonify({"ok": True, "set": new_set})
 
 
+def _sync_ad_to_calendar(cam: dict, st: dict, ad: dict) -> int:
+    """광고의 scheduling.items + product_sent_date를 events.json에 sync. 기존 ad_id 매칭 이벤트 제거 후 재생성."""
+    try:
+        events = load_events()
+    except Exception:
+        return 0
+    tag = f"adcal_{cam['id']}_{st['id']}_{ad['id']}_"
+    # 기존 자동 등록 제거
+    events = [e for e in events if not str(e.get("id", "")).startswith(tag)]
+    added = 0
+    seller = cam.get("seller_name") or "셀러"
+    brand = cam.get("brand") or ""
+    round_label = st.get("label") or f"{st.get('round', 1)}차"
+
+    # 스케줄링 시작/종료를 라이브 기간으로
+    sched = ad.get("scheduling") or {}
+    if sched.get("start_date") and sched.get("end_date"):
+        events.append({
+            "id": f"{tag}live",
+            "title": f"[{seller}] {round_label} 라이브",
+            "date": sched["start_date"],
+            "end_date": sched["end_date"],
+            "type": "campaign_live",
+            "linked_campaign_id": cam["id"],
+            "linked_set_id": st["id"],
+            "linked_ad_id": ad["id"],
+            "brand": brand,
+        })
+        added += 1
+
+    # 세부 일정 각각
+    for i, item in enumerate(sched.get("items") or []):
+        if not item.get("date"):
+            continue
+        events.append({
+            "id": f"{tag}sched_{i}",
+            "title": f"[{seller}] {item.get('label') or '일정'}",
+            "date": item["date"],
+            "type": "campaign_schedule",
+            "linked_campaign_id": cam["id"],
+            "linked_set_id": st["id"],
+            "linked_ad_id": ad["id"],
+        })
+        added += 1
+
+    # 제품 발송일
+    if ad.get("product_sent_date"):
+        events.append({
+            "id": f"{tag}ship",
+            "title": f"[{seller}] 제품 발송 ({round_label})",
+            "date": ad["product_sent_date"],
+            "type": "campaign_ship",
+            "linked_campaign_id": cam["id"],
+            "linked_set_id": st["id"],
+            "linked_ad_id": ad["id"],
+        })
+        added += 1
+
+    save_events(events)
+    return added
+
+
 @app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>", methods=["PATCH"])
 def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
-    """공동구매(광고) 단위 필드 수정 — 제품발송/스케줄링/이벤트/드라이브/배너/릴스 전부."""
+    """공동구매(광고) 단위 필드 수정 — 제품발송/스케줄링/이벤트/드라이브/배너/릴스 전부.
+    수정 후 캘린더 자동 sync."""
     items = _load_campaigns_v2()
     cam = next((c for c in items if c["id"] == cam_id), None)
     if not cam:
@@ -3291,11 +3377,9 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
         return jsonify({"error": "광고 없음"}), 404
 
     payload = request.get_json(force=True) or {}
-    # 단순 필드
     for k in ["name", "product_sent_date", "status"]:
         if k in payload:
             ad[k] = payload[k]
-    # 객체/리스트 필드 (merge)
     for k in ["scheduling", "banners"]:
         if k in payload and isinstance(payload[k], dict):
             ad.setdefault(k, {}).update(payload[k])
@@ -3303,6 +3387,13 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
         if k in payload and isinstance(payload[k], list):
             ad[k] = payload[k]
     _save_campaigns_v2(items)
+
+    # 캘린더 자동 sync (스케줄링/제품발송 변경 시)
+    try:
+        _sync_ad_to_calendar(cam, st, ad)
+    except Exception as e:
+        log.warning(f"캘린더 sync 실패 (무시): {e}")
+
     return jsonify({"ok": True, "ad": ad})
 
 
