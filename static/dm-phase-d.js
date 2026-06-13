@@ -192,8 +192,9 @@
         <td contenteditable="true" ${ed('phone')}>${esc(r.phone || "")}</td>
         <td contenteditable="true" ${ed('kakao_id')}>${esc(r.kakao_id || "")}</td>
         <td style="font-size:11.5px;max-width:240px" contenteditable="true" ${ed('notes')}>${esc(r.notes || "")}</td>
-        <td style="text-align:center">
+        <td style="text-align:center;white-space:nowrap">
           <button class="btn-text" data-v2="replies-open" data-cid="${esc(r.conv_id)}" title="대화 보기">💬</button>
+          <button class="btn-text" data-v2="reply-add-meeting" data-id="${esc(r.influencer_id || '')}" title="미팅 날짜 박기 → 진행 예정 자동 등록">📅</button>
           <button class="btn-text" data-v2="reply-to-pipeline" data-id="${esc(r.influencer_id || '')}" title="진행 예정으로 이동">🎯</button>
         </td>
       </tr>`;
@@ -254,7 +255,7 @@
             ${stages.map(s => `<option value="${s}" ${s === p.pipeline_stage ? "selected" : ""}>${s}</option>`).join("")}
           </select>
         </td>
-        <td><b>${esc(p.seller_name || "-")}</b></td>
+        <td style="cursor:pointer;color:var(--blue)" data-v2="pipe-detail" data-id="${esc(p.influencer_id)}"><b>${esc(p.seller_name || "-")}</b> →</td>
         <td>
           <a href="${esc(p.url || `https://www.instagram.com/${p.instagram_id}/`)}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none">
             @${esc(p.instagram_id || "")}
@@ -273,6 +274,93 @@
       </tr>
     `).join("");
   }
+
+  // ─── 진행 예정 디테일 모달 (미팅 기록 + 녹취) ─────────
+  async function openPipelineDetail(iid) {
+    if (!iid) return;
+    let root = $("#pipeDetailModal");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "pipeDetailModal";
+      root.className = "pipe-detail-backdrop";
+      document.body.appendChild(root);
+    }
+    root.innerHTML = `<div class="pipe-detail-modal"><div class="empty" style="padding:40px;text-align:center">불러오는 중…</div></div>`;
+    root.style.display = "flex";
+    try {
+      const inf = await api(`/api/pipeline/${iid}/detail`);
+      renderPipelineDetail(root, inf);
+    } catch (err) {
+      root.innerHTML = `<div class="pipe-detail-modal"><div class="empty" style="padding:40px">실패: ${esc(err.message)}</div></div>`;
+    }
+  }
+
+  function closePipelineDetail() {
+    const root = $("#pipeDetailModal");
+    if (root) root.style.display = "none";
+  }
+
+  function renderPipelineDetail(root, inf) {
+    const meetings = inf.meetings || [];
+    root.innerHTML = `
+      <div class="pipe-detail-modal">
+        <div class="pipe-detail-head">
+          <div>
+            <h2>🎯 ${esc(inf.seller_name || inf.instagram_id)}</h2>
+            <div class="hint">
+              @${esc(inf.instagram_id)} ·
+              팔로워 ${esc(inf.follower_count || "?")} ·
+              담당 ${esc(inf.owner || "미정")} ·
+              단계 <b>${esc(inf.pipeline_stage || "-")}</b>
+            </div>
+          </div>
+          <button class="btn-text" data-v2="pipe-detail-close" style="font-size:24px">×</button>
+        </div>
+
+        <div class="pipe-detail-body">
+          <div class="pipe-detail-contact">
+            <div class="pdc-row"><span class="pdc-lbl">이메일</span> <span>${esc(inf.email || "-")}</span></div>
+            <div class="pdc-row"><span class="pdc-lbl">전화</span> <span>${esc(inf.phone || "-")}</span></div>
+            <div class="pdc-row"><span class="pdc-lbl">카톡</span> <span>${esc(inf.kakao_id || "-")}</span></div>
+            <div class="pdc-row"><span class="pdc-lbl">회신 계정</span> <span>@${esc(inf.reply_account || "-")}</span></div>
+            <div class="pdc-row"><span class="pdc-lbl">첫 회신일</span> <span>${esc(inf.first_reply_date || "-")}</span></div>
+            <div class="pdc-row"><span class="pdc-lbl">차수</span> <span>${inf.send_count || 0}차 발송</span></div>
+            <div class="pdc-row pdc-wide"><span class="pdc-lbl">비고</span> <span>${esc(inf.notes || "-")}</span></div>
+          </div>
+
+          <div class="pipe-meetings-head">
+            <h3>📋 미팅 기록 (${meetings.length}건)</h3>
+            <button class="btn-secondary" data-v2="pipe-add-meeting" data-id="${esc(inf.id)}">+ 미팅 박기</button>
+          </div>
+
+          <div class="pipe-meetings">
+            ${meetings.length === 0
+              ? `<div class="empty" style="padding:30px;text-align:center;color:#888">미팅 없음. [+ 미팅 박기] 클릭</div>`
+              : meetings.map((m, i) => `
+                <div class="pipe-meeting-card">
+                  <div class="pmc-head">
+                    <b>${m.round}차 미팅</b>
+                    <input type="date" data-field="date" value="${esc(m.date || "")}" />
+                    <input type="text" data-field="outcome" placeholder="결과: 진행/거절/추가논의 등" value="${esc(m.outcome || "")}" />
+                    <button class="btn-text" data-v2="pipe-meeting-upload" data-id="${esc(inf.id)}" data-idx="${i}" title="녹취 업로드">🎙</button>
+                    <button class="btn-text" data-v2="pipe-meeting-save" data-id="${esc(inf.id)}" data-idx="${i}">💾</button>
+                    <button class="btn-text" data-v2="pipe-meeting-del" data-id="${esc(inf.id)}" data-idx="${i}">🗑</button>
+                  </div>
+                  <textarea data-field="note" placeholder="미팅 메모..." rows="2">${esc(m.note || "")}</textarea>
+                  <textarea data-field="transcript" placeholder="녹취록 (직접 입력 또는 녹취 파일 업로드 후 Gemini 분석)" rows="4">${esc(m.transcript || "")}</textarea>
+                  ${m.audio_file ? `<div class="hint">🎵 ${esc(m.audio_file.split(/[\\\\/]/).pop())}</div>` : ""}
+                </div>
+              `).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 백드롭 클릭으로 닫기
+  document.addEventListener("click", (e) => {
+    if (e.target?.id === "pipeDetailModal") closePipelineDetail();
+  });
 
   // ─── EVENT HANDLERS ─────────────────────────────────────
   document.addEventListener("click", async (e) => {
@@ -333,6 +421,26 @@
       } catch (err) { alert("실패: " + err.message); }
       return;
     }
+    if (what === "reply-add-meeting") {
+      // 회신 표에서 미팅 박기 → 진행 예정 자동 등록 + 캘린더
+      const iid = trg.dataset.id;
+      const date = prompt("미팅 날짜 (YYYY-MM-DD):", new Date().toISOString().slice(0, 10));
+      if (!date) return;
+      const note = prompt("메모 (선택):", "") || "";
+      try {
+        const r = await api(`/api/dm/replies/${iid}/meeting`, {
+          method: "POST",
+          body: JSON.stringify({ date, note }),
+        });
+        window.showToast?.({
+          icon: "📅", title: `${r.meeting_round}차 미팅 박힘`,
+          body: `진행 예정 셀러 + 캘린더 자동 등록 (${date})`, accent: true, ttl: 7000,
+        });
+        await loadReplies();
+        await loadPipeline();
+      } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
     if (what === "pipe-add-meeting") {
       const iid = trg.dataset.id;
       const date = prompt("미팅 날짜 (YYYY-MM-DD):", new Date().toISOString().slice(0, 10));
@@ -346,6 +454,57 @@
         window.showToast?.({ icon: "📅", title: `${r.meeting_round}차 미팅 추가됨`, body: `캘린더에도 박힘 (${date})` });
         await loadPipeline();
       } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
+    if (what === "pipe-detail") {
+      return openPipelineDetail(trg.dataset.id);
+    }
+    if (what === "pipe-detail-close") {
+      return closePipelineDetail();
+    }
+    if (what === "pipe-meeting-save") {
+      const iid = trg.dataset.id, idx = parseInt(trg.dataset.idx);
+      const root = trg.closest(".pipe-meeting-card");
+      const date = root.querySelector("[data-field='date']").value;
+      const note = root.querySelector("[data-field='note']").value;
+      const transcript = root.querySelector("[data-field='transcript']").value;
+      const outcome = root.querySelector("[data-field='outcome']").value;
+      try {
+        await api(`/api/pipeline/${iid}/meeting/${idx}`, {
+          method: "PATCH",
+          body: JSON.stringify({ date, note, transcript, outcome }),
+        });
+        window.showToast?.({ icon: "✓", title: "미팅 저장됨", body: "" });
+        await openPipelineDetail(iid);
+      } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
+    if (what === "pipe-meeting-del") {
+      const iid = trg.dataset.id, idx = parseInt(trg.dataset.idx);
+      if (!confirm("미팅 삭제할까?")) return;
+      try {
+        await api(`/api/pipeline/${iid}/meeting/${idx}`, { method: "DELETE" });
+        await openPipelineDetail(iid);
+        await loadPipeline();
+      } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
+    if (what === "pipe-meeting-upload") {
+      const iid = trg.dataset.id, idx = parseInt(trg.dataset.idx);
+      const fi = document.createElement("input");
+      fi.type = "file"; fi.accept = ".m4a,.mp3,.wav,.ogg";
+      fi.onchange = async () => {
+        const f = fi.files[0]; if (!f) return;
+        const fd = new FormData(); fd.append("file", f);
+        try {
+          const res = await fetch(`/api/pipeline/${iid}/meeting/${idx}/audio`, { method: "POST", body: fd });
+          const j = await res.json();
+          if (j.error) { alert("실패: " + j.error); return; }
+          window.showToast?.({ icon: "🎙", title: "녹취 업로드 완료", body: `${j.size_kb} KB` });
+          await openPipelineDetail(iid);
+        } catch (err) { alert("실패: " + err.message); }
+      };
+      fi.click();
       return;
     }
     if (what === "pipe-to-campaign") {

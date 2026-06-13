@@ -1,0 +1,12 @@
+{
+  "templates": [
+    {
+      "id": "tpl_default",
+      "name": "기본 1차",
+      "body": "안녕하세요! 넥스트포트에서 공동구매 제안드립니다 :)",
+      "reply_count": 0,
+      "reply_rate": 0
+    }
+  ],
+  "updated_at": "2026-06-14T06:23:12"
+}

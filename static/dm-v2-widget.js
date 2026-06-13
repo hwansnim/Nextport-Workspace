@@ -161,7 +161,7 @@
     const body = $("#dmAccBody");
     if (!body) return;
     if (!v2.accounts.length) {
-      body.innerHTML = `<tr><td colspan="10" class="empty">데이터 없음. 엑셀 임포트 먼저.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="11" class="empty">데이터 없음. 엑셀 임포트 먼저.</td></tr>`;
       return;
     }
     // 기기별 그룹 정렬
@@ -171,9 +171,13 @@
     let lastDevice = null;
     body.innerHTML = sorted.map(a => {
       const status = a.status || "활성";
+      const sent = a.sent_count_total || a.total_sent || 0;
+      const reply = a.reply_count || 0;
+      const rate = a.reply_rate || 0;
+      const rateClass = rate >= 10 ? "rate-good" : (rate >= 3 ? "rate-mid" : "rate-low");
       let html = "";
       if (a.device !== lastDevice) {
-        html += `<tr class="dm-group-row"><td colspan="10">📱 ${esc(a.device || "(미지정 기기)")}</td></tr>`;
+        html += `<tr class="dm-group-row"><td colspan="11">📱 ${esc(a.device || "(미지정 기기)")}</td></tr>`;
         lastDevice = a.device;
       }
       html += `<tr data-aid="${esc(a.id)}">
@@ -184,8 +188,11 @@
         <td style="font-size:11px">${esc(a.phone || "-")}</td>
         <td style="font-size:11px">${esc(a.created_date || "-")}</td>
         <td><span class="dm-chip s-${esc(acc_status_class(status))}">${esc(status)}</span></td>
-        <td style="text-align:right">${a.total_sent || 0}</td>
-        <td style="font-size:11px;color:#888;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(a.notes || '')}">${esc((a.notes || "").slice(0, 30))}</td>
+        <td style="text-align:right">${sent}</td>
+        <td style="text-align:center;font-size:11px" title="${reply}건 / ${sent}건">
+          ${sent > 0 ? `<span class="acc-rate ${rateClass}"><b>${rate}%</b><span style="opacity:.7;margin-left:4px">${reply}/${sent}</span></span>` : `<span class="hint">-</span>`}
+        </td>
+        <td style="font-size:11px;color:#888;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(a.notes || '')}">${esc((a.notes || "").slice(0, 25))}</td>
         <td><button class="btn-text" data-v2="edit-acc" data-id="${esc(a.id)}">✎</button></td>
       </tr>`;
       return html;

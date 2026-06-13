@@ -28,13 +28,35 @@
       const r = await api("/api/dm/templates_v2");
       state.templates = r.templates || [];
       const sel = $("#dmQueueTemplate");
-      if (!sel) return;
-      sel.innerHTML = state.templates.map(t =>
-        `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
-      if (state.templates.length) {
-        state.selectedTemplateId = state.templates[0].id;
-        sel.value = state.selectedTemplateId;
+      if (sel) {
+        sel.innerHTML = `<option value="">— 템플릿 선택 —</option>` +
+          state.templates.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
+        if (state.templates.length) {
+          state.selectedTemplateId = state.templates[0].id;
+          sel.value = state.selectedTemplateId;
+        }
       }
+      await loadTemplateStats();
+    } catch (e) { console.error(e); }
+  }
+
+  async function loadTemplateStats() {
+    try {
+      const r = await api("/api/dm/stats/templates");
+      const root = $("#dmTemplateStats");
+      if (!root) return;
+      const top5 = (r.templates || []).slice(0, 5);
+      if (!top5.length || !top5.some(t => (t.sent_count || 0) > 0)) {
+        root.innerHTML = `<div class="empty" style="padding:14px;font-size:12px">발송 데이터 누적 후 표시</div>`;
+        return;
+      }
+      root.innerHTML = top5.map(t => `
+        <div class="dm-tpl-stat-row">
+          <span class="dm-tpl-stat-name">${esc(t.name || "(이름 없음)")}</span>
+          <span class="dm-tpl-stat-rate"><b>${t.reply_rate || 0}%</b></span>
+          <span class="dm-tpl-stat-sub">${t.reply_count || 0}/${t.sent_count || 0}</span>
+        </div>
+      `).join("");
     } catch (e) { console.error(e); }
   }
 
@@ -94,8 +116,11 @@
   async function sendOne(infId, accId, btn) {
     const tplId = $("#dmQueueTemplate")?.value;
     const tpl = state.templates.find(t => t.id === tplId);
-    if (!tpl || !tpl.body) {
-      alert("발송 템플릿 없음. 먼저 박아.");
+    // 사용자 직접 입력 멘트가 있으면 우선 — 멘트 박스 비어있으면 템플릿
+    const customMsg = ($("#dmQueueCustomMsg")?.value || "").trim();
+    const message = customMsg || tpl?.body || "";
+    if (!message) {
+      alert("템플릿 선택하거나 멘트 직접 박아.");
       return;
     }
     if (btn) { btn.disabled = true; btn.textContent = "발송중…"; }
@@ -105,7 +130,8 @@
         body: JSON.stringify({
           influencer_id: infId,
           account_id: accId,
-          message: tpl.body,
+          message,
+          template_id: customMsg ? "" : tplId,  // 커스텀 멘트면 템플릿 통계 X
         }),
       });
       if (r.ok) {

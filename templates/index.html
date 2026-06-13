@@ -84,6 +84,10 @@
         <button class="side-item" data-tab="settings">
           <span class="ico">⚙️</span><span>설정</span>
         </button>
+        <div class="side-sep">도움말</div>
+        <button class="side-item" data-tab="guide">
+          <span class="ico">📖</span><span>공동구매 가이드</span>
+        </button>
       </nav>
 
       <div class="side-status">
@@ -544,11 +548,12 @@
                   <th>생성일</th>
                   <th>상태</th>
                   <th>누적</th>
+                  <th title="회신 받은 수 / 발송한 수">회신율</th>
                   <th>비고</th>
                   <th></th>
                 </tr>
               </thead>
-              <tbody id="dmAccBody"><tr><td colspan="10" class="empty">불러오는 중…</td></tr></tbody>
+              <tbody id="dmAccBody"><tr><td colspan="11" class="empty">불러오는 중…</td></tr></tbody>
             </table>
           </div>
         </section>
@@ -573,12 +578,31 @@
           </div>
         </section>
 
+        <!-- 📝 발송 멘트 / 양식별 회신율 -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>📝 발송 멘트 + 양식 회신율</h2>
+          </div>
+          <div class="dm-msg-zone">
+            <div class="dm-msg-left">
+              <label class="dm-msg-label">템플릿 선택 (또는 비워두고 직접 박기)</label>
+              <select id="dmQueueTemplate" class="filter-sel" style="width:100%"></select>
+              <label class="dm-msg-label" style="margin-top:8px">직접 멘트 입력 — 비워두면 위 템플릿 사용</label>
+              <textarea id="dmQueueCustomMsg" rows="4" placeholder="안녕하세요 [셀러명]님! ..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-family:inherit;font-size:13px;resize:vertical"></textarea>
+              <div class="hint" style="margin-top:4px">변수: <code>[name]</code> 발신인 · <code>[targetname]</code> 받는사람</div>
+            </div>
+            <div class="dm-msg-right">
+              <label class="dm-msg-label">📊 양식별 회신율 (상위 5개)</label>
+              <div id="dmTemplateStats" class="dm-tpl-stats"><div class="empty" style="padding:14px;font-size:12px">발송 데이터 누적 후 표시</div></div>
+            </div>
+          </div>
+        </section>
+
         <section class="panel" id="dmQueuePanel">
           <div class="panel-head">
             <h2>🚀 오늘 보낼 큐</h2>
             <div class="head-actions">
               <span class="hint" id="dmQueueStat">계산 전</span>
-              <select id="dmQueueTemplate" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:4px"></select>
               <button class="btn-secondary" data-v2="queue-rebuild">🔄 큐 재계산</button>
               <button class="btn-primary" data-v2="queue-send-all" disabled>📤 전체 발송 시작</button>
             </div>
@@ -713,6 +737,318 @@
             </table>
           </div>
         </section>
+      </section>
+
+      <!-- 📖 TAB: 공동구매 가이드 -->
+      <section class="tab-pane" id="tab-guide">
+        <div class="page-head">
+          <h1>📖 공동구매 가이드</h1>
+          <p class="page-sub">넥스트포트 워크스페이스 전 기능 사용법. 신규 팀원 온보딩용.</p>
+        </div>
+
+        <div class="guide-layout">
+          <aside class="guide-toc">
+            <div class="guide-toc-title">목차</div>
+            <a href="#g-overview" class="guide-toc-link">🏁 전체 개요</a>
+            <a href="#g-flow" class="guide-toc-link">🔄 업무 흐름 (한눈에)</a>
+            <a href="#g-dm-daily" class="guide-toc-link">📤 데일리 DM 관리</a>
+            <a href="#g-dm-live" class="guide-toc-link">▶️ DM 발송 (실시간)</a>
+            <a href="#g-dm-inbox" class="guide-toc-link">💬 DM (수신)</a>
+            <a href="#g-influencers" class="guide-toc-link">👤 전체 인플루언서 DB</a>
+            <a href="#g-accounts" class="guide-toc-link">💻 기기 및 계정 관리</a>
+            <a href="#g-replies" class="guide-toc-link">📬 회신 인플루언서 현황</a>
+            <a href="#g-pipeline" class="guide-toc-link">🎯 진행 예정 셀러</a>
+            <a href="#g-campaign" class="guide-toc-link">📣 셀러 캠페인</a>
+            <a href="#g-calendar" class="guide-toc-link">🏠 캘린더 (홈)</a>
+            <a href="#g-rules" class="guide-toc-link">⚠️ 자동 적용 규칙</a>
+            <a href="#g-data-flow" class="guide-toc-link">🔗 시트별 자동 연동</a>
+            <a href="#g-faq" class="guide-toc-link">❓ 자주 묻는 질문</a>
+          </aside>
+
+          <article class="guide-content">
+
+            <section id="g-overview" class="guide-section">
+              <h2>🏁 전체 개요</h2>
+              <p>이 워크스페이스는 인스타 DM 영업부터 공동구매 진행까지 <b>한 곳</b>에서 처리합니다.</p>
+              <ul>
+                <li><b>인플루언서 5,000명 DB</b> — 엑셀로 일괄 임포트</li>
+                <li><b>100+ 인스타 계정 풀</b> — 기기별 그룹 + 회신율 정량 추적</li>
+                <li><b>자동 발송 큐</b> — 차수 ≤10 / 7일 간격 / 매번 다른 계정 강제</li>
+                <li><b>통합 인박스</b> — 100계정의 모든 답장을 한 화면에</li>
+                <li><b>메타 광고관리자 스타일 캠페인</b> — 캠페인 > 세트 > 공동구매</li>
+              </ul>
+              <div class="guide-callout">
+                <b>📍 URL</b><br>
+                • 사용자 PC: <code>http://127.0.0.1:5000</code> — Playwright DM 발송/답장 동기화 가능<br>
+                • 클라우드: <code>https://nextport-workspace.onrender.com</code> — 데이터 조회/편집만 (발송 불가)
+              </div>
+            </section>
+
+            <section id="g-flow" class="guide-section">
+              <h2>🔄 업무 흐름 (한눈에)</h2>
+              <div class="guide-flow">
+                <div class="gflow-step"><b>1</b> 인플루언서 엑셀 임포트<br><span class="hint">전체 인플루언서 DB</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>2</b> 인스타 계정 엑셀 임포트<br><span class="hint">기기 및 계정 관리</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>3</b> 큐 계산 + 발송<br><span class="hint">데일리 DM 관리</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>4</b> 발송 모니터<br><span class="hint">DM 발송 (실시간)</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>5</b> 답장 수신<br><span class="hint">DM (수신)</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>6</b> 회신 명단 정리<br><span class="hint">회신 인플루언서 현황</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>7</b> 미팅 진행<br><span class="hint">진행 예정 셀러</span></div>
+                <div class="gflow-arrow">→</div>
+                <div class="gflow-step"><b>8</b> 캠페인 박기<br><span class="hint">셀러 캠페인</span></div>
+              </div>
+            </section>
+
+            <section id="g-dm-daily" class="guide-section">
+              <h2>📤 데일리 DM 관리</h2>
+              <h3>1. 통계 카드</h3>
+              <ul>
+                <li><b>발송 후보</b> — 오늘 보낼 수 있는 인플루언서 수 (규칙 통과한 수)</li>
+                <li><b>활성 계정</b> — 상태=활성 인 계정 수</li>
+                <li><b>오늘 발송됨</b> — 오늘 날짜로 발송된 건수</li>
+                <li><b>답장 도착</b> — 누적 답장 받은 conversation 수</li>
+              </ul>
+              <h3>2. 발송 멘트 + 양식 회신율</h3>
+              <ul>
+                <li><b>템플릿 선택</b>: 미리 박아둔 템플릿 선택 (한 번 박으면 통계 누적)</li>
+                <li><b>직접 멘트 입력</b>: 비워두면 위 템플릿 사용 / 박으면 그 멘트 사용 (통계 X)</li>
+                <li><b>양식별 회신율</b>: 발송 수 대비 답장 받은 수 자동 계산 → 효과 좋은 멘트 추적</li>
+              </ul>
+              <h3>3. 오늘 보낼 큐</h3>
+              <ul>
+                <li><b>🔄 큐 재계산</b>: 현재 인플루언서/계정 데이터로 후보 재산출</li>
+                <li><b>📤 전체 발송 시작</b>: 체크된 모든 큐 순차 발송 (사이 30~120초 랜덤 대기)</li>
+                <li><b>📤 개별 발송</b>: 한 행씩 즉시 발송</li>
+                <li><b>제외 사유</b>: 통과/상태제외/10차도달/7일미경과/계정없음 통계 표시</li>
+              </ul>
+            </section>
+
+            <section id="g-dm-live" class="guide-section">
+              <h2>▶️ DM 발송 (실시간)</h2>
+              <ul>
+                <li><b>🟢 현재 상태</b>: 발송 중인 작업 카드 (계정 → 셀러 + 차수 + 경과시간)</li>
+                <li><b>📜 발송 로그</b>: 콘솔 스타일 실시간 스트림 (start / done / fail)</li>
+                <li><b>🗑 비우기</b>: 로그 클리어</li>
+                <li><b>⤓ CSV</b>: 로그 다운로드</li>
+              </ul>
+              <div class="guide-callout">
+                <b>⚠️ 클라우드 제약</b><br>
+                Render 클라우드에서는 Playwright 브라우저를 못 띄움 → 실제 발송은 <b>사용자 PC</b>에서만 동작.
+              </div>
+            </section>
+
+            <section id="g-dm-inbox" class="guide-section">
+              <h2>💬 DM (수신) — 통합 인박스</h2>
+              <ul>
+                <li><b>좌측</b>: 셀러별 대화 리스트 (안 읽은 건 빨간 배지)</li>
+                <li><b>우측</b>: 메시지 thread (인스타식 말풍선)</li>
+                <li><b>🔄 답장 동기화</b>: 모든 활성 계정에서 받은 DM 한 번에 동기화 (~10초/계정)</li>
+                <li><b>답장 입력</b>: 그 대화의 우리 계정으로 자동 발송</li>
+                <li><b>알람</b>: 새 답장 오면 우상단 toast — 클릭 시 그 대화 자동 열기</li>
+              </ul>
+            </section>
+
+            <section id="g-influencers" class="guide-section">
+              <h2>👤 전체 인플루언서 DB</h2>
+              <h3>1. 엑셀 임포트</h3>
+              <ul>
+                <li><b>📥 양식 다운로드</b>: 17컬럼 헤더 + 예시</li>
+                <li><b>임포트 폴더</b>: <code>data/imports/</code> 에 박은 후 [↻ 새로고침]</li>
+                <li><b>덮어쓰기 모드</b>: 중복 instagram_id 발견 시 누적데이터(차수/히스토리)는 보존하고 메타 필드만 갱신</li>
+              </ul>
+              <h3>2. 마스터 표</h3>
+              <ul>
+                <li>5,000명 페이지네이션 + 검색 (인스타ID / 셀러명)</li>
+                <li>상태 필터 (미발송/발송중/답장받음/컨펌/거절/비공개)</li>
+                <li>✎ 클릭 = 상태 변경 인라인</li>
+              </ul>
+            </section>
+
+            <section id="g-accounts" class="guide-section">
+              <h2>💻 기기 및 계정 관리</h2>
+              <ul>
+                <li><b>기기별 그룹</b> 자동 정렬 (예: 갤럭시1 / 아이폰3 ...)</li>
+                <li><b>회신율 컬럼</b> — 발송 대비 답장률 (녹색=10%+, 주황=3%+, 회색=3%-)</li>
+                <li>회신율 높은 계정 = "황금 계정" → 중요 셀러한테 우선 사용</li>
+                <li>회신율 낮은 계정 = 워밍업 부족 or 차단 위험 → 휴식 처리</li>
+                <li><b>상태</b>: 활성 / 사람인증 / 휴식 / 차단 — 비활성 계정은 큐에서 자동 제외</li>
+              </ul>
+            </section>
+
+            <section id="g-replies" class="guide-section">
+              <h2>📬 회신 인플루언서 현황</h2>
+              <h3>인라인 편집</h3>
+              <p>대부분 컬럼은 자동 채워지지만, <b>수동 입력 필드</b>가 있습니다 — 셀 클릭하면 노란색 → 다른 곳 클릭하면 자동 저장.</p>
+              <ul>
+                <li><b>자동</b> (시스템이 채움): No / 첫회신일 / 인스타ID / 회신계정 / 연결기기</li>
+                <li><b>수동</b> (직접 입력): 상황 / 담당자 / 셀러명 / 팔로워수 / 이메일 / 전화번호 / 카카오톡ID / 비고</li>
+              </ul>
+              <h3>액션 버튼</h3>
+              <ul>
+                <li><b>💬</b> = 그 대화 thread로 바로 점프</li>
+                <li><b>📅</b> = 미팅 날짜 박기 → 진행 예정 셀러로 자동 등록 + 캘린더 자동 추가</li>
+                <li><b>🎯</b> = 진행 예정으로 직접 이동 (미팅 없이)</li>
+              </ul>
+              <h3>자동 단계 전이</h3>
+              <ul>
+                <li>상황 = <b>회신중/dm 소통중/카톡 소통중</b> → 진행 예정으로 자동 이동</li>
+                <li>상황 = <b>미팅 fix</b> → 미팅 예약으로 자동 이동</li>
+                <li>상황 = <b>컨펌</b> → 캠페인 진행 중으로 자동 이동</li>
+              </ul>
+            </section>
+
+            <section id="g-pipeline" class="guide-section">
+              <h2>🎯 진행 예정 셀러</h2>
+              <h3>단계 (Pipeline Stage)</h3>
+              <ol>
+                <li><b>진행 예정</b> — 답장 받은 직후</li>
+                <li><b>미팅 예약</b> — 미팅 날짜 박힌 상태</li>
+                <li><b>미팅 완료</b> — 미팅 후 결과 정리 중</li>
+                <li><b>캠페인 진행 중</b> — 캠페인 v2에 박힘</li>
+                <li><b>종료</b> — 완료 or 이탈</li>
+              </ol>
+              <h3>액션 버튼</h3>
+              <ul>
+                <li><b>📅</b> = 미팅 추가 (날짜 + 메모) → 캘린더 자동</li>
+                <li><b>📣</b> = 캠페인 v2 자동 생성 (1차 세트 + 광고 자동 박힘)</li>
+              </ul>
+              <h3>셀러명 클릭 = 디테일 모달</h3>
+              <ul>
+                <li>연락처 한 화면 (이메일/전화/카톡/회신계정/첫회신일/차수/비고)</li>
+                <li><b>미팅 기록</b> — 각 미팅 카드 안에서:
+                  <ul>
+                    <li>날짜 / 결과 / 메모 / 녹취록 (직접 입력 + 자동 분석 예정)</li>
+                    <li><b>🎙</b> = 녹취 파일 (m4a/mp3/wav) 업로드</li>
+                    <li><b>💾</b> = 저장 / <b>🗑</b> = 삭제</li>
+                  </ul>
+                </li>
+              </ul>
+            </section>
+
+            <section id="g-campaign" class="guide-section">
+              <h2>📣 셀러 캠페인 — 메타 광고관리자 스타일</h2>
+              <h3>계층 구조</h3>
+              <p><b>캠페인 → 세트(차수) → 공동구매(광고)</b></p>
+              <ul>
+                <li><b>캠페인</b> — 셀러 + 브랜드 + 제품 (메가/마이크로/벤더 타입)</li>
+                <li><b>세트</b> — 1차, 2차, 3차... 공구 차수</li>
+                <li><b>공동구매</b> — 실제 작업 단위</li>
+              </ul>
+              <h3>공동구매 디테일 — 6섹션</h3>
+              <ul>
+                <li>📦 <b>제품 발송</b>: 마지막 발송일 박기 → 캘린더 자동</li>
+                <li>📅 <b>스케줄링</b>: 시작/종료 + 세부 일정 → 모두 캘린더 자동</li>
+                <li>🎁 <b>이벤트</b>: 이벤트 리스트 (1+1 / 추첨 등) 자유 입력</li>
+                <li>🔗 <b>셀러 전달용 자료</b>: 구글 드라이브 URL + 라벨 (라벨="제품 사진" 등)</li>
+                <li>🖼️ <b>배너 (오픈피드/가격/이벤트)</b>: 체크 + 기획안 URL + 최종 이미지 URL + 메모</li>
+                <li>🎬 <b>릴스</b>: 기획안 + 영상 URL + 상태 (기획중/제작중/검수중/완료)</li>
+              </ul>
+            </section>
+
+            <section id="g-calendar" class="guide-section">
+              <h2>🏠 캘린더 (홈)</h2>
+              <p>모든 데이터의 시간축 통합. 캘린더에 자동으로 들어오는 항목:</p>
+              <ul>
+                <li><b>미팅</b> — 회신 현황/진행 예정에서 박은 미팅</li>
+                <li><b>마켓 시작</b> — 캠페인의 마켓 일정 (YYYY-MM-DD 형식)</li>
+                <li><b>라이브 기간</b> — 공동구매 스케줄링 시작~종료</li>
+                <li><b>세부 일정</b> — 공동구매 스케줄링 items 각각</li>
+                <li><b>제품 발송</b> — 공동구매 제품 발송일</li>
+              </ul>
+              <p class="hint">캠페인 데이터를 수정하면 자동으로 옛 이벤트 dedup 후 재생성 → 항상 최신 상태 유지.</p>
+            </section>
+
+            <section id="g-rules" class="guide-section">
+              <h2>⚠️ 자동 적용 규칙</h2>
+              <table class="guide-rule-table">
+                <tr><th>규칙</th><th>값</th><th>의미</th></tr>
+                <tr><td>최대 발송 차수</td><td><b>10차</b></td><td>한 인플루언서에 최대 10번까지만</td></tr>
+                <tr><td>발송 간격</td><td><b>7일+</b></td><td>마지막 발송 후 7일 지나야 다시</td></tr>
+                <tr><td>계정 중복</td><td><b>금지</b></td><td>같은 인플루언서한테 같은 계정 못 씀</td></tr>
+                <tr><td>계정 상태</td><td><b>활성만</b></td><td>차단/사람인증/휴식은 큐 제외</td></tr>
+                <tr><td>일일 한도</td><td><b>50/계정/일</b></td><td>한 계정당 하루 50건 (조정 가능)</td></tr>
+                <tr><td>발송 간 대기</td><td><b>30~120초</b></td><td>랜덤 대기 (봇 감지 우회)</td></tr>
+              </table>
+            </section>
+
+            <section id="g-data-flow" class="guide-section">
+              <h2>🔗 시트별 자동 연동</h2>
+              <pre class="guide-flow-code">
+[DM 발송]
+  → 인플루언서 (차수+1, 최종발송일, 마지막사용계정 갱신)
+  → 계정 (누적+1, 마지막사용 갱신)
+  → 라이브 로그 (실시간)
+  → 인박스 (우리쪽 메시지 박힘)
+  → 템플릿 통계 (sent_count +1)
+
+[답장 도착]
+  → 인박스 (그쪽 메시지 박힘 + 안 읽음 +1)
+  → 회신 인플루언서 현황 (자동 등록)
+  → 사이드바 배지 (안 읽음 카운트)
+  → 우상단 toast 알람
+  → 템플릿/계정 회신율 자동 갱신
+
+[회신 현황 → 미팅 박기 (📅)]
+  → 인플루언서 (status="미팅 fix", pipeline_stage="미팅예약")
+  → 진행 예정 셀러 (자동 등록)
+  → 캘린더 (이벤트 박힘)
+
+[진행 예정 → 캠페인 박기 (📣)]
+  → 캠페인 v2 (1차 세트 + 광고 자동 생성)
+  → 인플루언서 (pipeline_stage="캠페인진행중", campaign_id 연결)
+
+[캠페인/광고 수정]
+  → 캘린더 (마켓일정/라이브/제품발송/세부일정 자동 sync)</pre>
+            </section>
+
+            <section id="g-faq" class="guide-section">
+              <h2>❓ 자주 묻는 질문</h2>
+
+              <details>
+                <summary>발송이 안 되는데요?</summary>
+                <p>클라우드(Render)에선 Playwright 브라우저를 못 띄워서 발송 불가. 사용자 PC(<code>http://127.0.0.1:5000</code>)에서 실행해야 함.</p>
+              </details>
+
+              <details>
+                <summary>엑셀 임포트 후 데이터가 안 보여요</summary>
+                <p>① data/imports/ 폴더 위치 확인. ② 엑셀 헤더가 양식과 매칭되는지 확인 (한글/영문 자동 매핑). ③ 인스타ID가 빈 행은 자동 skip.</p>
+              </details>
+
+              <details>
+                <summary>덮어쓰기 모드는 뭘 보존하나요?</summary>
+                <p>누적 데이터(발송 차수, 히스토리, 사용된 계정 리스트, 누적 발송수)는 <b>그대로 유지</b>. 메타 필드(셀러명, 상태, 비고, URL)만 새 값으로 덮어씀.</p>
+              </details>
+
+              <details>
+                <summary>같은 셀러한테 다른 계정으로 또 보낼 수 있나요?</summary>
+                <p>네. 단 마지막 발송 후 7일 지나야 함. 자동으로 다른 계정 선택 (used_account_ids 누적 추적).</p>
+              </details>
+
+              <details>
+                <summary>회신율이 낮은 계정은 어떻게 처리?</summary>
+                <p>3% 미만 = 회색 표시. 휴식 처리 권장 (큐 자동 제외). 워밍업 부족 또는 차단 위험 신호일 수 있음.</p>
+              </details>
+
+              <details>
+                <summary>미팅 녹취 파일은 어디 저장?</summary>
+                <p>진행 예정 셀러 디테일 → 미팅 카드 → 🎙 클릭 → m4a/mp3/wav 업로드 → <code>data/meetings/</code> 에 저장. 자동 분석은 추후 Gemini 연동 예정.</p>
+              </details>
+
+              <details>
+                <summary>다른 PC에서 작업 이어갈 수 있나요?</summary>
+                <p>현재 — Git push/pull 통해 동기화. Phase H에서 Google Drive 자동 sync 박을 예정 (hwansnim@gmail.com).</p>
+              </details>
+
+            </section>
+
+          </article>
+        </div>
       </section>
 
       <!-- TAB: ARCHIVE (레퍼런스용) -->

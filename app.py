@@ -2660,6 +2660,7 @@ def api_dm_send_one():
     inf_id = payload.get("influencer_id")
     acc_id = payload.get("account_id")
     message = (payload.get("message") or "").strip()
+    template_id = (payload.get("template_id") or "").strip()
     if not (inf_id and acc_id and message):
         return jsonify({"error": "influencer_id, account_id, message 필수"}), 400
 
@@ -2676,6 +2677,17 @@ def api_dm_send_one():
         from dm_inbox import upsert_conversation, append_message  # type: ignore
     except ImportError as e:
         return jsonify({"error": f"모듈 실패: {e}"}), 500
+
+    # 템플릿 통계 — sent_count +1 (즉시; ok/fail은 별도)
+    if template_id:
+        try:
+            tpls = _load_dm_templates_v2()
+            tpl = next((t for t in tpls if t.get("id") == template_id), None)
+            if tpl:
+                tpl["sent_count"] = (tpl.get("sent_count") or 0) + 1
+                _save_dm_templates_v2(tpls)
+        except Exception as e:
+            log.warning(f"템플릿 통계 갱신 실패: {e}")
 
     # 라이브 상태 업데이트 — UI 가 polling
     DM_LIVE_STATE["current"] = {
@@ -2730,17 +2742,119 @@ def api_dm_send_one():
     # 결과 기록
     status = "ok" if ok else "fail"
     record_send(inf, acc, message, status=status, note=err_msg)
+    if ok:
+        # 답장 회수 매칭용 — 마지막 발송 정보 박음
+        inf["last_sent_template_id"] = template_id
+        inf["last_sent_message_full"] = message
+        # 계정에도 누적 발송
+        acc["sent_count_total"] = (acc.get("sent_count_total") or 0) + 1
     _save_influencers(influencers)
     _save_our_accounts(accounts)
 
-    # 인박스에도 우리가 보낸 메시지로 기록
+    # 인박스에도 우리가 보낸 메시지로 기록 (template_id 포함)
     if ok:
         inbox = _load_inbox()
         conv = upsert_conversation(inbox, acc, inf["instagram_id"], inf)
         append_message(conv, "us", message)
+        # 우리 측 메시지에 template_id 박음 (답장 매칭용)
+        if conv.get("messages"):
+            conv["messages"][-1]["template_id"] = template_id
+        conv["last_sent_template_id"] = template_id
         _save_inbox(inbox)
 
     return jsonify({"ok": ok, "error": err_msg if not ok else None, "send_count": inf.get("send_count")})
+
+
+# ═══════════════════════════════════════════════════════════
+# 📊 회신율 통계 — 템플릿별 / 계정별
+# ═══════════════════════════════════════════════════════════
+
+def _recompute_reply_stats():
+    """모든 conversation을 훑어서 템플릿별/계정별 회신율 재계산.
+    인플루언서마다 1차례라도 답장이 있으면 그 인플루언서의 last_sent_template_id로 +1.
+    답장이 온 conversation의 our_account_id로 계정 카운트 +1."""
+    influencers = _load_influencers()
+    inf_by_handle = {x.get("instagram_id", "").lower(): x for x in influencers}
+    accounts = _load_our_accounts()
+    acc_by_id = {a["id"]: a for a in accounts}
+    templates = _load_dm_templates_v2()
+    tpl_by_id = {t["id"]: t for t in templates}
+
+    # 카운터 초기화
+    for t in templates:
+        t["reply_count"] = 0
+    for a in accounts:
+        a["reply_count"] = 0
+
+    conversations = _load_inbox()
+    for c in conversations:
+        has_them = any(m.get("from") == "them" for m in c.get("messages", []))
+        if not has_them:
+            continue
+        # template 통계 (인플루언서의 last_sent_template_id 또는 conv의 last_sent_template_id)
+        handle = (c.get("their_handle") or "").lower()
+        inf = inf_by_handle.get(handle)
+        tpl_id = (inf.get("last_sent_template_id") if inf else "") or c.get("last_sent_template_id") or ""
+        tpl = tpl_by_id.get(tpl_id)
+        if tpl:
+            tpl["reply_count"] = (tpl.get("reply_count") or 0) + 1
+        # 계정 통계
+        acc_id = c.get("our_account_id")
+        acc = acc_by_id.get(acc_id)
+        if acc:
+            acc["reply_count"] = (acc.get("reply_count") or 0) + 1
+
+    # 비율 계산
+    for t in templates:
+        sent = t.get("sent_count") or 0
+        rep = t.get("reply_count") or 0
+        t["reply_rate"] = round(rep / sent * 100, 1) if sent else 0
+    for a in accounts:
+        sent = a.get("sent_count_total") or a.get("total_sent") or 0
+        rep = a.get("reply_count") or 0
+        a["reply_rate"] = round(rep / sent * 100, 1) if sent else 0
+
+    _save_dm_templates_v2(templates)
+    _save_our_accounts(accounts)
+
+
+@app.route("/api/dm/stats/recompute", methods=["POST"])
+def api_dm_stats_recompute():
+    _recompute_reply_stats()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/dm/stats/templates", methods=["GET"])
+def api_dm_stats_templates():
+    """템플릿별 회신율 + 발송수."""
+    templates = _load_dm_templates_v2()
+    # 자동 재계산 — 매 조회시 동기화 (느리면 캐시)
+    _recompute_reply_stats()
+    templates = _load_dm_templates_v2()
+    return jsonify({
+        "templates": sorted(templates, key=lambda t: -(t.get("reply_rate") or 0)),
+    })
+
+
+@app.route("/api/dm/stats/accounts", methods=["GET"])
+def api_dm_stats_accounts():
+    """계정별 회신율 + 발송수 (회신 많이 오는 계정 분석)."""
+    accounts = _load_our_accounts()
+    return jsonify({
+        "accounts": [
+            {
+                "id": a["id"],
+                "instagram_id": a.get("instagram_id"),
+                "device": a.get("device"),
+                "owner": a.get("account_owner"),
+                "sent_count": a.get("sent_count_total") or a.get("total_sent") or 0,
+                "reply_count": a.get("reply_count") or 0,
+                "reply_rate": a.get("reply_rate") or 0,
+                "status": a.get("status"),
+            }
+            for a in sorted(accounts, key=lambda a: -(a.get("reply_rate") or 0))
+        ],
+    })
 
 
 # ═══════════════════════════════════════════════════════════
@@ -3034,7 +3148,8 @@ def api_dm_replies():
 
 @app.route("/api/dm/replies/<inf_id>", methods=["PATCH"])
 def api_dm_replies_patch(inf_id):
-    """회신 현황 표에서 인라인 편집 → influencer record 업데이트."""
+    """회신 현황 표에서 인라인 편집 → influencer record 업데이트.
+    status가 '미팅 fix' / '회신중' / '카톡 소통중' 으로 바뀌면 pipeline_stage 자동 전이."""
     payload = request.get_json(force=True) or {}
     allowed = {"status", "owner", "first_reply_date", "reply_account", "email",
                "phone", "kakao_id", "notes", "follower_count", "pipeline_stage"}
@@ -3045,8 +3160,136 @@ def api_dm_replies_patch(inf_id):
     for k, v in payload.items():
         if k in allowed:
             inf[k] = v
+
+    # 자동 파이프라인 전이 — status 변경 시
+    new_status = payload.get("status")
+    if new_status:
+        cur_stage = inf.get("pipeline_stage") or ""
+        if new_status in ("회신중", "dm 소통중", "카톡 소통중") and not cur_stage:
+            inf["pipeline_stage"] = "진행예정"
+        elif new_status == "미팅 fix" and cur_stage in ("", "진행예정"):
+            inf["pipeline_stage"] = "미팅예약"
+        elif new_status == "컨펌":
+            inf["pipeline_stage"] = "캠페인진행중"
+        elif new_status == "이탈":
+            inf["pipeline_stage"] = "종료"
+
     _save_influencers(influencers)
-    return jsonify({"ok": True, "influencer": inf})
+    return jsonify({"ok": True, "influencer": inf, "auto_stage": inf.get("pipeline_stage")})
+
+
+@app.route("/api/dm/replies/<inf_id>/meeting", methods=["POST"])
+def api_dm_replies_add_meeting(inf_id):
+    """회신 현황에서 [📅 미팅 박기] → 인플루언서.meetings 추가 + pipeline=미팅예약 + 캘린더 등록."""
+    payload = request.get_json(force=True) or {}
+    date = (payload.get("date") or "").strip()
+    note = (payload.get("note") or "").strip()
+    if not date:
+        return jsonify({"error": "date 필수"}), 400
+
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+
+    meetings = inf.setdefault("meetings", [])
+    meetings.append({
+        "date": date,
+        "round": len(meetings) + 1,
+        "note": note,
+        "transcript": "",
+        "audio_file": "",
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    })
+    inf["pipeline_stage"] = inf.get("pipeline_stage") or "미팅예약"
+    inf["status"] = "미팅 fix"
+    _save_influencers(influencers)
+
+    # 캘린더 자동
+    try:
+        events = load_events()
+        events.append({
+            "id": f"meet_{inf_id}_{int(datetime.now().timestamp())}",
+            "title": f"[{inf.get('seller_name') or inf.get('instagram_id')}] {len(meetings)}차 미팅",
+            "date": date,
+            "type": "meeting",
+            "linked_influencer_id": inf_id,
+            "note": note,
+        })
+        save_events(events)
+    except Exception as e:
+        log.warning(f"미팅 캘린더 등록 실패: {e}")
+
+    return jsonify({"ok": True, "meeting_round": len(meetings)})
+
+
+@app.route("/api/pipeline/<inf_id>/meeting/<int:idx>", methods=["PATCH", "DELETE"])
+def api_pipeline_meeting_one(inf_id, idx):
+    """진행 예정 셀러의 특정 미팅 수정/삭제 + 녹취/메모."""
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+    meetings = inf.get("meetings") or []
+    if idx < 0 or idx >= len(meetings):
+        return jsonify({"error": "미팅 인덱스 범위 초과"}), 404
+
+    if request.method == "DELETE":
+        meetings.pop(idx)
+        for i, m in enumerate(meetings):
+            m["round"] = i + 1
+        _save_influencers(influencers)
+        return jsonify({"ok": True})
+
+    payload = request.get_json(force=True) or {}
+    for k in ("date", "note", "transcript", "audio_file", "outcome"):
+        if k in payload:
+            meetings[idx][k] = payload[k]
+    _save_influencers(influencers)
+    return jsonify({"ok": True, "meeting": meetings[idx]})
+
+
+@app.route("/api/pipeline/<inf_id>/meeting/<int:idx>/audio", methods=["POST"])
+def api_pipeline_meeting_audio(inf_id, idx):
+    """녹취 파일 업로드 (m4a/mp3/wav) → data/meetings/ 에 저장 + meetings[idx].audio_file에 경로."""
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+    meetings = inf.get("meetings") or []
+    if idx < 0 or idx >= len(meetings):
+        return jsonify({"error": "미팅 인덱스 범위 초과"}), 404
+
+    if "file" not in request.files:
+        return jsonify({"error": "file 필드 필수"}), 400
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"error": "파일명 없음"}), 400
+
+    safe_ext = Path(f.filename).suffix.lower() or ".m4a"
+    if safe_ext not in (".m4a", ".mp3", ".wav", ".ogg"):
+        return jsonify({"error": "지원 형식: m4a/mp3/wav/ogg"}), 400
+
+    meetings_dir = DATA_DIR / "meetings"
+    meetings_dir.mkdir(exist_ok=True)
+    fname = f"{inf.get('seller_name') or inf_id}_{meetings[idx].get('date','')}_m{idx+1}{safe_ext}"
+    fname = re.sub(r"[\\/:*?\"<>|]+", "_", fname)
+    fpath = meetings_dir / fname
+    f.save(fpath)
+
+    meetings[idx]["audio_file"] = str(fpath)
+    _save_influencers(influencers)
+    return jsonify({"ok": True, "path": str(fpath), "size_kb": round(fpath.stat().st_size / 1024, 1)})
+
+
+@app.route("/api/pipeline/<inf_id>/detail", methods=["GET"])
+def api_pipeline_detail(inf_id):
+    """진행 예정 셀러 상세 — 모든 정보 + 미팅 리스트."""
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+    return jsonify(inf)
 
 
 # ═══════════════════════════════════════════════════════════

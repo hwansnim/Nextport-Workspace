@@ -706,6 +706,314 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ═══ Phase G: 공동구매 가이드 ═══ */
+
+.guide-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+}
+.guide-toc {
+  position: sticky;
+  top: 14px;
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+.guide-toc-title {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+  padding: 0 6px;
+}
+.guide-toc-link {
+  display: block;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  color: #333;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.guide-toc-link:hover { background: #fff5e8; color: var(--accent); }
+.guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 880px;
+}
+.guide-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px 26px;
+  scroll-margin-top: 14px;
+}
+.guide-section h2 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+.guide-section h3 {
+  margin: 18px 0 8px 0;
+  font-size: 14px;
+  color: var(--accent);
+}
+.guide-section p { margin: 6px 0 10px; line-height: 1.6; font-size: 13.5px; }
+.guide-section ul, .guide-section ol { padding-left: 20px; line-height: 1.7; font-size: 13px; }
+.guide-section ul li, .guide-section ol li { margin-bottom: 3px; }
+.guide-section code {
+  background: #fff5e8;
+  color: var(--accent);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.guide-callout {
+  background: linear-gradient(135deg, #fff5e8 0%, #fbe9d6 100%);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.guide-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.gflow-step {
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  min-width: 140px;
+  text-align: center;
+}
+.gflow-step b {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 20px;
+  margin-right: 6px;
+}
+.gflow-arrow { color: var(--accent); font-size: 18px; font-weight: 700; }
+.guide-rule-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.guide-rule-table th, .guide-rule-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.guide-rule-table th { background: #fafaf6; font-size: 11.5px; color: var(--muted); }
+.guide-flow-code {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 14px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.guide-section details {
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+.guide-section details summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 2px 0;
+}
+.guide-section details[open] summary { color: var(--accent); }
+.guide-section details p { margin: 8px 0 2px; line-height: 1.6; }
+
+/* ═══ Phase G: 멘트 zone / 회신율 / 진행예정 디테일 / 미팅 카드 ═══ */
+
+.dm-msg-zone {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  padding: 12px 16px 16px;
+}
+.dm-msg-left { display: flex; flex-direction: column; }
+.dm-msg-right {
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.dm-msg-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+.dm-tpl-stats { display: flex; flex-direction: column; gap: 6px; }
+.dm-tpl-stat-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.dm-tpl-stat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dm-tpl-stat-rate b { color: var(--accent); }
+.dm-tpl-stat-sub { font-size: 10.5px; color: #888; }
+
+.acc-rate {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+.acc-rate.rate-good { background: #e8f5e8; color: #2e7d32; }
+.acc-rate.rate-mid  { background: #fff3e0; color: #ef6c00; }
+.acc-rate.rate-low  { background: #f5f5f5; color: #888; }
+
+/* 진행 예정 디테일 모달 */
+.pipe-detail-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 20px 40px;
+  overflow-y: auto;
+}
+.pipe-detail-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.pipe-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, #fff5e8 0%, #fbe9d6 100%);
+  border-radius: 12px 12px 0 0;
+}
+.pipe-detail-head h2 { margin: 0 0 4px 0; font-size: 18px; }
+.pipe-detail-body { padding: 18px 24px; }
+
+.pipe-detail-contact {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 16px;
+  padding: 12px 14px;
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.pdc-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 4px 0;
+}
+.pdc-row .pdc-lbl {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 70px;
+}
+.pdc-wide { grid-column: 1 / -1; }
+
+.pipe-meetings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.pipe-meetings-head h3 { margin: 0; font-size: 15px; }
+.pipe-meetings { display: flex; flex-direction: column; gap: 12px; }
+.pipe-meeting-card {
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pmc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.pmc-head b { color: var(--accent); min-width: 70px; }
+.pmc-head input[type="date"] {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.pmc-head input[type="text"] {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.pipe-meeting-card textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+}
+
 /* ═══ Phase F: 캠페인 v2 — 메타 광고관리자 스타일 ═══ */
 
 .cam-toolbar {
