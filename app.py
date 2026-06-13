@@ -2331,6 +2331,389 @@ def serve_chat_upload(filename: str):
     return send_from_directory(CHAT_UPLOADS_DIR, filename)
 
 
+# ═══════════════════════════════════════════════════════════
+# 📨 DM 영업 시스템 (인스타 자동 발송)
+# ═══════════════════════════════════════════════════════════
+
+DM_ACCOUNTS_FILE = DATA_DIR / "dm_accounts.json"
+DM_TARGETS_FILE = DATA_DIR / "dm_targets.json"
+DM_TEMPLATES_FILE = DATA_DIR / "dm_templates.json"
+DM_JOBS_FILE = DATA_DIR / "dm_jobs.json"
+
+
+def _dm_read(path: Path, key: str) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get(key, [])
+    except Exception:
+        return []
+
+
+def _dm_write(path: Path, key: str, items: list[dict[str, Any]]) -> None:
+    path.write_text(json.dumps({key: items}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ─── 계정 풀 ──────────────────────────────────────────────
+@app.route("/api/dm/accounts", methods=["GET"])
+def api_dm_accounts_list():
+    items = _dm_read(DM_ACCOUNTS_FILE, "accounts")
+    # 비밀번호 마스킹
+    out = []
+    for a in items:
+        masked = dict(a)
+        pw = masked.get("password", "")
+        if pw:
+            masked["password"] = "*" * 8
+        out.append(masked)
+    return jsonify({"accounts": out})
+
+
+@app.route("/api/dm/accounts", methods=["POST"])
+def api_dm_accounts_add():
+    payload = request.get_json(force=True)
+    items = _dm_read(DM_ACCOUNTS_FILE, "accounts")
+    now = datetime.now().isoformat(timespec="seconds")
+    new = {
+        "id": _next_id(items, "a"),
+        "username": (payload.get("username") or "").strip().lstrip("@"),
+        "password": payload.get("password") or "",
+        "sender_name": (payload.get("sender_name") or "").strip(),
+        "status": "active",  # active / warmup / blocked / disabled
+        "daily_count": 0,
+        "daily_limit": int(payload.get("daily_limit") or 50),
+        "total_sent": 0,
+        "last_used_at": None,
+        "last_reset_date": now[:10],
+        "notes": (payload.get("notes") or "").strip(),
+        "created_at": now,
+        "updated_at": now,
+    }
+    if not new["username"] or not new["password"]:
+        return jsonify({"error": "username과 password 필수"}), 400
+    items.append(new)
+    _dm_write(DM_ACCOUNTS_FILE, "accounts", items)
+    return jsonify({"account": {**new, "password": "*" * 8}})
+
+
+@app.route("/api/dm/accounts/bulk", methods=["POST"])
+def api_dm_accounts_bulk():
+    """엑셀로 100개 한 번에 박기. CSV/JSON 둘 다 지원."""
+    payload = request.get_json(force=True)
+    rows = payload.get("rows") or []
+    items = _dm_read(DM_ACCOUNTS_FILE, "accounts")
+    now = datetime.now().isoformat(timespec="seconds")
+    added = 0
+    existing = {a["username"] for a in items}
+    for row in rows:
+        u = (row.get("username") or "").strip().lstrip("@")
+        p = row.get("password") or ""
+        if not u or not p or u in existing:
+            continue
+        existing.add(u)
+        items.append({
+            "id": _next_id(items, "a"),
+            "username": u,
+            "password": p,
+            "sender_name": (row.get("sender_name") or "").strip(),
+            "status": "active",
+            "daily_count": 0,
+            "daily_limit": int(row.get("daily_limit") or 50),
+            "total_sent": 0,
+            "last_used_at": None,
+            "last_reset_date": now[:10],
+            "notes": "",
+            "created_at": now,
+            "updated_at": now,
+        })
+        added += 1
+    _dm_write(DM_ACCOUNTS_FILE, "accounts", items)
+    return jsonify({"added": added, "total": len(items)})
+
+
+@app.route("/api/dm/accounts/<aid>", methods=["PATCH"])
+def api_dm_accounts_patch(aid: str):
+    payload = request.get_json(force=True)
+    items = _dm_read(DM_ACCOUNTS_FILE, "accounts")
+    a = next((x for x in items if x["id"] == aid), None)
+    if not a:
+        return jsonify({"error": "not found"}), 404
+    for k in ("username", "password", "sender_name", "status", "daily_limit", "notes"):
+        if k in payload and payload[k] != "":
+            v = payload[k]
+            if k == "username":
+                v = str(v).strip().lstrip("@")
+            elif k == "daily_limit":
+                v = int(v)
+            elif isinstance(v, str):
+                v = v.strip()
+            a[k] = v
+    a["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    _dm_write(DM_ACCOUNTS_FILE, "accounts", items)
+    return jsonify({"account": {**a, "password": "*" * 8}})
+
+
+@app.route("/api/dm/accounts/<aid>", methods=["DELETE"])
+def api_dm_accounts_delete(aid: str):
+    items = [a for a in _dm_read(DM_ACCOUNTS_FILE, "accounts") if a["id"] != aid]
+    _dm_write(DM_ACCOUNTS_FILE, "accounts", items)
+    return jsonify({"ok": True})
+
+
+# ─── 영업 명단 (타겟) ─────────────────────────────────────
+@app.route("/api/dm/targets", methods=["GET"])
+def api_dm_targets_list():
+    return jsonify({"targets": _dm_read(DM_TARGETS_FILE, "targets")})
+
+
+@app.route("/api/dm/targets", methods=["POST"])
+def api_dm_targets_add():
+    payload = request.get_json(force=True)
+    items = _dm_read(DM_TARGETS_FILE, "targets")
+    now = datetime.now().isoformat(timespec="seconds")
+    new = {
+        "id": _next_id(items, "t"),
+        "username": (payload.get("username") or "").strip().lstrip("@"),
+        "display_name": (payload.get("display_name") or "").strip(),
+        "category": (payload.get("category") or "").strip(),
+        "followers": int(payload.get("followers") or 0),
+        "status": "pending",  # pending / sending / sent / replied / failed
+        "notes": (payload.get("notes") or "").strip(),
+        "last_sent_at": None,
+        "last_sent_account": None,
+        "reply_received": False,
+        "created_at": now,
+    }
+    if not new["username"]:
+        return jsonify({"error": "username 필수"}), 400
+    items.append(new)
+    _dm_write(DM_TARGETS_FILE, "targets", items)
+    return jsonify({"target": new})
+
+
+@app.route("/api/dm/targets/bulk", methods=["POST"])
+def api_dm_targets_bulk():
+    payload = request.get_json(force=True)
+    rows = payload.get("rows") or []
+    items = _dm_read(DM_TARGETS_FILE, "targets")
+    now = datetime.now().isoformat(timespec="seconds")
+    added = 0
+    existing = {t["username"] for t in items}
+    for row in rows:
+        u = (row.get("username") or "").strip().lstrip("@")
+        if not u or u in existing:
+            continue
+        existing.add(u)
+        items.append({
+            "id": _next_id(items, "t"),
+            "username": u,
+            "display_name": (row.get("display_name") or "").strip(),
+            "category": (row.get("category") or "").strip(),
+            "followers": int(row.get("followers") or 0),
+            "status": "pending",
+            "notes": (row.get("notes") or "").strip(),
+            "last_sent_at": None,
+            "last_sent_account": None,
+            "reply_received": False,
+            "created_at": now,
+        })
+        added += 1
+    _dm_write(DM_TARGETS_FILE, "targets", items)
+    return jsonify({"added": added, "total": len(items)})
+
+
+@app.route("/api/dm/targets/<tid>", methods=["PATCH"])
+def api_dm_targets_patch(tid: str):
+    payload = request.get_json(force=True)
+    items = _dm_read(DM_TARGETS_FILE, "targets")
+    t = next((x for x in items if x["id"] == tid), None)
+    if not t:
+        return jsonify({"error": "not found"}), 404
+    for k in ("display_name", "category", "followers", "status", "notes", "reply_received"):
+        if k in payload:
+            v = payload[k]
+            if k == "followers":
+                v = int(v or 0)
+            elif isinstance(v, str):
+                v = v.strip()
+            t[k] = v
+    _dm_write(DM_TARGETS_FILE, "targets", items)
+    return jsonify({"target": t})
+
+
+@app.route("/api/dm/targets/<tid>", methods=["DELETE"])
+def api_dm_targets_delete(tid: str):
+    items = [t for t in _dm_read(DM_TARGETS_FILE, "targets") if t["id"] != tid]
+    _dm_write(DM_TARGETS_FILE, "targets", items)
+    return jsonify({"ok": True})
+
+
+# ─── 템플릿 ──────────────────────────────────────────────
+@app.route("/api/dm/templates", methods=["GET"])
+def api_dm_templates_list():
+    return jsonify({"templates": _dm_read(DM_TEMPLATES_FILE, "templates")})
+
+
+@app.route("/api/dm/templates", methods=["POST"])
+def api_dm_templates_add():
+    payload = request.get_json(force=True)
+    items = _dm_read(DM_TEMPLATES_FILE, "templates")
+    new = {
+        "id": _next_id(items, "t"),
+        "name": (payload.get("name") or "").strip(),
+        "brand_id": (payload.get("brand_id") or "").strip(),
+        "sender_name": (payload.get("sender_name") or "").strip(),
+        "body": (payload.get("body") or "").strip(),
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    if not new["name"] or not new["body"]:
+        return jsonify({"error": "name과 body 필수"}), 400
+    items.append(new)
+    _dm_write(DM_TEMPLATES_FILE, "templates", items)
+    return jsonify({"template": new})
+
+
+@app.route("/api/dm/templates/<tid>", methods=["PATCH"])
+def api_dm_templates_patch(tid: str):
+    payload = request.get_json(force=True)
+    items = _dm_read(DM_TEMPLATES_FILE, "templates")
+    t = next((x for x in items if x["id"] == tid), None)
+    if not t:
+        return jsonify({"error": "not found"}), 404
+    for k in ("name", "brand_id", "sender_name", "body"):
+        if k in payload:
+            t[k] = (payload[k] or "").strip()
+    _dm_write(DM_TEMPLATES_FILE, "templates", items)
+    return jsonify({"template": t})
+
+
+@app.route("/api/dm/templates/<tid>", methods=["DELETE"])
+def api_dm_templates_delete(tid: str):
+    items = [t for t in _dm_read(DM_TEMPLATES_FILE, "templates") if t["id"] != tid]
+    _dm_write(DM_TEMPLATES_FILE, "templates", items)
+    return jsonify({"ok": True})
+
+
+# ─── 발송 작업 ────────────────────────────────────────────
+DM_JOBS_STATE: dict[str, dict] = {}  # 메모리에 진행률 추적
+
+
+def _select_available_account(accounts: list[dict]) -> dict | None:
+    """발송 가능한 계정 선택 — 오늘 한도 안 차고, 활성 상태."""
+    today = datetime.now().date().isoformat()
+    candidates = []
+    for a in accounts:
+        if a.get("status") != "active":
+            continue
+        # 일일 카운트 리셋
+        if a.get("last_reset_date") != today:
+            a["daily_count"] = 0
+            a["last_reset_date"] = today
+        if a.get("daily_count", 0) >= a.get("daily_limit", 50):
+            continue
+        candidates.append(a)
+    if not candidates:
+        return None
+    # 마지막 사용 시간 오래된 거 우선
+    candidates.sort(key=lambda x: x.get("last_used_at") or "")
+    return candidates[0]
+
+
+@app.route("/api/dm/send", methods=["POST"])
+def api_dm_send():
+    """선택한 target들에게 DM 발송 시작."""
+    payload = request.get_json(force=True)
+    target_ids = payload.get("target_ids") or []
+    template_id = payload.get("template_id")
+    if not target_ids:
+        return jsonify({"error": "target_ids 필수"}), 400
+    if not template_id:
+        return jsonify({"error": "template_id 필수"}), 400
+
+    accounts = _dm_read(DM_ACCOUNTS_FILE, "accounts")
+    if not [a for a in accounts if a.get("status") == "active"]:
+        return jsonify({"error": "활성 계정 없음. 먼저 계정 풀에 등록."}), 400
+
+    templates = _dm_read(DM_TEMPLATES_FILE, "templates")
+    template = next((t for t in templates if t["id"] == template_id), None)
+    if not template:
+        return jsonify({"error": "템플릿 없음"}), 400
+
+    targets = _dm_read(DM_TARGETS_FILE, "targets")
+    selected = [t for t in targets if t["id"] in target_ids]
+    if not selected:
+        return jsonify({"error": "선택된 타겟 없음"}), 400
+
+    # cloud 모드면 실제 발송 X — UI만 제공
+    cfg = load_config()
+    if cfg.get("env_mode") == "cloud":
+        return jsonify({
+            "error": "DM 발송은 로컬 PC에서만 가능. 클라우드 모드에서는 명단 관리만.",
+            "note": "PC에서 워크스페이스 켜고 발송하세요."
+        }), 400
+
+    # 작업 ID 생성
+    job_id = uuid.uuid4().hex[:12]
+    DM_JOBS_STATE[job_id] = {
+        "id": job_id,
+        "status": "running",
+        "total": len(selected),
+        "sent": 0,
+        "failed": 0,
+        "current": None,
+        "log": [],
+        "started_at": datetime.now().isoformat(timespec="seconds"),
+        "finished_at": None,
+    }
+
+    def run():
+        try:
+            from dm_sender import DMSender  # type: ignore
+            sender = DMSender(state=DM_JOBS_STATE[job_id], log_callback=_log_callback(job_id))
+            sender.run_batch(
+                targets=selected,
+                template=template,
+                accounts_file=str(DM_ACCOUNTS_FILE),
+                targets_file=str(DM_TARGETS_FILE),
+            )
+            DM_JOBS_STATE[job_id]["status"] = "done"
+            DM_JOBS_STATE[job_id]["finished_at"] = datetime.now().isoformat(timespec="seconds")
+        except Exception as e:  # noqa: BLE001
+            log.exception("DM send job failed")
+            DM_JOBS_STATE[job_id]["status"] = "error"
+            DM_JOBS_STATE[job_id]["log"].append(f"❌ 에러: {e}")
+            DM_JOBS_STATE[job_id]["finished_at"] = datetime.now().isoformat(timespec="seconds")
+
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({"job_id": job_id})
+
+
+def _log_callback(job_id: str):
+    def cb(msg: str):
+        if job_id in DM_JOBS_STATE:
+            logs = DM_JOBS_STATE[job_id]["log"]
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+            if len(logs) > 200:
+                DM_JOBS_STATE[job_id]["log"] = logs[-200:]
+    return cb
+
+
+@app.route("/api/dm/jobs/<jid>", methods=["GET"])
+def api_dm_job_status(jid: str):
+    state = DM_JOBS_STATE.get(jid)
+    if not state:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(state)
+
+
+@app.route("/api/dm/jobs/<jid>/stop", methods=["POST"])
+def api_dm_job_stop(jid: str):
+    state = DM_JOBS_STATE.get(jid)
+    if state:
+        state["status"] = "stopping"
+    return jsonify({"ok": True})
+
+
 def main():
     cfg = load_config()
     host = cfg.get("server", {}).get("host", "127.0.0.1")

@@ -42,6 +42,9 @@
         <button class="side-item" data-tab="meetings">
           <span class="ico">🎤</span><span>미팅 / 녹취록</span>
         </button>
+        <button class="side-item" data-tab="dm">
+          <span class="ico">📨</span><span>영업 (DM)</span>
+        </button>
         <div class="side-sep">콘텐츠 도구</div>
         <button class="side-item" data-tab="archive">
           <span class="ico">📂</span><span>셀러 아카이브</span>
@@ -211,6 +214,103 @@
           <div id="meetingList" class="meeting-list">
             <div class="empty">미팅 없음. [+ 미팅 추가]로 시작하세요.</div>
           </div>
+        </section>
+      </section>
+
+      <!-- TAB: DM 영업 -->
+      <section class="tab-pane" id="tab-dm">
+        <div class="page-head">
+          <h1>📨 영업 (DM)</h1>
+          <p class="page-sub">인스타 DM 자동 발송. 100개 계정 풀 + 인간 행동 모방 + 봇 감지 대응.</p>
+        </div>
+
+        <section class="panel dm-pool-panel">
+          <div class="panel-head">
+            <h2>👥 계정 풀</h2>
+            <div class="head-actions">
+              <span class="hint" id="dmPoolStat">로딩…</span>
+              <button class="btn-secondary" id="btnDmAccountAdd">+ 계정 추가</button>
+              <button class="btn-secondary" id="btnDmAccountBulk">📥 엑셀로 일괄</button>
+            </div>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table" id="dmAccountsTable">
+              <thead>
+                <tr>
+                  <th>인스타 ID</th>
+                  <th>발신인명</th>
+                  <th>상태</th>
+                  <th>오늘 / 한도</th>
+                  <th>누적</th>
+                  <th>마지막 사용</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dmAccountsBody"><tr><td colspan="7" class="empty">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>📝 DM 템플릿</h2>
+            <div class="head-actions">
+              <button class="btn-secondary" id="btnDmTemplateAdd">+ 템플릿 추가</button>
+            </div>
+          </div>
+          <div id="dmTemplatesList" class="dm-templates-list"><div class="empty">불러오는 중…</div></div>
+          <div class="hint" style="margin-top:8px">
+            변수 사용: <code>[name]</code> = 발신인 / <code>[targetname]</code> = 받는 사람 이름
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>📋 영업 명단</h2>
+            <div class="head-actions">
+              <select id="dmTargetFilter" class="filter-sel">
+                <option value="">전체 상태</option>
+                <option value="pending">미발송</option>
+                <option value="sent">발송완료</option>
+                <option value="replied">답장받음</option>
+                <option value="failed">실패</option>
+              </select>
+              <button class="btn-secondary" id="btnDmTargetAdd">+ 타겟 추가</button>
+              <button class="btn-secondary" id="btnDmTargetBulk">📥 엑셀로 일괄</button>
+            </div>
+          </div>
+          <div class="dm-bulk-bar" id="dmBulkBar" hidden>
+            <span id="dmSelectedCount">0명 선택됨</span>
+            <span class="spacer" style="flex:1"></span>
+            <select id="dmSendTemplate" class="filter-sel"></select>
+            <button class="btn-primary" id="btnDmSendStart">📤 DM 발송 시작</button>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table" id="dmTargetsTable">
+              <thead>
+                <tr>
+                  <th style="width:30px"><input type="checkbox" id="dmTargetAll" /></th>
+                  <th>인스타 ID</th>
+                  <th>이름</th>
+                  <th>카테고리</th>
+                  <th>팔로워</th>
+                  <th>상태</th>
+                  <th>마지막 발송</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dmTargetsBody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="dmJobPanel" hidden>
+          <div class="panel-head">
+            <h2>⚡ 발송 진행</h2>
+            <button class="btn-text" id="btnDmJobStop">중지</button>
+          </div>
+          <div id="dmJobProgress"></div>
+          <div id="dmJobLog" class="log-box"></div>
         </section>
       </section>
 
@@ -675,7 +775,101 @@
     </div>
   </dialog>
 
+  <!-- DM 계정 추가 -->
+  <dialog id="dmAccountDialog">
+    <form id="dmAccountForm">
+      <h3 id="dmAccountTitle">계정 추가</h3>
+      <input type="hidden" name="id" />
+      <label>인스타 ID (@ 빼고) *<input name="username" required /></label>
+      <label>비밀번호 *<input name="password" type="password" required /></label>
+      <label>발신인 이름<input name="sender_name" placeholder="예: 하루픽스" /></label>
+      <label>일일 한도<input name="daily_limit" type="number" value="50" min="1" max="200" /></label>
+      <label>상태
+        <select name="status">
+          <option value="active">활성</option>
+          <option value="warmup">워밍업</option>
+          <option value="blocked">차단됨</option>
+          <option value="disabled">비활성</option>
+        </select>
+      </label>
+      <label>메모<textarea name="notes" rows="2"></textarea></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-dm-account">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-dm-account">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DM 일괄 추가 -->
+  <dialog id="dmBulkDialog">
+    <form id="dmBulkForm" class="big-form">
+      <h3 id="dmBulkTitle">엑셀 일괄 등록</h3>
+      <input type="hidden" name="kind" />
+      <p class="hint" id="dmBulkHint"></p>
+      <label class="full">
+        붙여넣기 (탭/쉼표 구분)
+        <textarea name="csv" rows="10" placeholder="예시:
+username1	password1	sender_name1
+username2	password2	sender_name2"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-dm-bulk">취소</button>
+        <button type="submit" class="btn-primary">일괄 추가</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DM 타겟 추가 -->
+  <dialog id="dmTargetDialog">
+    <form id="dmTargetForm">
+      <h3>영업 타겟 추가</h3>
+      <input type="hidden" name="id" />
+      <label>인스타 ID (@ 빼고) *<input name="username" required /></label>
+      <label>이름<input name="display_name" placeholder="예: 박예은" /></label>
+      <label>카테고리<input name="category" placeholder="예: 건강식, 다이어트" /></label>
+      <label>팔로워 (숫자)<input name="followers" type="number" min="0" /></label>
+      <label>메모<textarea name="notes" rows="2"></textarea></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-dm-target">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-dm-target">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DM 템플릿 -->
+  <dialog id="dmTemplateDialog">
+    <form id="dmTemplateForm" class="big-form">
+      <h3 id="dmTemplateTitle">템플릿 추가</h3>
+      <input type="hidden" name="id" />
+      <div class="form-grid">
+        <label>이름 *<input name="name" required placeholder="예: 1차 콜드 - 하루픽스" /></label>
+        <label>발신인 이름<input name="sender_name" placeholder="예: 하루픽스" /></label>
+        <label class="full">브랜드 (선택)
+          <select name="brand_id">
+            <option value="">(없음)</option>
+          </select>
+        </label>
+        <label class="full">DM 본문 *
+          <textarea name="body" rows="10" required placeholder="안녕하세요 [targetname]님!&#10;저희는 [name]입니다.&#10;..."></textarea>
+        </label>
+      </div>
+      <div class="hint">변수: <code>[name]</code> 발신인 / <code>[targetname]</code> 받는 사람 이름</div>
+      <div class="dialog-actions">
+        <button type="button" class="btn-text" data-action="delete-dm-template">삭제</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn-text" data-action="cancel-dm-template">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/static/app.js"></script>
+  <script src="/static/dm-widget.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)

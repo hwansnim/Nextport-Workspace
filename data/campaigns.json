@@ -38,7 +38,7 @@
         "vat": 135167.0
       },
       "created_at": "2026-05-01T18:00:00",
-      "updated_at": "2026-05-20T11:08:09",
+      "updated_at": "2026-05-26T22:12:58",
       "brand_id": "harufix",
       "seller_token": "qka5PG04db",
       "daily_schedule": [
@@ -904,10 +904,12 @@
       },
       "financials": {
         "revenue": 0.0,
+        "seller_fee": 0.0,
+        "event_cost": 0.0,
         "cost": 0.0
       },
       "created_at": "2026-05-01T18:00:00",
-      "updated_at": "2026-05-20T11:08:09",
+      "updated_at": "2026-05-26T19:20:55",
       "brand_id": "harufix",
       "seller_token": "Mjbbq1LB2L",
       "daily_schedule": [],

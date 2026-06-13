@@ -1,3 +1,16 @@
 {
-  "events": []
+  "events": [
+    {
+      "id": "e001",
+      "date": "2026-05-21",
+      "time": "",
+      "kind": "other",
+      "title": "[윰니님] 마켓 제품 교육",
+      "ref_id": "",
+      "ref_kind": "",
+      "color": "",
+      "notes": "",
+      "created_at": "2026-05-20T11:48:56"
+    }
+  ]
 }
