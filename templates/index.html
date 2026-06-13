@@ -95,6 +95,7 @@
           <div class="b-title">💾 백업 상태 확인 중…</div>
         </div>
         <div class="status-row" id="pillGemini">Gemini…</div>
+        <div class="status-row" id="driveSyncStatus" style="cursor:pointer" onclick="triggerDriveSync(true)" title="클릭 = 지금 sync">☁️ Drive sync · 대기</div>
         <button id="btnIgLogin" class="btn-secondary side-btn">📷 인스타 로그인</button>
       </div>
     </aside>
@@ -1611,6 +1612,7 @@ username2	password2	sender_name2"></textarea>
   <script src="/static/dm-queue-inbox.js"></script>
   <script src="/static/dm-phase-d.js"></script>
   <script src="/static/campaigns-v2.js"></script>
+  <script src="/static/activity-tracker.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)

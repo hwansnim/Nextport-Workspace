@@ -3726,6 +3726,87 @@ def api_dm_daily_stats():
 
 
 # ═══════════════════════════════════════════════════════════
+# 🗂 Phase H — Activity Log + Google Drive 자동 sync
+# ═══════════════════════════════════════════════════════════
+
+@app.route("/api/activity/log", methods=["POST"])
+def api_activity_log():
+    """프론트에서 액션 1건 로깅. body: {action, tab?, target?, detail?}"""
+    try:
+        from activity_log import log_action  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"activity_log 모듈 실패: {e}"}), 500
+    payload = request.get_json(silent=True) or {}
+    action = (payload.get("action") or "").strip()
+    if not action:
+        return jsonify({"error": "action 필수"}), 400
+    log_action(
+        action,
+        tab=payload.get("tab") or "",
+        target=payload.get("target") or "",
+        detail=payload.get("detail") or {},
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/activity/recent", methods=["GET"])
+def api_activity_recent():
+    try:
+        from activity_log import read_recent  # type: ignore
+    except ImportError:
+        return jsonify({"entries": []})
+    limit = int(request.args.get("limit", 200))
+    return jsonify({"entries": read_recent(limit=limit)})
+
+
+@app.route("/api/drive/sync", methods=["POST"])
+def api_drive_sync():
+    """Drive sync 수동 트리거. force=true 면 쿨다운 무시."""
+    try:
+        from activity_log import sync_to_drive  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"activity_log 모듈 실패: {e}"}), 500
+    force = (request.get_json(silent=True) or {}).get("force") or \
+            request.args.get("force", "").lower() in ("1", "true", "yes")
+    cfg = load_config() or {}
+    result = sync_to_drive(cfg, force=force)
+    return jsonify(result)
+
+
+@app.route("/api/drive/status", methods=["GET"])
+def api_drive_status():
+    try:
+        from activity_log import get_sync_status  # type: ignore
+    except ImportError:
+        return jsonify({"synced": False})
+    return jsonify(get_sync_status())
+
+
+# 백그라운드 sync 스케줄러 (5분마다 자동)
+def _start_drive_sync_scheduler():
+    import threading
+    import time as _t
+
+    def _loop():
+        # 시작 시 30초 대기 (서버 부팅 안정)
+        _t.sleep(30)
+        while True:
+            try:
+                from activity_log import sync_to_drive  # type: ignore
+                cfg = load_config() or {}
+                if cfg.get("env_mode") == "cloud":
+                    # 클라우드에서는 credentials.json 없으므로 skip
+                    pass
+                else:
+                    sync_to_drive(cfg)
+            except Exception as e:
+                log.warning(f"백그라운드 Drive sync 실패: {e}")
+            _t.sleep(300)  # 5분
+
+    threading.Thread(target=_loop, daemon=True, name="drive_sync").start()
+
+
+# ═══════════════════════════════════════════════════════════
 # 📨 DM 영업 시스템 — Legacy (구버전, 곧 마이그레이션 예정)
 # ═══════════════════════════════════════════════════════════
 
@@ -4125,6 +4206,11 @@ def main():
             log.warning(f"Tunnel 자동 시작 실패 (무시): {e}")
 
     log.info(f"서버 시작 → http://{host}:{port}")
+    try:
+        _start_drive_sync_scheduler()
+        log.info("Drive sync 스케줄러 시작 (5분 주기)")
+    except Exception as e:
+        log.warning(f"Drive sync 스케줄러 시작 실패 (무시): {e}")
     app.run(host=host, port=port, debug=False, use_reloader=False)
 
 
