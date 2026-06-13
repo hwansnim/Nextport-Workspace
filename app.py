@@ -2332,7 +2332,569 @@ def serve_chat_upload(filename: str):
 
 
 # ═══════════════════════════════════════════════════════════
-# 📨 DM 영업 시스템 (인스타 자동 발송)
+# 📨 DM 영업 시스템 — v2 (인플루언서 5000 + 계정 100+)
+# ═══════════════════════════════════════════════════════════
+
+INFLUENCERS_FILE = DATA_DIR / "influencers.json"
+OUR_ACCOUNTS_FILE = DATA_DIR / "our_accounts.json"
+IMPORTS_DIR = DATA_DIR / "imports"
+IMPORTS_DIR.mkdir(exist_ok=True)
+
+
+def _load_influencers() -> list[dict]:
+    if not INFLUENCERS_FILE.exists():
+        return []
+    return json.loads(INFLUENCERS_FILE.read_text(encoding="utf-8")).get("influencers", [])
+
+
+def _save_influencers(items: list[dict]) -> None:
+    INFLUENCERS_FILE.write_text(
+        json.dumps({"influencers": items, "schema_version": 2,
+                    "updated_at": datetime.now().isoformat(timespec="seconds")},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _load_our_accounts() -> list[dict]:
+    if not OUR_ACCOUNTS_FILE.exists():
+        return []
+    return json.loads(OUR_ACCOUNTS_FILE.read_text(encoding="utf-8")).get("accounts", [])
+
+
+def _save_our_accounts(items: list[dict]) -> None:
+    OUR_ACCOUNTS_FILE.write_text(
+        json.dumps({"accounts": items, "schema_version": 2,
+                    "updated_at": datetime.now().isoformat(timespec="seconds")},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+# ─── 인플루언서 마스터 (5,000명) ─────────────────────────
+@app.route("/api/influencers", methods=["GET"])
+def api_influencers_list():
+    items = _load_influencers()
+    # 페이지네이션
+    page = int(request.args.get("page", 1))
+    page_size = int(request.args.get("page_size", 50))
+    q = (request.args.get("q") or "").strip().lower()
+    status_filter = (request.args.get("status") or "").strip()
+
+    filtered = items
+    if q:
+        filtered = [it for it in filtered if
+                    q in (it.get("instagram_id", "") or "").lower() or
+                    q in (it.get("seller_name", "") or "").lower()]
+    if status_filter:
+        filtered = [it for it in filtered if it.get("status") == status_filter]
+
+    total = len(filtered)
+    start = (page - 1) * page_size
+    end = start + page_size
+    return jsonify({
+        "influencers": filtered[start:end],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "summary": _influencer_summary(items),
+    })
+
+
+def _influencer_summary(items: list[dict]) -> dict:
+    by_status: dict[str, int] = {}
+    for it in items:
+        s = it.get("status") or "미발송"
+        by_status[s] = by_status.get(s, 0) + 1
+    return {"total": len(items), "by_status": by_status}
+
+
+@app.route("/api/influencers/<iid>", methods=["PATCH"])
+def api_influencers_patch(iid: str):
+    payload = request.get_json(force=True)
+    items = _load_influencers()
+    it = next((x for x in items if x["id"] == iid), None)
+    if not it:
+        return jsonify({"error": "not found"}), 404
+    for k in ("seller_name", "status", "notes", "history_text"):
+        if k in payload:
+            it[k] = (payload[k] or "").strip()
+    _save_influencers(items)
+    return jsonify({"influencer": it})
+
+
+@app.route("/api/influencers/<iid>", methods=["DELETE"])
+def api_influencers_delete(iid: str):
+    items = [x for x in _load_influencers() if x["id"] != iid]
+    _save_influencers(items)
+    return jsonify({"ok": True})
+
+
+# ─── 우리 계정 마스터 (100+) ─────────────────────────────
+@app.route("/api/our_accounts", methods=["GET"])
+def api_our_accounts_list():
+    items = _load_our_accounts()
+    # 비번 마스킹
+    out = []
+    for a in items:
+        masked = dict(a)
+        if masked.get("login_pw"): masked["login_pw"] = "*" * 8
+        if masked.get("linked_email_pw"): masked["linked_email_pw"] = "*" * 8
+        out.append(masked)
+    # 기기별 그룹 카운트
+    by_device = {}
+    for it in items:
+        d = it.get("device") or "(미지정)"
+        by_device[d] = by_device.get(d, 0) + 1
+    by_status = {}
+    for it in items:
+        s = it.get("status") or "활성"
+        by_status[s] = by_status.get(s, 0) + 1
+    return jsonify({
+        "accounts": out,
+        "summary": {
+            "total": len(items),
+            "by_status": by_status,
+            "by_device": by_device,
+        }
+    })
+
+
+@app.route("/api/our_accounts/<aid>", methods=["PATCH"])
+def api_our_accounts_patch(aid: str):
+    payload = request.get_json(force=True)
+    items = _load_our_accounts()
+    a = next((x for x in items if x["id"] == aid), None)
+    if not a:
+        return jsonify({"error": "not found"}), 404
+    for k in ("status", "daily_limit", "notes", "phone", "device", "account_owner"):
+        if k in payload:
+            v = payload[k]
+            if k == "daily_limit":
+                v = int(v or 50)
+            elif isinstance(v, str):
+                v = v.strip()
+            a[k] = v
+    if "login_pw" in payload and payload["login_pw"]:
+        a["login_pw"] = payload["login_pw"]
+    _save_our_accounts(items)
+    return jsonify({"account": {**a, "login_pw": "*" * 8}})
+
+
+@app.route("/api/our_accounts/<aid>", methods=["DELETE"])
+def api_our_accounts_delete(aid: str):
+    items = [x for x in _load_our_accounts() if x["id"] != aid]
+    _save_our_accounts(items)
+    return jsonify({"ok": True})
+
+
+# ─── 엑셀 자동 임포트 ────────────────────────────────────
+@app.route("/api/dm/import/preview", methods=["GET"])
+def api_dm_import_preview():
+    """data/imports/ 폴더의 xlsx 파일 목록 + 미리보기 정보."""
+    files = []
+    if IMPORTS_DIR.exists():
+        for p in sorted(IMPORTS_DIR.glob("*.xlsx")):
+            files.append({
+                "name": p.name,
+                "size_kb": round(p.stat().st_size / 1024, 1),
+                "modified": datetime.fromtimestamp(p.stat().st_mtime).isoformat(timespec="seconds"),
+            })
+    return jsonify({"files": files, "imports_dir": str(IMPORTS_DIR)})
+
+
+@app.route("/api/dm/import/influencers", methods=["POST"])
+def api_dm_import_influencers():
+    payload = request.get_json(force=True) or {}
+    fname = (payload.get("filename") or "").strip()
+    if not fname:
+        return jsonify({"error": "filename 필수"}), 400
+    fpath = IMPORTS_DIR / fname
+    if not fpath.exists():
+        return jsonify({"error": f"파일 없음: {fpath}"}), 404
+
+    try:
+        from dm_importer import import_influencers  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"importer 모듈 실패: {e}"}), 500
+
+    mode = (payload.get("mode") or "add").strip().lower()
+    if mode not in ("add", "update"):
+        mode = "add"
+
+    existing = _load_influencers()
+    result = import_influencers(fpath, existing, mode=mode)
+    if result.get("error"):
+        return jsonify(result), 400
+
+    new_items = result.pop("items", [])
+    existing.extend(new_items)
+    _save_influencers(existing)
+
+    return jsonify({**result, "mode": mode, "total_after": len(existing)})
+
+
+@app.route("/api/dm/import/accounts", methods=["POST"])
+def api_dm_import_accounts():
+    payload = request.get_json(force=True) or {}
+    fname = (payload.get("filename") or "").strip()
+    if not fname:
+        return jsonify({"error": "filename 필수"}), 400
+    fpath = IMPORTS_DIR / fname
+    if not fpath.exists():
+        return jsonify({"error": f"파일 없음: {fpath}"}), 404
+
+    try:
+        from dm_importer import import_accounts  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"importer 모듈 실패: {e}"}), 500
+
+    mode = (payload.get("mode") or "add").strip().lower()
+    if mode not in ("add", "update"):
+        mode = "add"
+
+    existing = _load_our_accounts()
+    result = import_accounts(fpath, existing, mode=mode)
+    if result.get("error"):
+        return jsonify(result), 400
+
+    new_items = result.pop("items", [])
+    existing.extend(new_items)
+    _save_our_accounts(existing)
+
+    return jsonify({**result, "mode": mode, "total_after": len(existing)})
+
+
+@app.route("/api/dm/import/template/<kind>", methods=["GET"])
+def api_dm_import_template(kind):
+    """양식 엑셀 다운로드. kind = 'influencers' | 'accounts'"""
+    tpl_dir = IMPORTS_DIR / "templates"
+    mapping = {
+        "influencers": "influencers_template.xlsx",
+        "accounts": "accounts_template.xlsx",
+    }
+    fname = mapping.get(kind)
+    if not fname:
+        return jsonify({"error": "kind는 influencers / accounts"}), 400
+    fpath = tpl_dir / fname
+    if not fpath.exists():
+        return jsonify({
+            "error": "양식 파일 없음",
+            "hint": "python scripts/make_templates.py 실행",
+        }), 404
+    return send_from_directory(tpl_dir, fname, as_attachment=True)
+
+
+# ═══════════════════════════════════════════════════════════
+# 🚀 Phase B — 발송 큐 (오늘 보낼 후보 자동 산출)
+# ═══════════════════════════════════════════════════════════
+
+DM_TEMPLATES_V2_FILE = DATA_DIR / "dm_templates_v2.json"
+
+
+def _load_dm_templates_v2() -> list[dict]:
+    if not DM_TEMPLATES_V2_FILE.exists():
+        return [{"id": "tpl_default", "name": "기본 1차", "body": "안녕하세요! 넥스트포트에서 공동구매 제안드립니다 :)"}]
+    try:
+        with open(DM_TEMPLATES_V2_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("templates", [])
+    except Exception:
+        return []
+
+
+def _save_dm_templates_v2(items: list[dict]) -> None:
+    DM_TEMPLATES_V2_FILE.write_text(
+        json.dumps({"templates": items, "updated_at": datetime.now().isoformat(timespec="seconds")},
+                   ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/dm/queue/today", methods=["GET"])
+def api_dm_queue_today():
+    """오늘 발송 가능한 (인플루언서, 추천계정) 페어 산출."""
+    try:
+        from dm_scheduler import build_queue  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"scheduler 모듈 실패: {e}"}), 500
+    max_per_run = int(request.args.get("max", 100))
+    influencers = _load_influencers()
+    accounts = _load_our_accounts()
+    return jsonify(build_queue(influencers, accounts, max_per_run=max_per_run))
+
+
+@app.route("/api/dm/templates_v2", methods=["GET", "POST"])
+def api_dm_templates_v2():
+    if request.method == "POST":
+        payload = request.get_json(force=True) or {}
+        items = payload.get("templates") or []
+        _save_dm_templates_v2(items)
+        return jsonify({"ok": True, "count": len(items)})
+    return jsonify({"templates": _load_dm_templates_v2()})
+
+
+@app.route("/api/dm/send", methods=["POST"])
+def api_dm_send_one():
+    """큐의 한 페어를 즉시 발송. body: {influencer_id, account_id, message}"""
+    # 클라우드 환경에서는 발송 차단
+    if (load_config() or {}).get("env_mode") == "cloud":
+        return jsonify({"error": "클라우드 환경에서는 DM 발송 비활성화"}), 403
+
+    payload = request.get_json(force=True) or {}
+    inf_id = payload.get("influencer_id")
+    acc_id = payload.get("account_id")
+    message = (payload.get("message") or "").strip()
+    if not (inf_id and acc_id and message):
+        return jsonify({"error": "influencer_id, account_id, message 필수"}), 400
+
+    influencers = _load_influencers()
+    accounts = _load_our_accounts()
+    inf = next((x for x in influencers if x["id"] == inf_id), None)
+    acc = next((x for x in accounts if x["id"] == acc_id), None)
+    if not inf or not acc:
+        return jsonify({"error": "인플루언서 또는 계정 없음"}), 404
+
+    try:
+        from dm_sender import DMSender  # type: ignore
+        from dm_scheduler import record_send  # type: ignore
+        from dm_inbox import upsert_conversation, append_message  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"모듈 실패: {e}"}), 500
+
+    sender = DMSender()
+    ok = False
+    err_msg = ""
+    try:
+        from playwright.sync_api import sync_playwright  # type: ignore
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=False)
+            ctx = browser.new_context()
+            page = ctx.new_page()
+            if not sender.login(page, acc):
+                err_msg = "로그인 실패"
+            else:
+                ok, err_msg = sender.send_dm(page, {"instagram_id": inf["instagram_id"]}, message)
+            ctx.close()
+            browser.close()
+    except ImportError:
+        return jsonify({"error": "Playwright 미설치"}), 500
+    except Exception as e:
+        err_msg = str(e)
+
+    # 결과 기록
+    status = "ok" if ok else "fail"
+    record_send(inf, acc, message, status=status, note=err_msg)
+    _save_influencers(influencers)
+    _save_our_accounts(accounts)
+
+    # 인박스에도 우리가 보낸 메시지로 기록
+    if ok:
+        inbox = _load_inbox()
+        conv = upsert_conversation(inbox, acc, inf["instagram_id"], inf)
+        append_message(conv, "us", message)
+        _save_inbox(inbox)
+
+    return jsonify({"ok": ok, "error": err_msg if not ok else None, "send_count": inf.get("send_count")})
+
+
+# ═══════════════════════════════════════════════════════════
+# 📥 Phase C — 통합 DM 답장 인박스
+# ═══════════════════════════════════════════════════════════
+
+INBOX_FILE = DATA_DIR / "inbox_messages.json"
+
+
+def _load_inbox() -> list[dict]:
+    if not INBOX_FILE.exists():
+        return []
+    try:
+        with open(INBOX_FILE, encoding="utf-8") as f:
+            return json.load(f).get("conversations", [])
+    except Exception:
+        return []
+
+
+def _save_inbox(conversations: list[dict]) -> None:
+    INBOX_FILE.write_text(json.dumps({
+        "conversations": conversations,
+        "schema_version": 1,
+        "synced_at": datetime.now().isoformat(timespec="seconds"),
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/dm/inbox", methods=["GET"])
+def api_dm_inbox_list():
+    try:
+        from dm_inbox import list_conversations, summarize  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"인박스 모듈 실패: {e}"}), 500
+    conversations = _load_inbox()
+    result = list_conversations(
+        conversations,
+        q=request.args.get("q", "").strip(),
+        only_unread=request.args.get("only_unread", "").lower() in ("1", "true", "yes"),
+        account_id=request.args.get("account_id", "").strip(),
+        page=int(request.args.get("page", 1)),
+        page_size=int(request.args.get("page_size", 50)),
+    )
+    result["summary"] = summarize(conversations)
+    return jsonify(result)
+
+
+@app.route("/api/dm/inbox/<conv_id>", methods=["GET"])
+def api_dm_inbox_conversation(conv_id):
+    conversations = _load_inbox()
+    conv = next((c for c in conversations if c.get("id") == conv_id), None)
+    if not conv:
+        return jsonify({"error": "대화 없음"}), 404
+    return jsonify(conv)
+
+
+@app.route("/api/dm/inbox/<conv_id>/read", methods=["POST"])
+def api_dm_inbox_mark_read(conv_id):
+    try:
+        from dm_inbox import mark_read  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"인박스 모듈 실패: {e}"}), 500
+    conversations = _load_inbox()
+    conv = next((c for c in conversations if c.get("id") == conv_id), None)
+    if not conv:
+        return jsonify({"error": "대화 없음"}), 404
+    mark_read(conv)
+    _save_inbox(conversations)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/dm/inbox/<conv_id>/reply", methods=["POST"])
+def api_dm_inbox_reply(conv_id):
+    """답장 보내기 — 그 conversation 의 our_account 로."""
+    if (load_config() or {}).get("env_mode") == "cloud":
+        return jsonify({"error": "클라우드 환경에서는 DM 발송 비활성화"}), 403
+
+    payload = request.get_json(force=True) or {}
+    message = (payload.get("message") or "").strip()
+    if not message:
+        return jsonify({"error": "message 필수"}), 400
+
+    conversations = _load_inbox()
+    conv = next((c for c in conversations if c.get("id") == conv_id), None)
+    if not conv:
+        return jsonify({"error": "대화 없음"}), 404
+
+    accounts = _load_our_accounts()
+    acc = next((a for a in accounts if a["id"] == conv.get("our_account_id")), None)
+    if not acc:
+        return jsonify({"error": "발송 계정 없음"}), 404
+
+    try:
+        from dm_sender import DMSender  # type: ignore
+        from dm_inbox import append_message  # type: ignore
+        from playwright.sync_api import sync_playwright  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"모듈 실패: {e}"}), 500
+
+    sender = DMSender()
+    ok = False
+    err_msg = ""
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=False)
+            ctx = browser.new_context()
+            page = ctx.new_page()
+            if not sender.login(page, acc):
+                err_msg = "로그인 실패"
+            else:
+                ok, err_msg = sender.send_dm(page, {"instagram_id": conv["their_handle"]}, message)
+            ctx.close()
+            browser.close()
+    except Exception as e:
+        err_msg = str(e)
+
+    if ok:
+        append_message(conv, "us", message)
+        _save_inbox(conversations)
+
+    return jsonify({"ok": ok, "error": err_msg if not ok else None})
+
+
+@app.route("/api/dm/inbox/sync", methods=["POST"])
+def api_dm_inbox_sync():
+    """모든 활성 계정에서 받은 DM 동기화 (Playwright). 무거움 — 백그라운드 실행 권장.
+    body 옵션: {account_ids: ["acc0001",...]} 비우면 전체 활성 계정
+    """
+    if (load_config() or {}).get("env_mode") == "cloud":
+        return jsonify({"error": "클라우드 환경에서는 비활성화"}), 403
+
+    payload = request.get_json(silent=True) or {}
+    filter_ids = set(payload.get("account_ids") or [])
+    accounts = _load_our_accounts()
+    influencers = _load_influencers()
+    inf_by_handle = {x.get("instagram_id", "").lower(): x for x in influencers}
+    targets = [a for a in accounts if a.get("status") == "활성"]
+    if filter_ids:
+        targets = [a for a in targets if a["id"] in filter_ids]
+
+    if not targets:
+        return jsonify({"error": "활성 계정 없음"}), 400
+
+    try:
+        from dm_sender import DMSender  # type: ignore
+        from dm_inbox import upsert_conversation, append_message  # type: ignore
+        from playwright.sync_api import sync_playwright  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"모듈 실패: {e}"}), 500
+
+    conversations = _load_inbox()
+    total_new = 0
+    per_account = []
+    sender = DMSender()
+
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            for acc in targets:
+                ctx = browser.new_context()
+                page = ctx.new_page()
+                new_for_acc = 0
+                try:
+                    if not sender.login(page, acc):
+                        per_account.append({"account": acc.get("instagram_id"), "error": "로그인 실패"})
+                        ctx.close()
+                        continue
+                    # 인박스 페이지로 가서 최근 대화 목록 긁기
+                    page.goto("https://www.instagram.com/direct/inbox/", timeout=30000)
+                    page.wait_for_timeout(3000)
+                    threads = page.locator('div[role="listitem"]').all()
+                    for t in threads[:20]:
+                        try:
+                            handle = t.locator('span').first.text_content() or ""
+                            preview = t.locator('span').nth(1).text_content() or ""
+                            handle = handle.strip()
+                            if not handle:
+                                continue
+                            inf = inf_by_handle.get(handle.lower())
+                            conv = upsert_conversation(conversations, acc, handle, inf)
+                            # 마지막 미리보기와 다르면 새 메시지로 간주
+                            if preview and preview != conv.get("last_message_preview"):
+                                append_message(conv, "them", preview)
+                                new_for_acc += 1
+                        except Exception:
+                            continue
+                    per_account.append({"account": acc.get("instagram_id"), "new": new_for_acc})
+                    total_new += new_for_acc
+                except Exception as e:
+                    per_account.append({"account": acc.get("instagram_id"), "error": str(e)})
+                finally:
+                    ctx.close()
+            browser.close()
+    except Exception as e:
+        return jsonify({"error": f"브라우저 실패: {e}"}), 500
+
+    _save_inbox(conversations)
+    return jsonify({"ok": True, "total_new": total_new, "per_account": per_account})
+
+
+# ═══════════════════════════════════════════════════════════
+# 📨 DM 영업 시스템 — Legacy (구버전, 곧 마이그레이션 예정)
 # ═══════════════════════════════════════════════════════════
 
 DM_ACCOUNTS_FILE = DATA_DIR / "dm_accounts.json"

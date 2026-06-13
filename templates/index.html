@@ -45,6 +45,10 @@
         <button class="side-item" data-tab="dm">
           <span class="ico">📨</span><span>영업 (DM)</span>
         </button>
+        <button class="side-item" data-tab="inbox">
+          <span class="ico">📥</span><span>통합 인박스</span>
+          <span class="side-badge" id="inboxUnreadBadge" hidden>0</span>
+        </button>
         <div class="side-sep">콘텐츠 도구</div>
         <button class="side-item" data-tab="archive">
           <span class="ico">📂</span><span>셀러 아카이브</span>
@@ -221,8 +225,131 @@
       <section class="tab-pane" id="tab-dm">
         <div class="page-head">
           <h1>📨 영업 (DM)</h1>
-          <p class="page-sub">인스타 DM 자동 발송. 100개 계정 풀 + 인간 행동 모방 + 봇 감지 대응.</p>
+          <p class="page-sub">인플루언서 5,000 · 계정 100+ · 차수 10 · 1주 간격 · 다른 계정 자동.</p>
         </div>
+
+        <!-- 임포트 패널 -->
+        <section class="panel" id="dmImportPanel">
+          <div class="panel-head">
+            <h2>📥 엑셀 임포트</h2>
+            <span class="hint" id="dmImportsDirHint"></span>
+          </div>
+          <div class="dm-import-toolbar">
+            <a class="btn-secondary" href="/api/dm/import/template/influencers" download>📥 인플루언서 양식</a>
+            <a class="btn-secondary" href="/api/dm/import/template/accounts" download>📥 계정 양식</a>
+            <label class="dm-overwrite-toggle" title="중복 instagram_id 만나면 누적데이터(차수/히스토리)는 보존하고 나머지 필드만 갱신">
+              <input type="checkbox" id="dmImportOverwrite" />
+              <span>덮어쓰기 모드 <em>(중복 시 갱신)</em></span>
+            </label>
+          </div>
+          <div id="dmImportFiles">파일 확인 중…</div>
+          <div class="hint" style="margin-top:8px">
+            <b>신규 추가</b>: 엑셀에 행만 더 박고 같은 폴더에 두고 임포트 → 기존 안 건드림, 신규만 들어옴<br>
+            <b>수정</b>: 적은 양은 표에서 ✎ / 많은 양은 위 [덮어쓰기 모드] 켜고 임포트<br>
+            <b>위치</b>: <code>data/imports/</code> → [↻ 새로고침]
+          </div>
+        </section>
+
+        <!-- 인플루언서 마스터 -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>👤 인플루언서 마스터</h2>
+            <div class="head-actions">
+              <span class="hint" id="dmInfStat">로딩…</span>
+              <input type="text" id="dmInfSearch" placeholder="🔍 인스타ID / 셀러명 검색" style="font-size:12px;padding:5px 9px;width:220px" />
+              <select id="dmInfStatusFilter" class="filter-sel">
+                <option value="">전체 상태</option>
+                <option value="미발송">미발송</option>
+                <option value="발송중">발송중</option>
+                <option value="답장받음">답장받음</option>
+                <option value="컨펌">컨펌</option>
+                <option value="거절">거절</option>
+                <option value="비공개">비공개</option>
+              </select>
+            </div>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table dm-table-tight" id="dmInfTable">
+              <thead>
+                <tr>
+                  <th style="width:30px"><input type="checkbox" id="dmInfAll" /></th>
+                  <th>인스타ID</th>
+                  <th>셀러명</th>
+                  <th>상태</th>
+                  <th>차수</th>
+                  <th>최종 발송</th>
+                  <th>마지막 사용 계정</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dmInfBody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="dm-pager" id="dmInfPager"></div>
+        </section>
+
+        <!-- 우리 계정 마스터 -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>💻 우리 계정 마스터 (기기별)</h2>
+            <div class="head-actions">
+              <span class="hint" id="dmAccStat">로딩…</span>
+            </div>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table dm-table-tight" id="dmAccTable">
+              <thead>
+                <tr>
+                  <th>인스타ID</th>
+                  <th>기기</th>
+                  <th>주인</th>
+                  <th>로그인ID</th>
+                  <th>전화번호</th>
+                  <th>생성일</th>
+                  <th>상태</th>
+                  <th>누적</th>
+                  <th>비고</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dmAccBody"><tr><td colspan="10" class="empty">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 🚀 오늘 보낼 큐 (Phase B) -->
+        <section class="panel" id="dmQueuePanel">
+          <div class="panel-head">
+            <h2>🚀 오늘 보낼 큐</h2>
+            <div class="head-actions">
+              <span class="hint" id="dmQueueStat">계산 전</span>
+              <select id="dmQueueTemplate" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:4px"></select>
+              <button class="btn-secondary" data-v2="queue-rebuild">🔄 큐 재계산</button>
+              <button class="btn-secondary" data-v2="queue-send-all" disabled>📤 전체 발송</button>
+            </div>
+          </div>
+          <div class="hint" style="padding:0 16px 8px">
+            규칙 자동 적용 — 차수 ≤10 / 마지막 발송 후 7일+ / 매번 다른 계정 / 활성 계정 + 일일한도 미초과
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table dm-table-tight" id="dmQueueTable">
+              <thead>
+                <tr>
+                  <th style="width:32px"></th>
+                  <th>셀러</th>
+                  <th>인플루언서 인스타</th>
+                  <th>다음 차수</th>
+                  <th>최종 발송</th>
+                  <th>경과일</th>
+                  <th>발송 계정</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dmQueueBody"><tr><td colspan="8" class="empty">[🔄 큐 재계산] 클릭</td></tr></tbody>
+            </table>
+          </div>
+          <div class="hint" id="dmQueueReasons" style="padding:8px 16px;font-size:11px;color:#888"></div>
+        </section>
 
         <section class="panel dm-pool-panel">
           <div class="panel-head">
@@ -312,6 +439,39 @@
           <div id="dmJobProgress"></div>
           <div id="dmJobLog" class="log-box"></div>
         </section>
+      </section>
+
+      <!-- TAB: 📥 통합 인박스 (모든 계정의 답장 한 곳에) -->
+      <section class="tab-pane" id="tab-inbox">
+        <div class="page-head">
+          <h1>📥 통합 인박스</h1>
+          <p class="page-sub">100+ 인스타 계정으로 들어온 모든 DM 답장을 한 곳에서. 셀러별로 자동 묶임.</p>
+        </div>
+
+        <div class="inbox-toolbar">
+          <input type="search" id="inboxSearch" placeholder="🔍 셀러명 / 핸들 / 메시지" />
+          <select id="inboxAccountFilter" title="계정 필터">
+            <option value="">전체 계정</option>
+          </select>
+          <label class="dm-overwrite-toggle" style="margin-left:0">
+            <input type="checkbox" id="inboxOnlyUnread" />
+            <span>안 읽은 것만</span>
+          </label>
+          <span class="hint" id="inboxStat" style="margin-left:auto">로딩…</span>
+          <button class="btn-secondary" data-v2="inbox-sync">🔄 답장 동기화</button>
+        </div>
+
+        <div class="inbox-layout">
+          <!-- 좌측: 대화 리스트 -->
+          <aside class="inbox-list" id="inboxList">
+            <div class="empty" style="padding:20px;font-size:12px">불러오는 중…</div>
+          </aside>
+
+          <!-- 우측: 선택된 대화 thread -->
+          <section class="inbox-thread" id="inboxThread">
+            <div class="empty" style="padding:40px;text-align:center;color:#888">← 좌측에서 대화 선택</div>
+          </section>
+        </div>
       </section>
 
       <!-- TAB: ARCHIVE (레퍼런스용) -->
@@ -870,6 +1030,8 @@ username2	password2	sender_name2"></textarea>
 
   <script src="/static/app.js"></script>
   <script src="/static/dm-widget.js"></script>
+  <script src="/static/dm-v2-widget.js"></script>
+  <script src="/static/dm-queue-inbox.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)
