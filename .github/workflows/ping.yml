@@ -1,0 +1,18 @@
+name: Keep Render Alive
+
+# Render 무료 plan 의 15분 sleep 방지를 위해
+# 10분마다 자동으로 /health 핑
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # 10분마다
+  workflow_dispatch:  # 수동 트리거도 가능
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render
+        run: |
+          echo "Pinging at $(date)"
+          curl -sS --max-time 30 https://nextport-workspace.onrender.com/health || echo "ping failed (will retry next cycle)"
