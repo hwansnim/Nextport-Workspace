@@ -2970,38 +2970,58 @@ def api_dm_live_pause():
 
 @app.route("/api/dm/replies", methods=["GET"])
 def api_dm_replies():
-    """답장 받은 인플루언서 현황 — 인박스 + 인플루언서 매칭."""
+    """답장 받은 인플루언서 현황 — 인박스 + 인플루언서 매칭 + 전체 컬럼."""
     q = request.args.get("q", "").strip().lower()
+    status_filter = request.args.get("status", "").strip()
     conversations = _load_inbox()
     influencers = _load_influencers()
+    accounts = _load_our_accounts()
     inf_by_handle = {x.get("instagram_id", "").lower(): x for x in influencers}
+    acc_by_handle = {a.get("instagram_id", "").lower(): a for a in accounts}
 
     rows = []
-    seen = set()  # (handle, account_id) 페어 dedup
+    seen = set()
     for c in conversations:
-        if (c.get("unread_count") or 0) == 0 and c.get("status") != "replied":
-            # 답장 없는 대화는 제외 (우리가 보낸 것만 있는 경우)
-            has_them = any(m.get("from") == "them" for m in c.get("messages", []))
-            if not has_them:
-                continue
+        has_them = any(m.get("from") == "them" for m in c.get("messages", []))
+        if not has_them:
+            continue
         handle = (c.get("their_handle") or "").lower()
         key = (handle, c.get("our_account_id"))
         if key in seen:
             continue
         seen.add(key)
-        inf = inf_by_handle.get(handle)
+        inf = inf_by_handle.get(handle) or {}
+        our_handle = c.get("our_account_handle") or ""
+        our_acc = acc_by_handle.get(our_handle.lower()) or {}
+
         row = {
             "conv_id": c.get("id"),
+            "influencer_id": inf.get("id"),
             "influencer_handle": c.get("their_handle"),
-            "seller_name": c.get("seller_name") or (inf.get("seller_name") if inf else ""),
-            "our_account_handle": c.get("our_account_handle"),
-            "send_count": inf.get("send_count") if inf else None,
-            "last_sent_date": inf.get("last_sent_date") if inf else None,
+            "influencer_url": inf.get("url") or f"https://www.instagram.com/{c.get('their_handle','')}/",
+            "seller_name": c.get("seller_name") or inf.get("seller_name") or "",
+            # ─── 스크린샷 컬럼 ───
+            "first_reply_date": inf.get("first_reply_date") or (c.get("last_message_at") or "")[:10],
+            "status": inf.get("status") or "dm 소통중",
+            "owner": inf.get("owner") or "",
+            "follower_count": inf.get("follower_count") or "",
+            "reply_account": inf.get("reply_account") or our_handle,
+            "device": our_acc.get("device") or "",
+            "email": inf.get("email") or "",
+            "phone": inf.get("phone") or "",
+            "kakao_id": inf.get("kakao_id") or "",
+            "notes": inf.get("notes") or "",
+            # ─── 발송 정보 ───
+            "send_count": inf.get("send_count"),
+            "last_sent_date": inf.get("last_sent_date"),
+            "our_account_handle": our_handle,
             "last_reply_at": c.get("last_message_at"),
             "last_message_preview": c.get("last_message_preview"),
             "unread_count": c.get("unread_count") or 0,
-            "influencer_id": inf.get("id") if inf else None,
+            "pipeline_stage": inf.get("pipeline_stage") or "",
         }
+        if status_filter and row["status"] != status_filter:
+            continue
         if q:
             blob = " ".join(str(v or "").lower() for v in row.values())
             if q not in blob:
@@ -3010,6 +3030,336 @@ def api_dm_replies():
 
     rows.sort(key=lambda r: r.get("last_reply_at") or "", reverse=True)
     return jsonify({"replies": rows, "total": len(rows)})
+
+
+@app.route("/api/dm/replies/<inf_id>", methods=["PATCH"])
+def api_dm_replies_patch(inf_id):
+    """회신 현황 표에서 인라인 편집 → influencer record 업데이트."""
+    payload = request.get_json(force=True) or {}
+    allowed = {"status", "owner", "first_reply_date", "reply_account", "email",
+               "phone", "kakao_id", "notes", "follower_count", "pipeline_stage"}
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+    for k, v in payload.items():
+        if k in allowed:
+            inf[k] = v
+    _save_influencers(influencers)
+    return jsonify({"ok": True, "influencer": inf})
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 진행 예정 셀러 (Pipeline)
+# ═══════════════════════════════════════════════════════════
+
+PIPELINE_STAGES = ["진행예정", "미팅예약", "미팅완료", "캠페인진행중", "종료"]
+
+
+@app.route("/api/pipeline", methods=["GET"])
+def api_pipeline_list():
+    """pipeline_stage가 빈 값이 아닌 인플루언서만 반환."""
+    q = request.args.get("q", "").strip().lower()
+    stage_filter = request.args.get("stage", "").strip()
+    influencers = _load_influencers()
+
+    rows = []
+    counts = {s: 0 for s in PIPELINE_STAGES}
+    for inf in influencers:
+        stage = inf.get("pipeline_stage") or ""
+        if not stage:
+            continue
+        counts[stage] = counts.get(stage, 0) + 1
+        if stage_filter and stage != stage_filter:
+            continue
+        meetings = inf.get("meetings") or []
+        last_meeting = meetings[-1] if meetings else None
+        row = {
+            "influencer_id": inf.get("id"),
+            "instagram_id": inf.get("instagram_id"),
+            "url": inf.get("url"),
+            "seller_name": inf.get("seller_name"),
+            "follower_count": inf.get("follower_count"),
+            "owner": inf.get("owner"),
+            "pipeline_stage": stage,
+            "meeting_count": len(meetings),
+            "last_meeting_date": last_meeting.get("date") if last_meeting else None,
+            "next_action": inf.get("next_action") or "",
+            "campaign_id": inf.get("campaign_id"),
+            "campaign_name": inf.get("campaign_name"),
+        }
+        if q:
+            blob = " ".join(str(v or "").lower() for v in row.values())
+            if q not in blob:
+                continue
+        rows.append(row)
+
+    rows.sort(key=lambda r: (r.get("last_meeting_date") or "", r.get("seller_name") or ""), reverse=True)
+    return jsonify({
+        "pipeline": rows,
+        "total": len(rows),
+        "counts": counts,
+        "stages": PIPELINE_STAGES,
+    })
+
+
+@app.route("/api/pipeline/<inf_id>", methods=["PATCH"])
+def api_pipeline_patch(inf_id):
+    """파이프라인 단계 변경 / next_action 수정."""
+    payload = request.get_json(force=True) or {}
+    allowed = {"pipeline_stage", "next_action", "owner", "campaign_id", "campaign_name"}
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+    for k, v in payload.items():
+        if k in allowed:
+            inf[k] = v
+    _save_influencers(influencers)
+    return jsonify({"ok": True, "influencer": inf})
+
+
+@app.route("/api/pipeline/<inf_id>/meeting", methods=["POST"])
+def api_pipeline_add_meeting(inf_id):
+    """미팅 1건 추가 + 캘린더에도 박기."""
+    payload = request.get_json(force=True) or {}
+    date = (payload.get("date") or "").strip()
+    note = (payload.get("note") or "").strip()
+    if not date:
+        return jsonify({"error": "date 필수 (YYYY-MM-DD)"}), 400
+
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+
+    meetings = inf.setdefault("meetings", [])
+    meetings.append({
+        "date": date,
+        "round": len(meetings) + 1,
+        "note": note,
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    })
+    # 단계 자동 전이: 첫 미팅이면 미팅예약 → 첫 미팅 지나면 미팅완료
+    if not inf.get("pipeline_stage"):
+        inf["pipeline_stage"] = "미팅예약"
+    _save_influencers(influencers)
+
+    # 캘린더 자동 등록
+    try:
+        events = load_events()
+        events.append({
+            "id": f"meet_{inf_id}_{int(datetime.now().timestamp())}",
+            "title": f"[{inf.get('seller_name') or inf.get('instagram_id')}] {len(meetings)}차 미팅",
+            "date": date,
+            "type": "meeting",
+            "linked_influencer_id": inf_id,
+            "note": note,
+        })
+        save_events(events)
+    except Exception as e:
+        log.warning(f"미팅 캘린더 자동등록 실패 (무시): {e}")
+
+    return jsonify({"ok": True, "meeting_round": len(meetings)})
+
+
+# ═══════════════════════════════════════════════════════════
+# 📣 Campaigns v2 — 메타 광고관리자 스타일 (캠페인 > 세트 > 공동구매)
+# ═══════════════════════════════════════════════════════════
+
+CAMPAIGNS_V2_FILE = DATA_DIR / "campaigns_v2.json"
+
+
+def _load_campaigns_v2() -> list[dict]:
+    if not CAMPAIGNS_V2_FILE.exists():
+        return []
+    try:
+        return json.loads(CAMPAIGNS_V2_FILE.read_text(encoding="utf-8")).get("campaigns", [])
+    except Exception:
+        return []
+
+
+def _save_campaigns_v2(items: list[dict]) -> None:
+    CAMPAIGNS_V2_FILE.write_text(json.dumps({
+        "campaigns": items,
+        "schema_version": 2,
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _next_id(items: list, prefix: str) -> str:
+    nums = []
+    for it in items:
+        m = re.match(rf"{prefix}_(\d+)", str(it.get("id", "")))
+        if m:
+            nums.append(int(m.group(1)))
+    return f"{prefix}_{(max(nums) if nums else 0) + 1:04d}"
+
+
+@app.route("/api/campaigns_v2", methods=["GET", "POST"])
+def api_campaigns_v2_list():
+    items = _load_campaigns_v2()
+    if request.method == "POST":
+        payload = request.get_json(force=True) or {}
+        cam = {
+            "id": _next_id(items, "cam"),
+            "seller_name": (payload.get("seller_name") or "").strip(),
+            "brand": (payload.get("brand") or "").strip(),
+            "product": (payload.get("product") or "").strip(),
+            "type": payload.get("type") or "마이크로",
+            "market_schedule": payload.get("market_schedule") or "",
+            "linked_influencer_id": payload.get("linked_influencer_id"),
+            "status": payload.get("status") or "준비중",
+            "sets": [],
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        items.append(cam)
+        _save_campaigns_v2(items)
+        return jsonify({"ok": True, "campaign": cam})
+    return jsonify({"campaigns": items, "total": len(items)})
+
+
+@app.route("/api/campaigns_v2/<cam_id>", methods=["GET", "PATCH", "DELETE"])
+def api_campaigns_v2_one(cam_id):
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    if request.method == "GET":
+        return jsonify(cam)
+    if request.method == "DELETE":
+        items = [c for c in items if c["id"] != cam_id]
+        _save_campaigns_v2(items)
+        return jsonify({"ok": True})
+    payload = request.get_json(force=True) or {}
+    for k in ["seller_name", "brand", "product", "type", "market_schedule", "status", "linked_influencer_id"]:
+        if k in payload:
+            cam[k] = payload[k]
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, "campaign": cam})
+
+
+@app.route("/api/campaigns_v2/<cam_id>/sets", methods=["POST"])
+def api_campaigns_v2_add_set(cam_id):
+    """세트 = 공구 차수. {round: 1} 박으면 자동 ad 1개 생성."""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    payload = request.get_json(force=True) or {}
+    sets = cam.setdefault("sets", [])
+    round_num = payload.get("round") or len(sets) + 1
+    new_set = {
+        "id": _next_id(sets, "set"),
+        "round": round_num,
+        "label": payload.get("label") or f"{round_num}차",
+        "ads": [{
+            "id": "ad_0001",
+            "name": payload.get("ad_name") or f"공동구매 {round_num}차",
+            "product_sent_date": None,
+            "scheduling": {"start_date": None, "end_date": None, "items": []},
+            "events": [],
+            "drive_links": [],
+            "banners": {
+                "openfeed": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                "price": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                "event": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+            },
+            "reels": [],
+            "status": "준비중",
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }],
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    sets.append(new_set)
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, "set": new_set})
+
+
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>", methods=["PATCH"])
+def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
+    """공동구매(광고) 단위 필드 수정 — 제품발송/스케줄링/이벤트/드라이브/배너/릴스 전부."""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    st = next((s for s in cam.get("sets", []) if s["id"] == set_id), None)
+    if not st:
+        return jsonify({"error": "세트 없음"}), 404
+    ad = next((a for a in st.get("ads", []) if a["id"] == ad_id), None)
+    if not ad:
+        return jsonify({"error": "광고 없음"}), 404
+
+    payload = request.get_json(force=True) or {}
+    # 단순 필드
+    for k in ["name", "product_sent_date", "status"]:
+        if k in payload:
+            ad[k] = payload[k]
+    # 객체/리스트 필드 (merge)
+    for k in ["scheduling", "banners"]:
+        if k in payload and isinstance(payload[k], dict):
+            ad.setdefault(k, {}).update(payload[k])
+    for k in ["events", "drive_links", "reels"]:
+        if k in payload and isinstance(payload[k], list):
+            ad[k] = payload[k]
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, "ad": ad})
+
+
+@app.route("/api/campaigns_v2/from_influencer/<inf_id>", methods=["POST"])
+def api_campaigns_v2_from_influencer(inf_id):
+    """진행 예정 셀러에서 [캠페인 추가] 클릭 시 호출. 인플루언서 정보 자동 채움 + 1차 세트 자동 생성."""
+    influencers = _load_influencers()
+    inf = next((x for x in influencers if x.get("id") == inf_id), None)
+    if not inf:
+        return jsonify({"error": "인플루언서 없음"}), 404
+
+    items = _load_campaigns_v2()
+    payload = request.get_json(silent=True) or {}
+    cam = {
+        "id": _next_id(items, "cam"),
+        "seller_name": inf.get("seller_name") or inf.get("instagram_id"),
+        "brand": payload.get("brand") or "",
+        "product": payload.get("product") or "",
+        "type": payload.get("type") or ("메가" if "메가" in (inf.get("category") or "") else "마이크로"),
+        "market_schedule": payload.get("market_schedule") or "",
+        "linked_influencer_id": inf_id,
+        "linked_influencer_handle": inf.get("instagram_id"),
+        "status": "준비중",
+        "sets": [{
+            "id": "set_0001",
+            "round": 1,
+            "label": "1차",
+            "ads": [{
+                "id": "ad_0001",
+                "name": "공동구매 1차",
+                "product_sent_date": None,
+                "scheduling": {"start_date": None, "end_date": None, "items": []},
+                "events": [],
+                "drive_links": [],
+                "banners": {
+                    "openfeed": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                    "price": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                    "event": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                },
+                "reels": [],
+                "status": "준비중",
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }],
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }],
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    items.append(cam)
+    _save_campaigns_v2(items)
+
+    # 인플루언서 단계 자동 전이
+    inf["pipeline_stage"] = "캠페인진행중"
+    inf["campaign_id"] = cam["id"]
+    inf["campaign_name"] = f"{cam['seller_name']} · {cam.get('brand') or ''}".strip(" ·")
+    _save_influencers(influencers)
+
+    return jsonify({"ok": True, "campaign": cam})
 
 
 @app.route("/api/dm/daily_stats", methods=["GET"])

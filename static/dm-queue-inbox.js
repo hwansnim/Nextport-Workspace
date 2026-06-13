@@ -159,8 +159,41 @@
         });
       }
       renderInbox();
+      detectNewReplies();
       updateUnreadBadge();
     } catch (e) { console.error(e); }
+  }
+
+  // 답장 도착 감지 → toast 알람 (첫 로드는 baseline 만 잡고 알람 X)
+  let _lastUnreadCount = null;
+  function detectNewReplies() {
+    const cur = state.inboxSummary.unread_total || 0;
+    if (_lastUnreadCount === null) { _lastUnreadCount = cur; return; }
+    if (cur > _lastUnreadCount) {
+      const newCount = cur - _lastUnreadCount;
+      // 가장 최근 대화 정보 뽑아서 toast
+      const newest = (state.inbox || []).find(c => (c.unread_count || 0) > 0);
+      if (newest) {
+        window.showToast?.({
+          icon: "💬",
+          title: `새 답장 ${newCount}건!`,
+          body: `@${newest.their_handle} · ${(newest.last_message_preview || "").slice(0, 60)}`,
+          accent: true,
+          ttl: 8000,
+          onclick: () => {
+            const tab = document.querySelector('.side-item[data-tab="dm-inbox"]');
+            tab?.click();
+            setTimeout(() => {
+              const conv = document.querySelector(`[data-v2="open-conv"][data-cid="${newest.id}"]`);
+              conv?.click();
+            }, 300);
+          },
+        });
+        // 사운드 (브라우저가 막으면 무시)
+        try { new Audio("/static/ding.mp3").play().catch(() => {}); } catch {}
+      }
+    }
+    _lastUnreadCount = cur;
   }
 
   function updateUnreadBadge() {

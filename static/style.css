@@ -706,6 +706,27 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ─── Phase E: 회신/파이프라인 표 인라인 편집 ─── */
+.replies-table td[contenteditable="true"],
+#pipelineTable td[contenteditable="true"] {
+  outline: none;
+  transition: background 0.2s;
+}
+.replies-table td[contenteditable="true"]:focus,
+#pipelineTable td[contenteditable="true"]:focus {
+  background: #fffbea !important;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.reply-status-sel, .pipe-stage-sel {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11.5px;
+  background: #fff;
+  width: 100%;
+}
+.reply-status-sel { font-weight: 600; }
+
 /* ─── Phase D: 데일리 통계 카드 ─── */
 .daily-stats {
   display: grid;

@@ -43,6 +43,9 @@
           <span class="ico">🎤</span><span>미팅 / 녹취록</span>
         </button>
         <div class="side-sep">자동 DM 발송</div>
+        <button class="side-item side-sub" data-tab="daily-dm">
+          <span class="ico">📤</span><span>데일리 DM 관리</span>
+        </button>
         <button class="side-item side-sub" data-tab="dm-live">
           <span class="ico">▶️</span><span>DM 발송 (실시간)</span>
           <span class="side-badge live" id="dmLiveBadge" hidden>●</span>
@@ -54,17 +57,18 @@
 
         <div class="side-sep">영업 관리</div>
         <button class="side-item side-sub" data-tab="influencers">
-          <span class="ico">👤</span><span>전체 인플루언서 관리</span>
+          <span class="ico">👤</span><span>전체 인플루언서 DB</span>
         </button>
         <button class="side-item side-sub" data-tab="accounts">
           <span class="ico">💻</span><span>기기 및 계정 관리</span>
         </button>
-        <button class="side-item side-sub" data-tab="daily-dm">
-          <span class="ico">📤</span><span>데일리 DM 관리</span>
-        </button>
         <button class="side-item side-sub" data-tab="replies">
           <span class="ico">📬</span><span>회신 인플루언서 현황</span>
           <span class="side-badge" id="repliesBadge" hidden>0</span>
+        </button>
+        <button class="side-item side-sub" data-tab="pipeline">
+          <span class="ico">🎯</span><span>진행 예정 셀러</span>
+          <span class="side-badge" id="pipelineBadge" hidden>0</span>
         </button>
 
         <div class="side-sep">콘텐츠 도구</div>
@@ -483,7 +487,7 @@
       <section class="tab-pane" id="tab-replies">
         <div class="page-head">
           <h1>📬 회신 인플루언서 현황</h1>
-          <p class="page-sub">답장 받은 인플루언서 모음. 클릭하면 그 대화로 바로 이동.</p>
+          <p class="page-sub">답장 받은 인플루언서 전체 정보. 행 클릭 = 인라인 편집 · 인스타ID 클릭 = 프로필 · [💬] = 대화로 이동.</p>
         </div>
 
         <section class="panel">
@@ -491,24 +495,97 @@
             <h2>📋 답장 받은 인플루언서</h2>
             <div class="head-actions">
               <span class="hint" id="repliesStat">로딩…</span>
-              <input type="text" id="repliesSearch" placeholder="🔍 셀러명 / 인스타" style="font-size:12px;padding:5px 9px;width:200px" />
+              <select id="repliesStatusFilter" class="filter-sel">
+                <option value="">전체 상황</option>
+                <option value="dm 소통중">dm 소통중</option>
+                <option value="회신중">회신중</option>
+                <option value="카톡 소통중">카톡 소통중</option>
+                <option value="미팅 fix">미팅 fix</option>
+                <option value="컨펌">컨펌</option>
+                <option value="이탈">이탈</option>
+              </select>
+              <input type="text" id="repliesSearch" placeholder="🔍 셀러명 / 인스타 / 담당자" style="font-size:12px;padding:5px 9px;width:240px" />
             </div>
           </div>
           <div class="dm-table-wrap">
-            <table class="dm-table dm-table-tight" id="repliesTable">
+            <table class="dm-table dm-table-tight replies-table" id="repliesTable">
               <thead>
                 <tr>
-                  <th>셀러</th>
-                  <th>인플루언서 인스타</th>
-                  <th>발송 계정</th>
-                  <th>발송 차수</th>
-                  <th>최종 발송</th>
-                  <th>최근 답장</th>
-                  <th>미리보기</th>
-                  <th></th>
+                  <th style="width:36px">No</th>
+                  <th style="width:90px">첫 회신일</th>
+                  <th style="width:110px">상황</th>
+                  <th style="width:80px">담당자</th>
+                  <th>셀러명</th>
+                  <th style="width:70px">팔로워수</th>
+                  <th>인스타ID</th>
+                  <th>회신계정</th>
+                  <th style="width:90px">연결기기</th>
+                  <th>이메일</th>
+                  <th style="width:110px">전화번호</th>
+                  <th style="width:90px">카카오톡 ID</th>
+                  <th>비고</th>
+                  <th style="width:60px"></th>
                 </tr>
               </thead>
-              <tbody id="repliesBody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+              <tbody id="repliesBody"><tr><td colspan="14" class="empty">불러오는 중…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- 🎯 TAB: 진행 예정 셀러 -->
+      <section class="tab-pane" id="tab-pipeline">
+        <div class="page-head">
+          <h1>🎯 진행 예정 셀러</h1>
+          <p class="page-sub">회신에서 진행 가능성 있는 셀러만 모음. 미팅 차수 관리 + 마켓 열 거 같으면 → 캠페인 추가.</p>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>📊 단계별 통계</h2>
+          </div>
+          <div class="daily-stats">
+            <div class="stat-card"><div class="stat-label">진행 예정</div><div class="stat-value" id="pipeStatPlan">—</div></div>
+            <div class="stat-card"><div class="stat-label">미팅 예약</div><div class="stat-value" id="pipeStatMeetingScheduled">—</div></div>
+            <div class="stat-card"><div class="stat-label">미팅 완료</div><div class="stat-value" id="pipeStatMeetingDone">—</div></div>
+            <div class="stat-card"><div class="stat-label">캠페인 진행 중</div><div class="stat-value" id="pipeStatLive">—</div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>📋 진행 예정 명단</h2>
+            <div class="head-actions">
+              <span class="hint" id="pipelineStat">로딩…</span>
+              <select id="pipelineStageFilter" class="filter-sel">
+                <option value="">전체 단계</option>
+                <option value="진행예정">진행 예정</option>
+                <option value="미팅예약">미팅 예약</option>
+                <option value="미팅완료">미팅 완료</option>
+                <option value="캠페인진행중">캠페인 진행 중</option>
+                <option value="종료">종료</option>
+              </select>
+              <input type="text" id="pipelineSearch" placeholder="🔍 셀러명 / 인스타" style="font-size:12px;padding:5px 9px;width:220px" />
+            </div>
+          </div>
+          <div class="dm-table-wrap">
+            <table class="dm-table dm-table-tight" id="pipelineTable">
+              <thead>
+                <tr>
+                  <th style="width:36px">No</th>
+                  <th style="width:100px">단계</th>
+                  <th>셀러명</th>
+                  <th>인스타ID</th>
+                  <th style="width:70px">팔로워</th>
+                  <th style="width:80px">담당자</th>
+                  <th style="width:60px;text-align:center">미팅</th>
+                  <th style="width:100px">최근 미팅</th>
+                  <th>다음 액션</th>
+                  <th style="width:140px">캠페인 연결</th>
+                  <th style="width:90px"></th>
+                </tr>
+              </thead>
+              <tbody id="pipelineBody"><tr><td colspan="11" class="empty">불러오는 중…</td></tr></tbody>
             </table>
           </div>
         </section>

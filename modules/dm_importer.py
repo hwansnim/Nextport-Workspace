@@ -20,7 +20,15 @@ INFLUENCER_COLUMN_MAP = {
     "url": ["url", "URL", "링크", "인스타URL", "instagram_url"],
     "instagram_id": ["인스타ID", "인스타 ID", "instagram_id", "instagram", "IG", "아이디"],
     "seller_name": ["셀러명", "셀러 이름", "이름", "셀러", "seller_name", "name"],
-    "status": ["현재상태", "상태", "status", "발송상태"],
+    "status": ["현재상태", "상태", "status", "발송상태", "상황"],
+    "follower_count": ["팔로워수", "팔로워", "follower", "followers"],
+    "category": ["카테고리", "category"],
+    "owner": ["담당자", "owner", "manager"],
+    "first_reply_date": ["첫회신일", "최초회신일", "first_reply"],
+    "reply_account": ["회신계정", "수신계정", "reply_account"],
+    "email": ["이메일", "email", "메일"],
+    "phone": ["전화번호", "phone", "휴대폰", "tel"],
+    "kakao_id": ["카카오톡ID", "카카오톡 ID", "카톡ID", "카톡", "kakao"],
     "last_sent_date": ["최종발송일", "최근발송일", "마지막발송일", "last_sent"],
     "last_sent_account_id": ["마지막사용계정ID", "사용계정", "last_account", "마지막계정"],
     "send_count": ["발송차수", "차수", "발송수", "count"],
@@ -199,15 +207,28 @@ def import_influencers(xlsx_path: Path, existing: list[dict], mode: str = "add")
             "url": url or f"https://www.instagram.com/{ig_id}/",
             "seller_name": _str(_cell(row, col["seller_name"])),
             "status": _str(_cell(row, col["status"])) or "미발송",
+            # ─── 확장 필드 (스크린샷 컬럼 반영) ───
+            "follower_count": _str(_cell(row, col["follower_count"])),
+            "category": _str(_cell(row, col["category"])),
+            "owner": _str(_cell(row, col["owner"])),
+            "first_reply_date": _date(_cell(row, col["first_reply_date"])),
+            "reply_account": _str(_cell(row, col["reply_account"])),
+            "email": _str(_cell(row, col["email"])),
+            "phone": _str(_cell(row, col["phone"])),
+            "kakao_id": _str(_cell(row, col["kakao_id"])),
+            # ─── 발송 추적 ───
             "last_sent_date": _date(_cell(row, col["last_sent_date"])),
             "last_sent_account_id": _str(_cell(row, col["last_sent_account_id"])),
             "send_count": _int(_cell(row, col["send_count"])),
             "history_text": _str(_cell(row, col["history"])),
             "notes": _str(_cell(row, col["notes"])),
-            "history": [],  # 구조화된 발송 기록 (앞으로 자동 누적)
+            "history": [],
             "used_account_ids": [],
             "reply_received": False,
             "last_reply_at": None,
+            # ─── 파이프라인 (진행 예정 셀러) ───
+            "pipeline_stage": "",  # "" | "진행예정" | "미팅예약" | "미팅완료" | "캠페인진행중" | "종료"
+            "meetings": [],        # [{date, round, note}]
             "imported_at": now,
         }
         added.append(new_item)
