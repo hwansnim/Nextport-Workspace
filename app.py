@@ -2591,6 +2591,23 @@ def api_dm_import_template(kind):
 
 DM_TEMPLATES_V2_FILE = DATA_DIR / "dm_templates_v2.json"
 
+# 라이브 발송 상태 (in-memory) — 서버 재시작 시 초기화
+DM_LIVE_STATE = {
+    "current": None,       # {influencer_handle, account_handle, started_at, message_preview}
+    "log": [],             # [{ts, account, target, status, message}], 최근 200개
+    "paused": False,
+    "running": False,
+}
+DM_LIVE_LOG_MAX = 200
+
+
+def _dm_live_emit(event: dict) -> None:
+    """라이브 로그에 1건 추가 (오래된 항목 잘라냄)."""
+    event["ts"] = datetime.now().isoformat(timespec="seconds")
+    DM_LIVE_STATE["log"].insert(0, event)
+    if len(DM_LIVE_STATE["log"]) > DM_LIVE_LOG_MAX:
+        DM_LIVE_STATE["log"] = DM_LIVE_STATE["log"][:DM_LIVE_LOG_MAX]
+
 
 def _load_dm_templates_v2() -> list[dict]:
     if not DM_TEMPLATES_V2_FILE.exists():
@@ -2660,6 +2677,23 @@ def api_dm_send_one():
     except ImportError as e:
         return jsonify({"error": f"모듈 실패: {e}"}), 500
 
+    # 라이브 상태 업데이트 — UI 가 polling
+    DM_LIVE_STATE["current"] = {
+        "influencer_handle": inf.get("instagram_id"),
+        "seller_name": inf.get("seller_name"),
+        "account_handle": acc.get("instagram_id"),
+        "started_at": datetime.now().isoformat(timespec="seconds"),
+        "message_preview": message[:80],
+        "send_count": (inf.get("send_count") or 0) + 1,
+    }
+    DM_LIVE_STATE["running"] = True
+    _dm_live_emit({
+        "type": "start",
+        "account": acc.get("instagram_id"),
+        "target": inf.get("instagram_id"),
+        "message": message[:80],
+    })
+
     sender = DMSender()
     ok = False
     err_msg = ""
@@ -2676,9 +2710,22 @@ def api_dm_send_one():
             ctx.close()
             browser.close()
     except ImportError:
+        DM_LIVE_STATE["current"] = None
+        DM_LIVE_STATE["running"] = False
         return jsonify({"error": "Playwright 미설치"}), 500
     except Exception as e:
         err_msg = str(e)
+
+    # 라이브 로그 — 종료
+    _dm_live_emit({
+        "type": "done",
+        "account": acc.get("instagram_id"),
+        "target": inf.get("instagram_id"),
+        "status": "ok" if ok else "fail",
+        "error": err_msg if not ok else "",
+    })
+    DM_LIVE_STATE["current"] = None
+    DM_LIVE_STATE["running"] = False
 
     # 결과 기록
     status = "ok" if ok else "fail"
@@ -2891,6 +2938,107 @@ def api_dm_inbox_sync():
 
     _save_inbox(conversations)
     return jsonify({"ok": True, "total_new": total_new, "per_account": per_account})
+
+
+# ═══════════════════════════════════════════════════════════
+# ▶️ Phase D — 라이브 발송 상태 & 회신 인플루언서 현황 & 데일리 통계
+# ═══════════════════════════════════════════════════════════
+
+@app.route("/api/dm/live", methods=["GET"])
+def api_dm_live():
+    """현재 발송 중 상태 + 최근 로그. UI가 2초 polling."""
+    return jsonify({
+        "current": DM_LIVE_STATE.get("current"),
+        "running": DM_LIVE_STATE.get("running", False),
+        "paused": DM_LIVE_STATE.get("paused", False),
+        "log": DM_LIVE_STATE.get("log", [])[:100],
+        "log_count": len(DM_LIVE_STATE.get("log", [])),
+    })
+
+
+@app.route("/api/dm/live/clear", methods=["POST"])
+def api_dm_live_clear():
+    DM_LIVE_STATE["log"] = []
+    return jsonify({"ok": True})
+
+
+@app.route("/api/dm/live/pause", methods=["POST"])
+def api_dm_live_pause():
+    DM_LIVE_STATE["paused"] = not DM_LIVE_STATE.get("paused", False)
+    return jsonify({"paused": DM_LIVE_STATE["paused"]})
+
+
+@app.route("/api/dm/replies", methods=["GET"])
+def api_dm_replies():
+    """답장 받은 인플루언서 현황 — 인박스 + 인플루언서 매칭."""
+    q = request.args.get("q", "").strip().lower()
+    conversations = _load_inbox()
+    influencers = _load_influencers()
+    inf_by_handle = {x.get("instagram_id", "").lower(): x for x in influencers}
+
+    rows = []
+    seen = set()  # (handle, account_id) 페어 dedup
+    for c in conversations:
+        if (c.get("unread_count") or 0) == 0 and c.get("status") != "replied":
+            # 답장 없는 대화는 제외 (우리가 보낸 것만 있는 경우)
+            has_them = any(m.get("from") == "them" for m in c.get("messages", []))
+            if not has_them:
+                continue
+        handle = (c.get("their_handle") or "").lower()
+        key = (handle, c.get("our_account_id"))
+        if key in seen:
+            continue
+        seen.add(key)
+        inf = inf_by_handle.get(handle)
+        row = {
+            "conv_id": c.get("id"),
+            "influencer_handle": c.get("their_handle"),
+            "seller_name": c.get("seller_name") or (inf.get("seller_name") if inf else ""),
+            "our_account_handle": c.get("our_account_handle"),
+            "send_count": inf.get("send_count") if inf else None,
+            "last_sent_date": inf.get("last_sent_date") if inf else None,
+            "last_reply_at": c.get("last_message_at"),
+            "last_message_preview": c.get("last_message_preview"),
+            "unread_count": c.get("unread_count") or 0,
+            "influencer_id": inf.get("id") if inf else None,
+        }
+        if q:
+            blob = " ".join(str(v or "").lower() for v in row.values())
+            if q not in blob:
+                continue
+        rows.append(row)
+
+    rows.sort(key=lambda r: r.get("last_reply_at") or "", reverse=True)
+    return jsonify({"replies": rows, "total": len(rows)})
+
+
+@app.route("/api/dm/daily_stats", methods=["GET"])
+def api_dm_daily_stats():
+    """데일리 DM 탭 상단 통계 카드."""
+    try:
+        from dm_scheduler import build_queue  # type: ignore
+    except ImportError:
+        return jsonify({"error": "scheduler 미설치"}), 500
+
+    influencers = _load_influencers()
+    accounts = _load_our_accounts()
+    conversations = _load_inbox()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    q = build_queue(influencers, accounts, max_per_run=10000)
+    active_accounts = sum(1 for a in accounts if a.get("status") == "활성")
+    sent_today = sum(1 for inf in influencers
+                     if (inf.get("last_sent_date") or "")[:10] == today)
+    replies_total = sum(1 for c in conversations
+                        if any(m.get("from") == "them" for m in c.get("messages", [])))
+
+    return jsonify({
+        "candidates": len(q.get("queue", [])),
+        "active_accounts": active_accounts,
+        "sent_today": sent_today,
+        "replies": replies_total,
+        "queue_reasons": q.get("reasons", {}),
+    })
 
 
 # ═══════════════════════════════════════════════════════════

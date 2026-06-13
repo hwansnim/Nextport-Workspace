@@ -343,12 +343,16 @@
     }
   });
 
-  // 탭 진입 시
+  // 탭 진입 시 — 새 탭 매핑
   document.addEventListener("click", (e) => {
-    const dmTab = e.target.closest('.side-item[data-tab="dm"]');
-    if (dmTab) setTimeout(() => { loadTemplates(); }, 80);
-    const inboxTab = e.target.closest('.side-item[data-tab="inbox"]');
-    if (inboxTab) setTimeout(() => loadInbox(), 80);
+    const t = e.target.closest('.side-item');
+    if (!t) return;
+    const which = t.dataset.tab;
+    if (which === "dm-inbox") {
+      setTimeout(() => loadInbox(), 80);
+    } else if (which === "daily-dm") {
+      setTimeout(() => { loadTemplates(); loadQueue(); }, 80);
+    }
   });
 
   // 초기 — 인박스 안 읽음 배지만 백그라운드 폴링

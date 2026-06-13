@@ -599,6 +599,140 @@ dialog .dialog-actions .spacer { flex: 1; }
 }
 .dm-pager button[disabled] { opacity: 0.3; cursor: not-allowed; }
 
+/* ─── Phase D: 사이드바 sub-item + 시트 탭 느낌 ─── */
+.side-item.side-sub {
+  padding-left: 28px;
+  font-size: 13px;
+  position: relative;
+}
+.side-item.side-sub::before {
+  content: "›";
+  position: absolute;
+  left: 14px;
+  color: #ccc;
+  font-size: 14px;
+}
+.side-item.side-sub.active::before { color: var(--accent); }
+.side-badge.live {
+  background: #2ecc71;
+  color: #fff;
+  animation: livePulse 1.2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── Phase D: 라이브 발송 ─── */
+.live-now-card {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+  border-radius: 12px;
+  border: 2px solid #2ecc71;
+}
+.live-now-card .live-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.live-now-card .live-label {
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.live-now-card .live-val {
+  font-size: 14px;
+  color: #222;
+  display: flex;
+  flex-direction: column;
+}
+.live-now-card .live-val .hint { font-size: 11px; }
+.live-now-card .live-arrow {
+  font-size: 24px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.live-now-card .live-msg {
+  grid-column: 1 / -1;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.live-msg-text {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: #333;
+}
+
+.dm-live-log {
+  max-height: 480px;
+  overflow-y: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.live-log-row {
+  display: grid;
+  grid-template-columns: 70px 20px 140px 16px 140px 1fr;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  align-items: center;
+}
+.live-log-row.start .ll-ico { color: #4fc3f7; }
+.live-log-row.ok .ll-ico { color: #81c784; }
+.live-log-row.fail .ll-ico { color: #e57373; }
+.live-log-row.fail .ll-msg { color: #ffab91; }
+.ll-ts { color: #777; }
+.ll-acc { color: #ffcc80; }
+.ll-tgt { color: #b0bec5; }
+.ll-arrow { color: #555; text-align: center; }
+.ll-msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #90caf9;
+}
+
+/* ─── Phase D: 데일리 통계 카드 ─── */
+.daily-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 8px 16px 16px;
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  text-align: center;
+}
+.stat-card .stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
 /* ─── Phase B: 발송 큐 ─── */
 #dmQueueTable td:first-child { text-align: center; }
 .dm-q-chk { accent-color: var(--accent); }

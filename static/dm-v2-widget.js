@@ -33,27 +33,32 @@
   }
 
   function renderImports() {
-    const root = $("#dmImportFiles");
-    if (!root) return;
-    if (!v2.imports.length) {
-      root.innerHTML = `<div class="empty" style="padding:14px;font-size:12px">data/imports/ 폴더가 비어있음. 엑셀 박은 후 [↻ 새로고침]</div>
-        <button class="btn-secondary" data-v2="refresh-imports">↻ 새로고침</button>`;
-      return;
-    }
-    root.innerHTML = `
-      <div class="dm-import-list">
-        ${v2.imports.map(f => `
-          <div class="dm-import-row">
-            <span class="di-name">📄 ${esc(f.name)}</span>
-            <span class="di-size">${f.size_kb} KB</span>
-            <span class="di-time">${esc(f.modified.replace("T", " ").slice(0, 16))}</span>
-            <button class="btn-secondary" data-v2="import-inf" data-name="${esc(f.name)}">인플루언서로 임포트</button>
-            <button class="btn-secondary" data-v2="import-acc" data-name="${esc(f.name)}">계정으로 임포트</button>
-          </div>
-        `).join("")}
-      </div>
-      <button class="btn-text" data-v2="refresh-imports" style="margin-top:8px">↻ 새로고침</button>
-    `;
+    // 두 컨테이너 모두 채움 (인플루언서 탭 / 계정 탭)
+    [
+      { sel: "#dmImportFiles", kind: "inf", btnLabel: "인플루언서로 임포트", actionKey: "import-inf" },
+      { sel: "#dmImportFilesAcc", kind: "acc", btnLabel: "계정으로 임포트", actionKey: "import-acc" },
+    ].forEach(({ sel, btnLabel, actionKey }) => {
+      const root = $(sel);
+      if (!root) return;
+      if (!v2.imports.length) {
+        root.innerHTML = `<div class="empty" style="padding:14px;font-size:12px">data/imports/ 폴더가 비어있음. 엑셀 박은 후 [↻ 새로고침]</div>
+          <button class="btn-secondary" data-v2="refresh-imports">↻ 새로고침</button>`;
+        return;
+      }
+      root.innerHTML = `
+        <div class="dm-import-list">
+          ${v2.imports.map(f => `
+            <div class="dm-import-row">
+              <span class="di-name">📄 ${esc(f.name)}</span>
+              <span class="di-size">${f.size_kb} KB</span>
+              <span class="di-time">${esc(f.modified.replace("T", " ").slice(0, 16))}</span>
+              <button class="btn-secondary" data-v2="${actionKey}" data-name="${esc(f.name)}">${btnLabel}</button>
+            </div>
+          `).join("")}
+        </div>
+        <button class="btn-text" data-v2="refresh-imports" style="margin-top:8px">↻ 새로고침</button>
+      `;
+    });
   }
 
   // ─── INFLUENCERS ────────────────────────────────────────
@@ -209,7 +214,9 @@
       const filename = trg.dataset.name;
       const isInf = what === "import-inf";
       const label = isInf ? "인플루언서" : "계정";
-      const overwrite = $("#dmImportOverwrite")?.checked;
+      const overwrite = isInf
+        ? $("#dmImportOverwrite")?.checked
+        : $("#dmImportOverwriteAcc")?.checked;
       const mode = overwrite ? "update" : "add";
       const modeLabel = overwrite ? "덮어쓰기 (중복 시 갱신)" : "신규만 추가";
       if (!confirm(`'${filename}' → ${label} 마스터\n모드: ${modeLabel}\n진행할까?`)) return;
@@ -306,15 +313,17 @@
     }
   });
 
-  // 탭 진입 시
+  // 탭 진입 시 — 새 6개 탭 매핑
   document.addEventListener("click", (e) => {
-    const tab = e.target.closest('.side-item[data-tab="dm"]');
-    if (tab) {
-      setTimeout(() => {
-        loadImports();
-        loadInfluencers();
-        loadAccounts();
-      }, 80);
+    const t = e.target.closest('.side-item');
+    if (!t) return;
+    const which = t.dataset.tab;
+    if (which === "influencers") {
+      setTimeout(() => { loadImports(); loadInfluencers(); }, 80);
+    } else if (which === "accounts") {
+      setTimeout(() => { loadImports(); loadAccounts(); }, 80);
+    } else if (which === "daily-dm") {
+      setTimeout(() => { loadInfluencers(); loadAccounts(); }, 80);
     }
   });
 
