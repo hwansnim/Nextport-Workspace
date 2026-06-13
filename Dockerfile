@@ -18,14 +18,15 @@ COPY modules/ modules/
 COPY templates/ templates/
 COPY static/ static/
 COPY scripts/ scripts/
+COPY data/ data/
 
 # 환경
 ENV ENV_MODE=cloud
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 
-# data 폴더는 Volume 마운트 위치
-RUN mkdir -p /app/data /app/logs
+# logs
+RUN mkdir -p /app/logs
 
 EXPOSE 8080
 
