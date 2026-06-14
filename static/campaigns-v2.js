@@ -463,22 +463,41 @@
     } catch (e) { alert("실패: " + e.message); }
   }
 
-  async function newCampaign() {
-    const seller = prompt("셀러명:");
-    if (!seller) return;
-    const brand = prompt("브랜드 (선택):") || "";
-    const product = prompt("제품 (선택):") || "";
-    const type = prompt("타입 (메가/마이크로/벤더):", "마이크로") || "마이크로";
-    const market = prompt("마켓 일정 (선택, 예: 2026-06-20):") || "";
+  function newCampaign() {
+    const dlg = $("#campNewDialog");
+    if (!dlg) return;
+    const form = $("#campNewForm");
+    if (form) form.reset();
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+  }
+
+  async function submitCampaignForm(e) {
+    e.preventDefault();
+    const form = $("#campNewForm");
+    if (!form) return;
+    const fd = new FormData(form);
+    const seller = (fd.get("seller_name") || "").toString().trim();
+    if (!seller) { alert("셀러명 박아"); return; }
+    const payload = {
+      seller_name: seller,
+      brand: (fd.get("brand") || "").toString().trim(),
+      product: (fd.get("product") || "").toString().trim(),
+      type: fd.get("type") || "마이크로",
+      status: fd.get("status") || "준비중",
+      market_schedule: fd.get("market_schedule") || "",
+      expected_revenue: parseInt(fd.get("expected_revenue")) || 0,
+      expected_cost: parseInt(fd.get("expected_cost")) || 0,
+      linked_handle: (fd.get("linked_handle") || "").toString().trim().replace(/^@/, ""),
+      notes: (fd.get("notes") || "").toString().trim(),
+    };
     try {
-      const r = await api("/api/campaigns_v2", {
-        method: "POST",
-        body: JSON.stringify({ seller_name: seller, brand, product, type, market_schedule: market }),
-      });
-      window.showToast?.({ icon: "📣", title: "캠페인 만들어짐", body: `${seller} · ${brand}`, accent: true });
+      const r = await api("/api/campaigns_v2", { method: "POST", body: JSON.stringify(payload) });
+      $("#campNewDialog")?.close?.();
+      window.showToast?.({ icon: "📣", title: "캠페인 만들어짐", body: `${seller} · ${payload.brand}`, accent: true });
       await loadList();
       openCampaign(r.campaign.id);
-    } catch (e) { alert("실패: " + e.message); }
+    } catch (err) { alert("실패: " + err.message); }
   }
 
   async function addSet() {
@@ -569,6 +588,7 @@
     const what = trg.dataset.v2;
 
     if (what === "cam-new") return newCampaign();
+    if (what === "cnf-close") { $("#campNewDialog")?.close?.(); return; }
     if (what === "cam-open" || what === "cam-detail") return openCampaign(trg.dataset.id);
     if (what === "set-open" || what === "set-detail") {
       const camId = trg.dataset.cam || s.activeCamId;
@@ -736,6 +756,12 @@
     const t = e.target.closest('.side-item[data-tab="campaigns"]');
     if (t) setTimeout(loadList, 80);
   });
+
+  // 폼 submit 바인딩
+  setTimeout(() => {
+    const form = document.getElementById("campNewForm");
+    if (form) form.addEventListener("submit", submitCampaignForm);
+  }, 200);
 
   setTimeout(loadList, 800);
 })();

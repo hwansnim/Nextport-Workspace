@@ -3508,6 +3508,18 @@ def api_campaigns_v2_list():
     items = _load_campaigns_v2()
     if request.method == "POST":
         payload = request.get_json(force=True) or {}
+        # linked_handle 로 인플루언서 매칭
+        linked_inf_id = payload.get("linked_influencer_id")
+        linked_handle = (payload.get("linked_handle") or "").strip().lstrip("@")
+        linked_inf_handle = None
+        if linked_handle:
+            influencers = _load_influencers()
+            inf = next((x for x in influencers
+                        if (x.get("instagram_id") or "").lower() == linked_handle.lower()), None)
+            if inf:
+                linked_inf_id = inf["id"]
+                linked_inf_handle = inf.get("instagram_id")
+
         cam = {
             "id": _next_id(items, "cam"),
             "seller_name": (payload.get("seller_name") or "").strip(),
@@ -3515,9 +3527,36 @@ def api_campaigns_v2_list():
             "product": (payload.get("product") or "").strip(),
             "type": payload.get("type") or "마이크로",
             "market_schedule": payload.get("market_schedule") or "",
-            "linked_influencer_id": payload.get("linked_influencer_id"),
+            "linked_influencer_id": linked_inf_id,
+            "linked_influencer_handle": linked_inf_handle or linked_handle or None,
             "status": payload.get("status") or "준비중",
-            "sets": [],
+            "expected_revenue": payload.get("expected_revenue") or 0,
+            "expected_cost": payload.get("expected_cost") or 0,
+            "notes": payload.get("notes") or "",
+            "sets": [{
+                "id": "set_0001",
+                "round": 1,
+                "label": "1차",
+                "ads": [{
+                    "id": "ad_0001",
+                    "name": "공동구매 1차",
+                    "product_sent_date": None,
+                    "scheduling": {"start_date": None, "end_date": None, "items": []},
+                    "events": [],
+                    "drive_links": [],
+                    "banners": {
+                        "openfeed": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                        "price": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                        "event": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
+                    },
+                    "reels": [],
+                    "revenue": 0,
+                    "cost": 0,
+                    "status": "준비중",
+                    "created_at": datetime.now().isoformat(timespec="seconds"),
+                }],
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }],
             "created_at": datetime.now().isoformat(timespec="seconds"),
         }
         items.append(cam)
@@ -3684,7 +3723,7 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
         return jsonify({"error": "광고 없음"}), 404
 
     payload = request.get_json(force=True) or {}
-    for k in ["name", "product_sent_date", "status"]:
+    for k in ["name", "product_sent_date", "status", "revenue", "cost"]:
         if k in payload:
             ad[k] = payload[k]
     for k in ["scheduling", "banners"]:
@@ -3787,6 +3826,141 @@ def api_dm_daily_stats():
         "replies": replies_total,
         "queue_reasons": q.get("reasons", {}),
     })
+
+
+# ═══════════════════════════════════════════════════════════
+# 📊 Phase J — 대시보드 v2 (카페24 스타일) + 함수 셀
+# ═══════════════════════════════════════════════════════════
+
+@app.route("/api/dashboard_v2", methods=["GET"])
+def api_dashboard_v2():
+    """월별 매출 + 일별 매출 + 캠페인별 표.
+    매출 = 마켓.revenue 합산, 비용 = 마켓.cost 합산. 일자 = 마켓.scheduling.start_date.
+    """
+    campaigns = _load_campaigns_v2()
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+
+    # 일별 / 월별 집계
+    by_day = {}     # "YYYY-MM-DD" → {revenue, cost, market_count}
+    by_month = {}   # "YYYY-MM" → {revenue, cost, market_count}
+    by_campaign = []  # 캠페인별 row
+
+    for cam in campaigns:
+        cam_rev = 0
+        cam_cost = 0
+        cam_markets = 0
+        latest_start = None
+        for st in cam.get("sets", []):
+            for ad in st.get("ads", []):
+                rev = ad.get("revenue") or 0
+                cost = ad.get("cost") or 0
+                cam_rev += rev
+                cam_cost += cost
+                cam_markets += 1
+                sd = (ad.get("scheduling") or {}).get("start_date")
+                if sd and len(sd) >= 10:
+                    day = sd[:10]
+                    month = sd[:7]
+                    d = by_day.setdefault(day, {"revenue": 0, "cost": 0, "markets": 0})
+                    d["revenue"] += rev; d["cost"] += cost; d["markets"] += 1
+                    m = by_month.setdefault(month, {"revenue": 0, "cost": 0, "markets": 0})
+                    m["revenue"] += rev; m["cost"] += cost; m["markets"] += 1
+                    if not latest_start or sd > latest_start:
+                        latest_start = sd
+        margin = (cam_rev - cam_cost) / cam_rev * 100 if cam_rev > 0 else None
+        by_campaign.append({
+            "id": cam["id"],
+            "seller_name": cam.get("seller_name"),
+            "brand": cam.get("brand"),
+            "product": cam.get("product"),
+            "type": cam.get("type"),
+            "status": cam.get("status"),
+            "revenue": cam_rev,
+            "cost": cam_cost,
+            "profit": cam_rev - cam_cost,
+            "margin_pct": round(margin, 1) if margin is not None else None,
+            "market_count": cam_markets,
+            "latest_market_date": latest_start,
+            "market_schedule": cam.get("market_schedule"),
+        })
+
+    # 정렬 — 매출 큰 순서
+    by_campaign.sort(key=lambda x: -(x["revenue"] or 0))
+
+    # 최근 12개월 리스트 (없는 달도 0 으로 박음)
+    months_list = []
+    cur = now.replace(day=1)
+    for i in range(11, -1, -1):
+        m = cur.replace(year=cur.year - (1 if cur.month - i <= 0 else 0),
+                       month=((cur.month - i - 1) % 12) + 1)
+        key = m.strftime("%Y-%m")
+        v = by_month.get(key, {"revenue": 0, "cost": 0, "markets": 0})
+        months_list.append({
+            "month": key,
+            "label": m.strftime("%y년 %m월"),
+            "revenue": v["revenue"],
+            "cost": v["cost"],
+            "markets": v["markets"],
+        })
+
+    # 최근 7일 리스트
+    from datetime import timedelta
+    days_list = []
+    for i in range(6, -1, -1):
+        d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+        v = by_day.get(d, {"revenue": 0, "cost": 0, "markets": 0})
+        days_list.append({
+            "date": d,
+            "label": d[5:],
+            "revenue": v["revenue"],
+            "cost": v["cost"],
+            "markets": v["markets"],
+            "is_today": d == today_str,
+        })
+
+    total_rev = sum(c["revenue"] for c in by_campaign)
+    total_cost = sum(c["cost"] for c in by_campaign)
+    return jsonify({
+        "today": today_str,
+        "totals": {
+            "revenue": total_rev,
+            "cost": total_cost,
+            "profit": total_rev - total_cost,
+            "margin_pct": round((total_rev - total_cost) / total_rev * 100, 1) if total_rev > 0 else None,
+            "campaign_count": len(by_campaign),
+            "market_count": sum(c["market_count"] for c in by_campaign),
+        },
+        "months": months_list,
+        "days": days_list,
+        "campaigns": by_campaign,
+    })
+
+
+@app.route("/api/dashboard_v2/cell", methods=["PATCH"])
+def api_dashboard_v2_cell():
+    """대시보드 셀 인라인 편집 — 캠페인의 첫 광고 revenue/cost 수정."""
+    payload = request.get_json(force=True) or {}
+    cam_id = payload.get("campaign_id")
+    field = payload.get("field")  # revenue | cost
+    value = payload.get("value")
+    if not (cam_id and field in ("revenue", "cost")):
+        return jsonify({"error": "campaign_id + field 필요"}), 400
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    if not cam.get("sets"):
+        return jsonify({"error": "세트 없음"}), 400
+    ad = (cam["sets"][0].get("ads") or [None])[0]
+    if not ad:
+        return jsonify({"error": "광고 없음"}), 400
+    try:
+        ad[field] = int(value or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "숫자만 가능"}), 400
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, "value": ad[field]})
 
 
 # ═══════════════════════════════════════════════════════════

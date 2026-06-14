@@ -437,24 +437,85 @@
         <div class="page-head">
           <div>
             <h1>대시보드 (정산 / 매출)</h1>
-            <p class="page-sub">캠페인별 매출 · 비용 · 공헌이익 한눈에. 셀 클릭 = 직접 편집. 공헌이익 / 비율 자동 계산.</p>
+            <p class="page-sub">월별 매출 그래프 + 캠페인별 정산. 셀 = 엑셀처럼 편집 (Ctrl+C/V/Z/Y, =SUM, =AVG). 행 클릭 → 캠페인 이동.</p>
           </div>
         </div>
 
-        <section class="panel" id="dashTotalsPanel">
-          <div class="panel-head"><h2>완료된 캠페인 총합</h2></div>
-          <div class="dash-totals" id="dashTotals"><div class="empty">불러오는 중…</div></div>
+        <!-- 1) 카페24 풍: 오늘의 할일 + 매출 요약 -->
+        <section class="panel dash-v2-summary">
+          <div class="dv-stat-grid">
+            <div class="dv-stat-card dv-stat-accent">
+              <div class="dv-stat-label">총 매출</div>
+              <div class="dv-stat-value" id="dvStatRevenue">—</div>
+              <div class="dv-stat-sub" id="dvStatRevSub">—</div>
+            </div>
+            <div class="dv-stat-card">
+              <div class="dv-stat-label">총 비용</div>
+              <div class="dv-stat-value" id="dvStatCost">—</div>
+              <div class="dv-stat-sub" id="dvStatCostSub">—</div>
+            </div>
+            <div class="dv-stat-card dv-stat-profit">
+              <div class="dv-stat-label">공헌 이익</div>
+              <div class="dv-stat-value" id="dvStatProfit">—</div>
+              <div class="dv-stat-sub" id="dvStatProfitSub">—</div>
+            </div>
+            <div class="dv-stat-card">
+              <div class="dv-stat-label">진행 캠페인</div>
+              <div class="dv-stat-value" id="dvStatCampaigns">—</div>
+              <div class="dv-stat-sub" id="dvStatCampaignsSub">—</div>
+            </div>
+          </div>
         </section>
 
+        <!-- 2) 월별 매출 막대 그래프 (카페24 스타일) -->
         <section class="panel">
           <div class="panel-head">
-            <h2>캠페인별 상세</h2>
-            <span class="hint">숫자 셀 클릭해서 직접 수정 → Enter 저장</span>
+            <h2>📊 월별 매출 추이</h2>
+            <div class="head-actions">
+              <button class="dv-range-btn active" data-v2="dv-range" data-range="month">최근 12개월</button>
+              <button class="dv-range-btn" data-v2="dv-range" data-range="day">최근 7일</button>
+            </div>
           </div>
-          <div class="dash-table-wrap">
-            <table class="dash-table" id="dashTable">
-              <tbody><tr><td class="empty">불러오는 중…</td></tr></tbody>
+          <div class="dv-chart-wrap">
+            <svg id="dvChartSvg" viewBox="0 0 1100 280" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+        </section>
+
+        <!-- 3) 캠페인별 표 (엑셀 인터랙션) -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>🧮 캠페인별 정산</h2>
+            <div class="head-actions">
+              <span class="hint">셀 클릭 = 편집 · Ctrl+C/V/Z/Y · =SUM(A1:A3) · 행 클릭 → 캠페인</span>
+              <button class="btn-text" data-v2="dv-export-csv">⤓ CSV</button>
+            </div>
+          </div>
+          <div class="dv-sheet-wrap">
+            <table class="dv-sheet" id="dvSheet">
+              <thead>
+                <tr>
+                  <th class="dv-hdr-cell" style="width:36px">#</th>
+                  <th class="dv-hdr-cell">셀러</th>
+                  <th class="dv-hdr-cell">브랜드 / 제품</th>
+                  <th class="dv-hdr-cell">타입</th>
+                  <th class="dv-hdr-cell">상태</th>
+                  <th class="dv-hdr-cell">마켓수</th>
+                  <th class="dv-hdr-cell dv-num">매출</th>
+                  <th class="dv-hdr-cell dv-num">비용</th>
+                  <th class="dv-hdr-cell dv-num">공헌 이익</th>
+                  <th class="dv-hdr-cell dv-num">마진율</th>
+                  <th class="dv-hdr-cell">최근 마켓일</th>
+                  <th class="dv-hdr-cell" style="width:50px"></th>
+                </tr>
+              </thead>
+              <tbody id="dvSheetBody"><tr><td colspan="12" class="empty">로딩…</td></tr></tbody>
+              <tfoot id="dvSheetFoot"></tfoot>
             </table>
+          </div>
+          <div class="dv-formula-bar" id="dvFormulaBar" hidden>
+            <span class="dvf-label">𝒇<sub>x</sub></span>
+            <input type="text" id="dvFormulaInput" placeholder="예: =SUM(G2:G10) / =AVG(J2:J10) / 또는 숫자 직접 박기" />
+            <span class="hint" id="dvCellCoord">—</span>
           </div>
         </section>
       </section>
@@ -869,6 +930,9 @@
             <a href="#g-calendar" class="guide-toc-link">🏠 캘린더 (홈)</a>
             <a href="#g-rules" class="guide-toc-link">⚠️ 자동 적용 규칙</a>
             <a href="#g-data-flow" class="guide-toc-link">🔗 시트별 자동 연동</a>
+            <a href="#g-dashboard" class="guide-toc-link">📊 대시보드 + 엑셀 인터랙션</a>
+            <a href="#g-recording" class="guide-toc-link">🎙 미팅 녹음</a>
+            <a href="#g-mobile" class="guide-toc-link">📱 모바일 보기</a>
             <a href="#g-faq" class="guide-toc-link">❓ 자주 묻는 질문</a>
           </aside>
 
@@ -1112,6 +1176,75 @@
 
 [캠페인/광고 수정]
   → 캘린더 (마켓일정/라이브/제품발송/세부일정 자동 sync)</pre>
+            </section>
+
+            <section id="g-dashboard" class="guide-section">
+              <h2>📊 대시보드 + 엑셀 인터랙션</h2>
+              <h3>구조 (카페24 스타일)</h3>
+              <ol>
+                <li><b>상단 카드 4개</b> — 총 매출 / 총 비용 / 공헌 이익 / 진행 캠페인</li>
+                <li><b>월별 매출 막대 그래프</b> — 최근 12개월 (오늘 막대는 주황 강조)
+                  <ul><li>[최근 12개월] ↔ [최근 7일] 토글</li></ul>
+                </li>
+                <li><b>캠페인별 정산 표 (엑셀 시트 풍)</b> — 셀러 / 브랜드 / 매출 / 비용 / 공헌 이익 / 마진율</li>
+              </ol>
+              <h3>엑셀 단축키 (캠페인별 정산 표에서)</h3>
+              <table class="guide-rule-table">
+                <tr><th>키</th><th>동작</th></tr>
+                <tr><td><code>화살표</code></td><td>셀 이동</td></tr>
+                <tr><td><code>Shift + 화살표</code></td><td>범위 선택</td></tr>
+                <tr><td><code>Tab / Shift+Tab</code></td><td>가로 이동</td></tr>
+                <tr><td><code>Enter</code></td><td>아래 셀 또는 편집 시작</td></tr>
+                <tr><td><code>더블클릭</code></td><td>편집 시작 (매출/비용 셀만)</td></tr>
+                <tr><td><code>Ctrl + C</code></td><td>복사 (탭 구분)</td></tr>
+                <tr><td><code>Ctrl + V</code></td><td>붙여넣기 (탭/줄바꿈으로 셀 분리)</td></tr>
+                <tr><td><code>Ctrl + Z</code></td><td>실행 취소</td></tr>
+                <tr><td><code>Ctrl + Y</code></td><td>다시 실행</td></tr>
+                <tr><td><code>Delete</code></td><td>선택 셀 0으로</td></tr>
+              </table>
+              <h3>함수 (셀에 직접 박기 또는 함수 입력바)</h3>
+              <ul>
+                <li><code>=SUM(G2:G10)</code> 합계</li>
+                <li><code>=AVG(G2:G10)</code> 평균 (=AVERAGE 동일)</li>
+                <li><code>=COUNT(G2:G10)</code> 개수</li>
+                <li><code>=MIN(G2:G10)</code> 최솟값</li>
+                <li><code>=MAX(G2:G10)</code> 최댓값</li>
+              </ul>
+              <p class="hint">컬럼: A=No · B=셀러 · F=마켓수 · G=매출 · H=비용 · I=공헌이익 · J=마진율</p>
+              <h3>연동</h3>
+              <ul>
+                <li><b>행 더블클릭 / [→] 버튼</b> → 셀러 캠페인 그 캠페인으로 자동 이동</li>
+                <li><b>⤓ CSV</b> 다운로드 (BOM + UTF-8)</li>
+              </ul>
+            </section>
+
+            <section id="g-recording" class="guide-section">
+              <h2>🎙 미팅 녹음 (실시간)</h2>
+              <p>진행 예정 셀러 → 셀러명 클릭 → 모달 → 미팅 카드의 <b>🎙</b> 버튼.</p>
+              <ol>
+                <li><b>🎙 클릭</b> → "확인 = 녹음 시작 / 취소 = 파일 업로드" 선택</li>
+                <li>확인 누르면 → 마이크 권한 요청 → 녹음 시작 (빨간 펄스 + 타이머)</li>
+                <li>다시 클릭하면 → 녹음 중지 + 자동 업로드</li>
+                <li>저장 위치: <code>data/meetings/</code> 폴더 (셀러명_날짜_차수.webm)</li>
+                <li>5분 주기 Drive sync 시 <code>[넥스트포트 공동구매 워크스페이스]</code>로 자동 백업</li>
+              </ol>
+              <div class="guide-callout">
+                <b>⚠️ 브라우저 요구사항</b><br>
+                마이크 녹음은 <b>HTTPS 또는 localhost</b> 에서만 작동. 클라우드(Render)는 HTTPS라 OK,
+                로컬은 <code>http://127.0.0.1:5000</code> 직접 접속 시 OK.
+              </div>
+            </section>
+
+            <section id="g-mobile" class="guide-section">
+              <h2>📱 모바일 보기</h2>
+              <p>설정 → 📱 화면 모드 → <b>모바일 보기</b> 토글 ON.</p>
+              <ul>
+                <li><b>자동 적용</b>: 화면 너비 760px 미만이면 토글 OFF여도 자동</li>
+                <li><b>사이드바</b> → 좌측 드로어 + 좌상단 <b>☰ 햄버거</b> 버튼</li>
+                <li>표 폰트 자동 축소 / 그리드 1열</li>
+                <li>인박스 대화 클릭 시 풀스크린</li>
+                <li><code>localStorage</code> 저장 → 다음 방문에도 유지</li>
+              </ul>
             </section>
 
             <section id="g-faq" class="guide-section">
@@ -1367,6 +1500,76 @@
 
     </main>
   </div>
+
+  <!-- 📣 캠페인 추가 폼 모달 (Phase J) -->
+  <dialog id="campNewDialog" class="cam-new-dialog">
+    <form method="dialog" class="cam-new-form" id="campNewForm">
+      <header class="cnf-head">
+        <h2>📣 새 캠페인 만들기</h2>
+        <button type="button" class="btn-text cnf-close" data-v2="cnf-close" style="font-size:24px">×</button>
+      </header>
+
+      <div class="cnf-body">
+        <div class="cnf-grid">
+          <label class="cnf-field cnf-wide">
+            <span>셀러명 <em>*</em></span>
+            <input name="seller_name" required placeholder="예: 더패션" autofocus />
+          </label>
+          <label class="cnf-field">
+            <span>브랜드</span>
+            <input name="brand" placeholder="예: thefashion" />
+          </label>
+          <label class="cnf-field">
+            <span>제품</span>
+            <input name="product" placeholder="예: 자켓" />
+          </label>
+          <label class="cnf-field">
+            <span>타입 <em>*</em></span>
+            <select name="type">
+              <option value="마이크로">마이크로</option>
+              <option value="메가">메가</option>
+              <option value="벤더">벤더</option>
+            </select>
+          </label>
+          <label class="cnf-field">
+            <span>상태</span>
+            <select name="status">
+              <option value="준비중">준비중</option>
+              <option value="진행중">진행중</option>
+            </select>
+          </label>
+          <label class="cnf-field">
+            <span>마켓 시작일</span>
+            <input type="date" name="market_schedule" />
+          </label>
+          <label class="cnf-field">
+            <span>예상 매출 (원)</span>
+            <input type="number" name="expected_revenue" min="0" placeholder="0" />
+          </label>
+          <label class="cnf-field">
+            <span>예상 비용 (원)</span>
+            <input type="number" name="expected_cost" min="0" placeholder="0" />
+          </label>
+          <label class="cnf-field cnf-wide">
+            <span>연결 인플루언서 (선택, 인스타ID @빼고)</span>
+            <input name="linked_handle" placeholder="진행 예정 셀러에서 연결된 경우 자동" />
+          </label>
+          <label class="cnf-field cnf-wide">
+            <span>메모</span>
+            <textarea name="notes" rows="2" placeholder="셀러 미팅 요약, 특이사항 등"></textarea>
+          </label>
+        </div>
+        <p class="hint" style="margin-top:8px">
+          💡 캠페인 만들면 1차 세트 + 1차 공동구매(마켓) 자동 생성 → 바로 디테일로 진입
+        </p>
+      </div>
+
+      <footer class="cnf-foot">
+        <button type="button" class="btn-text" data-v2="cnf-close">취소</button>
+        <button type="submit" class="btn-primary">📣 만들기 + 디테일 진입</button>
+      </footer>
+    </form>
+  </dialog>
 
   <!-- Modals -->
   <dialog id="addSellerDialog">
@@ -1756,6 +1959,8 @@ username2	password2	sender_name2"></textarea>
   <script src="/static/campaigns-v2.js"></script>
   <script src="/static/activity-tracker.js"></script>
   <script src="/static/mobile-mode.js"></script>
+  <script src="/static/dashboard-v2.js"></script>
+  <script src="/static/meeting-recorder.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)

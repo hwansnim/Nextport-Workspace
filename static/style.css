@@ -706,6 +706,243 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ═══ Phase J: 캠페인 폼 모달 ═══ */
+.cam-new-dialog {
+  border: 0;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 720px;
+  width: 92%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.cam-new-dialog::backdrop { background: rgba(0,0,0,0.5); }
+.cam-new-form { display: flex; flex-direction: column; }
+.cnf-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, #fff5e8 0%, #fbe9d6 100%);
+  border-radius: 12px 12px 0 0;
+}
+.cnf-head h2 { margin: 0; font-size: 17px; }
+.cnf-body { padding: 18px 22px; }
+.cnf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+.cnf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cnf-wide { grid-column: 1 / -1; }
+.cnf-field span {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.cnf-field em { color: #e74c3c; font-style: normal; }
+.cnf-field input, .cnf-field select, .cnf-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.cnf-field input:focus, .cnf-field select:focus, .cnf-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.12);
+}
+.cnf-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  background: #fafaf6;
+  border-radius: 0 0 12px 12px;
+}
+
+/* ═══ Phase J: 대시보드 v2 (카페24풍) ═══ */
+.dash-v2-summary {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.dv-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.dv-stat-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.dv-stat-card.dv-stat-accent { background: linear-gradient(135deg, #fff5e8 0%, #fbe9d6 100%); border-color: var(--accent); }
+.dv-stat-card.dv-stat-profit { background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-color: #4caf50; }
+.dv-stat-label {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.dv-stat-value { font-size: 24px; font-weight: 800; color: #222; }
+.dv-stat-accent .dv-stat-value { color: var(--accent); }
+.dv-stat-profit .dv-stat-value { color: #2e7d32; }
+.dv-stat-sub { font-size: 11px; color: #888; margin-top: 4px; }
+
+.dv-chart-wrap {
+  padding: 14px 16px 8px;
+  background: #fff;
+}
+#dvChartSvg { width: 100%; height: auto; max-height: 320px; }
+.dv-bar { transition: opacity 0.15s; cursor: pointer; }
+.dv-bar:hover { opacity: 0.78; }
+
+.dv-range-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.dv-range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ═══ Phase J: 엑셀스럽 시트 ═══ */
+.dv-sheet-wrap {
+  background: #fff;
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+}
+.dv-sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.dv-sheet thead th {
+  background: #ecebe5;
+  border-right: 1px solid #d9d6cc;
+  border-bottom: 2px solid #b8b3a5;
+  padding: 8px 10px;
+  font-weight: 700;
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.dv-hdr-cell.dv-num { text-align: right; }
+.dv-sheet tbody td {
+  padding: 7px 10px;
+  border-right: 1px solid #efece4;
+  border-bottom: 1px solid #efece4;
+  background: #fff;
+}
+.dv-sheet .dv-rowhdr {
+  background: #ecebe5;
+  color: #777;
+  text-align: center;
+  font-weight: 600;
+  font-size: 11px;
+}
+.dv-cell {
+  cursor: cell;
+  transition: background 0.08s;
+}
+.dv-cell.dv-num { text-align: right; }
+.dv-cell.dv-editable { background: #fffefa; }
+.dv-cell.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: #fff5e8 !important;
+}
+.dv-cell.range-selected {
+  background: rgba(255, 107, 53, 0.08);
+}
+.dv-cell[contenteditable="true"] {
+  outline: 2px solid #2196f3;
+  outline-offset: -2px;
+  background: #e3f2fd !important;
+}
+.dv-foot-row td {
+  background: #fafaf6 !important;
+  border-top: 2px solid #b8b3a5 !important;
+  font-size: 13px;
+}
+
+.dv-formula-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fafaf6;
+  border-top: 1px solid var(--border);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.dvf-label {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--accent);
+}
+#dvFormulaInput {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+#dvCellCoord {
+  font-size: 11.5px;
+  color: var(--muted);
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ═══ Phase J: 녹음 버튼 (rec-active) ═══ */
+.btn-text.rec-active {
+  background: #e74c3c;
+  color: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 14px;
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0); }
+}
+.rec-timer-badge {
+  background: #e74c3c;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  animation: rec-blink 1s infinite;
+}
+@keyframes rec-blink { 50% { opacity: 0.6; } }
+
 /* ═══ Phase I: 메타 광고관리자 3탭 ═══ */
 
 .meta-tabs {
