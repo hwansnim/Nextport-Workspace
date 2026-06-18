@@ -706,6 +706,176 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ═══ Phase K: 콘텐츠 가이드 (스토리 자동 스케줄) ═══ */
+.content-guide-panel { margin-bottom: 14px; }
+.content-guide-body { padding: 0 4px 8px; }
+
+.cg-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  background: #fff;
+}
+.cg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  min-width: 1300px;
+}
+.cg-table thead th {
+  background: #fff5e8;
+  padding: 8px 6px;
+  font-size: 11px;
+  color: #555;
+  border: 1px solid #f0ede5;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.cg-table td {
+  border: 1px solid #f0ede5;
+  padding: 6px 6px;
+  vertical-align: top;
+  background: #fff;
+}
+.cg-date-cell, .cg-dday-cell {
+  background: #fafaf6 !important;
+  white-space: nowrap;
+  text-align: center;
+}
+.cg-dlabel {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 12.5px;
+}
+.cg-phase-tag {
+  display: inline-block;
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #fff;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* phase별 배경 (행 강조) */
+.cg-phase-도입 td { background: #f3f8ff; }
+.cg-phase-교감 td { background: #fffaef; }
+.cg-phase-정보 td { background: #f7fff0; }
+.cg-phase-임박 td { background: linear-gradient(90deg, #ffe9d6, #fff5e8); }
+.cg-phase-마감 td { background: #fff0f0; }
+
+.cg-slot { min-width: 170px; }
+.cg-feed-slot { background: rgba(255, 235, 175, 0.4) !important; }
+.cg-concept {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 11px;
+  background: #fff;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+.cg-caption {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  background: #fff;
+}
+.cg-slot-foot {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  align-items: center;
+}
+.cg-img {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 10.5px;
+  background: #fafaf6;
+}
+.cg-post-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.cg-slot.cg-posted {
+  background: #e8f5e8 !important;
+  outline: 2px solid #4caf50;
+  outline-offset: -3px;
+}
+.cg-slot.cg-posted .cg-concept { background: #e8f5e8; color: #2e7d32; }
+
+.cg-day-actions { text-align: center; }
+
+/* ═══ Phase K: 캠페인 메타 - 셀러 특징 / 제품 발송 / 세트 보강 ═══ */
+.cam-meta-grid { padding: 12px 16px; }
+.cam-meta-wide { grid-column: 1 / -1; }
+.cam-meta-row .val { flex: 1; }
+.cam-edit-sel {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.cam-edit-textarea {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.cam-ship-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 14px;
+  padding: 12px 16px;
+}
+.cam-ship-grid .cam-meta-row input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12.5px;
+}
+
+.cam-set-stat {
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1;
+  margin: 0 12px;
+}
+.cam-set-rev {
+  font-size: 11.5px;
+  color: #333;
+}
+.cam-set-rev b { color: var(--accent); }
+.cam-set-memo {
+  width: 100%;
+  margin: 6px 0;
+  padding: 5px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  font-size: 11.5px;
+  background: #fafaf6;
+}
+
 /* ═══ Phase J: 캠페인 폼 모달 ═══ */
 .cam-new-dialog {
   border: 0;

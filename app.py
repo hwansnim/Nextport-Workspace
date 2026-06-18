@@ -12,7 +12,7 @@ import os
 import sys
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -3503,6 +3503,126 @@ def _next_id(items: list, prefix: str) -> str:
     return f"{prefix}_{(max(nums) if nums else 0) + 1:04d}"
 
 
+# ─── 자동 콘텐츠 스케줄 (스토리 가이드) ───
+# 사용자가 보낸 스프레드시트 그대로: D-day 기준 거꾸로, 각 날짜에 STORY 1~5 + 피드 1
+STORY_CONCEPTS_BY_PHASE = {
+    "도입": [   # D-10 ~ D-7
+        {"title": "아침 한 포 루틴", "caption": "요즘 아침에 꼭 챙기는 게 생겼는데... 한 번도 빠진 적 없네요 ㅋㅋ 원지 궁금하시죠? 곧 다 말씀드릴게요 👀"},
+        {"title": "2달 됐음 고백", "caption": "사실 이거 시작한 게 2달 됐어요. 우연히 정말 좋은 기회가 와서 샘플 받고 꾸준히 써보고 있었거든요... 이제는 말할 수 있을 것 같아요 ㅎㅎ"},
+        {"title": "예전 vs 지금 비교", "caption": "예전 사진 보다가 좀 충격 받았는데... 살이 확 찐 건 아닌데 라인이 다 뭉개져 있더라구요 ㅠㅠ 특히 턱선이랑 팔뚝..."},
+        {"title": "최근 좋아진 점", "caption": "근데 요즘은 아는 게 뜨는 게 확실히 훨씬 가볍고 편해요! 화장실도 잘 가고 ㅋㅋ 특히 변비... 진짜 너무 오래 고민이었는데"},
+        {"title": "공유 결심", "caption": "진짜 진심하게 이거 먹고 나서부터 원가 달라진 것 같아서... 이런 게 처음이라 말하기 많이 망설였는데 이 좋은 거 나만 알기 너무 아까워서 슬슬 공유해 드릴게요! 기대해 주세요 🙏"},
+        {"title": "느낌의 변화", "caption": "예전엔 점심 먹고 나면 1시간은 못 일어났는데, 요즘은 진짜 멀쩡해요. 졸음도 적고 머리도 맑은 느낌"},
+    ],
+    "교감": [   # D-6 ~ D-4
+        {"title": "주말 아침 한 포", "caption": "주말 아침도 어김없이 한 포! 일요일에도 빠짐없이 하는 루틴 됐어요 ㅋㅋ 좀 있다가 브런치 먹으러 나가야 하는데..."},
+        {"title": "DM 폭발 + 공유 결심", "caption": "어제 올리고 나서 진짜 궁금하다고 DM이랑 연락이 입정 왔다고 ㅋㅋ 감사해요!! 소파 눕자마자 답장 드리는데... 결국 이사님께 하기로 했다!! 카톡 보낸 이거 공유하기로 결심한 거 맞죠?? ㅋㅋ"},
+        {"title": "식곤증 사라짐", "caption": "오늘 점심 먹고도 멀쩡한 저... 지금 식곤증 장난 아닐 시간일 텐데 소파 눕자마자 잠 자던 게 진짜인지 요즘은 그런 거 하나도 없어요 ㅋㅋㅋ 이렇게 해결될 줄 몰랐음"},
+        {"title": "피부 속건조 고민", "caption": "아... 그래도 화장은 많이 떠서 속건조 때문인가? 싶었거든요 ㅠㅠ 겉만 바른다고 잘 될 게 아니구나 싶었는데 몸 안에서 채워져야 진짜 중요한 거였더라고요..."},
+        {"title": "근본 해결 결심", "caption": "내 몸은 내가 챙겨야 한다!! 주변 전문가 지인분들한테 조언 많이 구했어요. 근본적인 해결책을 드릴 수 있을 것 같아서 내일부터 하나하나 더 풀어드릴게요!"},
+    ],
+    "정보": [   # D-3 ~ D-1
+        {"title": "성분 설명", "caption": "오늘은 제가 먹는 이 제품 성분 한번 풀어볼게요. 굳이 제품명 안 까고도 어떻게 작용하는지 설명할 수 있어요 ✨"},
+        {"title": "비교/리뷰", "caption": "기존에 먹던 거랑 비교해봤는데, 진짜 차이가 명확해요. 후기 사진 함께 올려요 👀"},
+        {"title": "FAQ", "caption": "DM에 가장 많이 들어왔던 질문들 정리했어요. 효능 / 부작용 / 복용법 / 보관법 다 답변!"},
+        {"title": "USP 강조", "caption": "이 제품이 다른 거랑 다른 점 딱 3가지만! 그래서 제가 끝까지 못 끊은 이유 ✨"},
+    ],
+    "임박": [   # D-day
+        {"title": "🎉 공구 OPEN", "caption": "드디어 오늘! 공동구매 시작했어요 🎉 링크는 프로필 / 하이라이트 / DM 가능! 이번이 진짜 마지막 기회예요 🔥"},
+        {"title": "라이브 공지", "caption": "오후 8시에 인스타 라이브로 직접 보여드릴게요! 질문 미리 받아요"},
+        {"title": "주문 인증", "caption": "벌써 주문하신 분들 인증샷 받았어요! 다들 빠르세요... 재고 빨리 빠질 듯 🚨"},
+    ],
+    "마감": [   # D+1 ~ D+N
+        {"title": "후기 인증", "caption": "벌써 받으신 분들 후기 올라오기 시작! 너무 행복한 후기들 ㅠㅠ 감사합니다 💖"},
+        {"title": "재구매 안내", "caption": "한 번 드신 분들 재구매 문의 너무 많아서... 마감 전에 꼭 챙기세요 🙏"},
+        {"title": "마감 D-1", "caption": "내일 자정 마감입니다! 마지막 D-1 알람 🔔 놓치지 마세요"},
+        {"title": "🔴 공구 마감", "caption": "오늘 자정으로 공구 마감됩니다. 마지막 기회예요. 진짜 후회 없으실 거예요 🙏"},
+    ],
+}
+
+FEED_CONCEPTS = [
+    {"title": "라이프스타일 컷", "caption": "(고화질 라이프스타일 컷 + 자연스러운 제품 노출)"},
+    {"title": "거울 셀카", "caption": "(피부/몸 변화 인증 + 진솔한 후기)"},
+    {"title": "결심 / 에너지", "caption": "(에너지 넘치는 모습 + 변화 강조)"},
+    {"title": "비교 콘텐츠", "caption": "(예전 vs 현재 변화 강조 - 인포그래픽 또는 사진)"},
+]
+
+
+def _generate_content_schedule(start_date: str, end_date: str = "") -> list[dict]:
+    """마켓 시작일 박으면 D-10부터 D+N까지 자동 콘텐츠 슬롯 생성.
+    각 날짜에 STORY 1~5 + 피드 1 슬롯 박힘. 컨셉 풀에서 자동 제안.
+    """
+    try:
+        sd = datetime.strptime(start_date[:10], "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return []
+    try:
+        ed = datetime.strptime(end_date[:10], "%Y-%m-%d") if end_date else sd + timedelta(days=4)
+    except (ValueError, TypeError):
+        ed = sd + timedelta(days=4)
+
+    days = []
+    weekday_kr = ["월", "화", "수", "목", "금", "토", "일"]
+
+    # D-10 ~ D-day ~ D+last
+    pre_days = 10
+    post_days = (ed - sd).days
+
+    for offset in range(-pre_days, post_days + 2):
+        d = sd + timedelta(days=offset)
+        if offset < 0:
+            d_label = f"D-{-offset}"
+            if offset >= -3:
+                phase = "임박" if offset == 0 else "정보"
+            elif offset >= -6:
+                phase = "교감"
+            else:
+                phase = "도입"
+        elif offset == 0:
+            d_label = "D-day"
+            phase = "임박"
+        else:
+            d_label = f"D+{offset}"
+            phase = "마감"
+
+        pool = STORY_CONCEPTS_BY_PHASE.get(phase, [])
+        # 5개 슬롯에 풀에서 ROUND-ROBIN 으로 박기 (풀 부족하면 반복)
+        story_slots = []
+        for i in range(5):
+            cp = pool[(offset + i) % len(pool)] if pool else {"title": "", "caption": ""}
+            story_slots.append({
+                "type": "story",
+                "title": f"STORY {i + 1}",
+                "concept": cp["title"],
+                "caption": cp["caption"],
+                "image_url": "",
+                "posted": False,
+                "posted_at": "",
+            })
+
+        # 피드 1슬롯 (저녁 게시물)
+        fc = FEED_CONCEPTS[offset % len(FEED_CONCEPTS)] if FEED_CONCEPTS else {}
+        feed_slot = {
+            "type": "feed",
+            "title": "게시물 (피드)",
+            "concept": fc.get("title", ""),
+            "caption": fc.get("caption", ""),
+            "image_url": "",
+            "posted": False,
+            "posted_at": "",
+        }
+
+        days.append({
+            "date": d.strftime("%Y-%m-%d"),
+            "weekday": weekday_kr[d.weekday()],
+            "d_label": d_label,
+            "phase": phase,
+            "slots": story_slots + [feed_slot],
+        })
+
+    return days
+
+
 @app.route("/api/campaigns_v2", methods=["GET", "POST"])
 def api_campaigns_v2_list():
     items = _load_campaigns_v2()
@@ -3520,28 +3640,47 @@ def api_campaigns_v2_list():
                 linked_inf_id = inf["id"]
                 linked_inf_handle = inf.get("instagram_id")
 
+        start_date = payload.get("start_date") or ""
+        end_date = payload.get("end_date") or ""
+
+        # 자동 콘텐츠 스케줄 (시작일 있을 때)
+        content_days = []
+        if start_date and payload.get("auto_schedule", True):
+            content_days = _generate_content_schedule(start_date, end_date)
+
         cam = {
             "id": _next_id(items, "cam"),
             "seller_name": (payload.get("seller_name") or "").strip(),
             "brand": (payload.get("brand") or "").strip(),
             "product": (payload.get("product") or "").strip(),
             "type": payload.get("type") or "마이크로",
-            "market_schedule": payload.get("market_schedule") or "",
+            "market_schedule": start_date,
+            "instagram_url": payload.get("instagram_url") or "",
+            "seller_traits": payload.get("seller_traits") or "",
             "linked_influencer_id": linked_inf_id,
             "linked_influencer_handle": linked_inf_handle or linked_handle or None,
             "status": payload.get("status") or "준비중",
-            "expected_revenue": payload.get("expected_revenue") or 0,
-            "expected_cost": payload.get("expected_cost") or 0,
             "notes": payload.get("notes") or "",
+            "product_shipping": {  # 셀러 단위 (캠페인 레벨로 이동)
+                "sent_date": None,
+                "tracking_no": "",
+                "carrier": "",
+                "note": "",
+            },
             "sets": [{
                 "id": "set_0001",
                 "round": 1,
                 "label": "1차",
+                "memo": "",
                 "ads": [{
                     "id": "ad_0001",
                     "name": "공동구매 1차",
-                    "product_sent_date": None,
-                    "scheduling": {"start_date": None, "end_date": None, "items": []},
+                    "scheduling": {
+                        "start_date": start_date or None,
+                        "end_date": end_date or None,
+                        "items": [],
+                    },
+                    "content_days": content_days,
                     "events": [],
                     "drive_links": [],
                     "banners": {
@@ -3578,9 +3717,13 @@ def api_campaigns_v2_one(cam_id):
         _save_campaigns_v2(items)
         return jsonify({"ok": True})
     payload = request.get_json(force=True) or {}
-    for k in ["seller_name", "brand", "product", "type", "market_schedule", "status", "linked_influencer_id"]:
+    for k in ["seller_name", "brand", "product", "type", "market_schedule", "status",
+              "linked_influencer_id", "instagram_url", "seller_traits", "notes"]:
         if k in payload:
             cam[k] = payload[k]
+    # 제품 발송 (캠페인 레벨)
+    if "product_shipping" in payload and isinstance(payload["product_shipping"], dict):
+        cam.setdefault("product_shipping", {}).update(payload["product_shipping"])
     _save_campaigns_v2(items)
 
     # 마켓 일정 → 캘린더 sync
@@ -3707,6 +3850,24 @@ def _sync_ad_to_calendar(cam: dict, st: dict, ad: dict) -> int:
     return added
 
 
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>", methods=["PATCH"])
+def api_campaigns_v2_patch_set(cam_id, set_id):
+    """세트 단위 필드 수정 (label / memo)."""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    st = next((s for s in cam.get("sets", []) if s["id"] == set_id), None)
+    if not st:
+        return jsonify({"error": "세트 없음"}), 404
+    payload = request.get_json(force=True) or {}
+    for k in ["label", "memo"]:
+        if k in payload:
+            st[k] = payload[k]
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, "set": st})
+
+
 @app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>", methods=["PATCH"])
 def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
     """공동구매(광고) 단위 필드 수정 — 제품발송/스케줄링/이벤트/드라이브/배너/릴스 전부.
@@ -3729,9 +3890,15 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
     for k in ["scheduling", "banners"]:
         if k in payload and isinstance(payload[k], dict):
             ad.setdefault(k, {}).update(payload[k])
-    for k in ["events", "drive_links", "reels"]:
+    for k in ["events", "drive_links", "reels", "content_days"]:
         if k in payload and isinstance(payload[k], list):
             ad[k] = payload[k]
+    # 스케줄링 시작일 바뀌면 콘텐츠 슬롯 자동 재생성 (옵션)
+    if payload.get("regenerate_content_schedule"):
+        sd = (ad.get("scheduling") or {}).get("start_date")
+        ed = (ad.get("scheduling") or {}).get("end_date")
+        if sd:
+            ad["content_days"] = _generate_content_schedule(sd, ed or "")
     _save_campaigns_v2(items)
 
     # 캘린더 자동 sync (스케줄링/제품발송 변경 시)

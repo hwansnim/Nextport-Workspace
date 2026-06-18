@@ -1,0 +1,1006 @@
+{
+  "campaigns": [
+    {
+      "id": "cam_0001",
+      "seller_name": "smoke_K2",
+      "brand": "???",
+      "product": "???",
+      "type": "????",
+      "market_schedule": "2026-07-01",
+      "instagram_url": "@test",
+      "seller_traits": "????",
+      "linked_influencer_id": null,
+      "linked_influencer_handle": null,
+      "status": "준비중",
+      "notes": "",
+      "product_shipping": {
+        "sent_date": null,
+        "tracking_no": "",
+        "carrier": "",
+        "note": ""
+      },
+      "sets": [
+        {
+          "id": "set_0001",
+          "round": 1,
+          "label": "1차",
+          "memo": "",
+          "ads": [
+            {
+              "id": "ad_0001",
+              "name": "공동구매 1차",
+              "scheduling": {
+                "start_date": "2026-07-01",
+                "end_date": "2026-07-04",
+                "items": []
+              },
+              "content_days": [
+                {
+                  "date": "2026-06-21",
+                  "weekday": "일",
+                  "d_label": "D-10",
+                  "phase": "도입",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "예전 vs 지금 비교",
+                      "caption": "예전 사진 보다가 좀 충격 받았는데... 살이 확 찐 건 아닌데 라인이 다 뭉개져 있더라구요 ㅠㅠ 특히 턱선이랑 팔뚝...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "최근 좋아진 점",
+                      "caption": "근데 요즘은 아는 게 뜨는 게 확실히 훨씬 가볍고 편해요! 화장실도 잘 가고 ㅋㅋ 특히 변비... 진짜 너무 오래 고민이었는데",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "공유 결심",
+                      "caption": "진짜 진심하게 이거 먹고 나서부터 원가 달라진 것 같아서... 이런 게 처음이라 말하기 많이 망설였는데 이 좋은 거 나만 알기 너무 아까워서 슬슬 공유해 드릴게요! 기대해 주세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "느낌의 변화",
+                      "caption": "예전엔 점심 먹고 나면 1시간은 못 일어났는데, 요즘은 진짜 멀쩡해요. 졸음도 적고 머리도 맑은 느낌",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "아침 한 포 루틴",
+                      "caption": "요즘 아침에 꼭 챙기는 게 생겼는데... 한 번도 빠진 적 없네요 ㅋㅋ 원지 궁금하시죠? 곧 다 말씀드릴게요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "결심 / 에너지",
+                      "caption": "(에너지 넘치는 모습 + 변화 강조)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-22",
+                  "weekday": "월",
+                  "d_label": "D-9",
+                  "phase": "도입",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "최근 좋아진 점",
+                      "caption": "근데 요즘은 아는 게 뜨는 게 확실히 훨씬 가볍고 편해요! 화장실도 잘 가고 ㅋㅋ 특히 변비... 진짜 너무 오래 고민이었는데",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "공유 결심",
+                      "caption": "진짜 진심하게 이거 먹고 나서부터 원가 달라진 것 같아서... 이런 게 처음이라 말하기 많이 망설였는데 이 좋은 거 나만 알기 너무 아까워서 슬슬 공유해 드릴게요! 기대해 주세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "느낌의 변화",
+                      "caption": "예전엔 점심 먹고 나면 1시간은 못 일어났는데, 요즘은 진짜 멀쩡해요. 졸음도 적고 머리도 맑은 느낌",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "아침 한 포 루틴",
+                      "caption": "요즘 아침에 꼭 챙기는 게 생겼는데... 한 번도 빠진 적 없네요 ㅋㅋ 원지 궁금하시죠? 곧 다 말씀드릴게요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "2달 됐음 고백",
+                      "caption": "사실 이거 시작한 게 2달 됐어요. 우연히 정말 좋은 기회가 와서 샘플 받고 꾸준히 써보고 있었거든요... 이제는 말할 수 있을 것 같아요 ㅎㅎ",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "비교 콘텐츠",
+                      "caption": "(예전 vs 현재 변화 강조 - 인포그래픽 또는 사진)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-23",
+                  "weekday": "화",
+                  "d_label": "D-8",
+                  "phase": "도입",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "공유 결심",
+                      "caption": "진짜 진심하게 이거 먹고 나서부터 원가 달라진 것 같아서... 이런 게 처음이라 말하기 많이 망설였는데 이 좋은 거 나만 알기 너무 아까워서 슬슬 공유해 드릴게요! 기대해 주세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "느낌의 변화",
+                      "caption": "예전엔 점심 먹고 나면 1시간은 못 일어났는데, 요즘은 진짜 멀쩡해요. 졸음도 적고 머리도 맑은 느낌",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "아침 한 포 루틴",
+                      "caption": "요즘 아침에 꼭 챙기는 게 생겼는데... 한 번도 빠진 적 없네요 ㅋㅋ 원지 궁금하시죠? 곧 다 말씀드릴게요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "2달 됐음 고백",
+                      "caption": "사실 이거 시작한 게 2달 됐어요. 우연히 정말 좋은 기회가 와서 샘플 받고 꾸준히 써보고 있었거든요... 이제는 말할 수 있을 것 같아요 ㅎㅎ",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "예전 vs 지금 비교",
+                      "caption": "예전 사진 보다가 좀 충격 받았는데... 살이 확 찐 건 아닌데 라인이 다 뭉개져 있더라구요 ㅠㅠ 특히 턱선이랑 팔뚝...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "라이프스타일 컷",
+                      "caption": "(고화질 라이프스타일 컷 + 자연스러운 제품 노출)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-24",
+                  "weekday": "수",
+                  "d_label": "D-7",
+                  "phase": "도입",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "느낌의 변화",
+                      "caption": "예전엔 점심 먹고 나면 1시간은 못 일어났는데, 요즘은 진짜 멀쩡해요. 졸음도 적고 머리도 맑은 느낌",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "아침 한 포 루틴",
+                      "caption": "요즘 아침에 꼭 챙기는 게 생겼는데... 한 번도 빠진 적 없네요 ㅋㅋ 원지 궁금하시죠? 곧 다 말씀드릴게요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "2달 됐음 고백",
+                      "caption": "사실 이거 시작한 게 2달 됐어요. 우연히 정말 좋은 기회가 와서 샘플 받고 꾸준히 써보고 있었거든요... 이제는 말할 수 있을 것 같아요 ㅎㅎ",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "예전 vs 지금 비교",
+                      "caption": "예전 사진 보다가 좀 충격 받았는데... 살이 확 찐 건 아닌데 라인이 다 뭉개져 있더라구요 ㅠㅠ 특히 턱선이랑 팔뚝...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "최근 좋아진 점",
+                      "caption": "근데 요즘은 아는 게 뜨는 게 확실히 훨씬 가볍고 편해요! 화장실도 잘 가고 ㅋㅋ 특히 변비... 진짜 너무 오래 고민이었는데",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "거울 셀카",
+                      "caption": "(피부/몸 변화 인증 + 진솔한 후기)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-25",
+                  "weekday": "목",
+                  "d_label": "D-6",
+                  "phase": "교감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "근본 해결 결심",
+                      "caption": "내 몸은 내가 챙겨야 한다!! 주변 전문가 지인분들한테 조언 많이 구했어요. 근본적인 해결책을 드릴 수 있을 것 같아서 내일부터 하나하나 더 풀어드릴게요!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "주말 아침 한 포",
+                      "caption": "주말 아침도 어김없이 한 포! 일요일에도 빠짐없이 하는 루틴 됐어요 ㅋㅋ 좀 있다가 브런치 먹으러 나가야 하는데...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "DM 폭발 + 공유 결심",
+                      "caption": "어제 올리고 나서 진짜 궁금하다고 DM이랑 연락이 입정 왔다고 ㅋㅋ 감사해요!! 소파 눕자마자 답장 드리는데... 결국 이사님께 하기로 했다!! 카톡 보낸 이거 공유하기로 결심한 거 맞죠?? ㅋㅋ",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "식곤증 사라짐",
+                      "caption": "오늘 점심 먹고도 멀쩡한 저... 지금 식곤증 장난 아닐 시간일 텐데 소파 눕자마자 잠 자던 게 진짜인지 요즘은 그런 거 하나도 없어요 ㅋㅋㅋ 이렇게 해결될 줄 몰랐음",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "피부 속건조 고민",
+                      "caption": "아... 그래도 화장은 많이 떠서 속건조 때문인가? 싶었거든요 ㅠㅠ 겉만 바른다고 잘 될 게 아니구나 싶었는데 몸 안에서 채워져야 진짜 중요한 거였더라고요...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "결심 / 에너지",
+                      "caption": "(에너지 넘치는 모습 + 변화 강조)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-26",
+                  "weekday": "금",
+                  "d_label": "D-5",
+                  "phase": "교감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "주말 아침 한 포",
+                      "caption": "주말 아침도 어김없이 한 포! 일요일에도 빠짐없이 하는 루틴 됐어요 ㅋㅋ 좀 있다가 브런치 먹으러 나가야 하는데...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "DM 폭발 + 공유 결심",
+                      "caption": "어제 올리고 나서 진짜 궁금하다고 DM이랑 연락이 입정 왔다고 ㅋㅋ 감사해요!! 소파 눕자마자 답장 드리는데... 결국 이사님께 하기로 했다!! 카톡 보낸 이거 공유하기로 결심한 거 맞죠?? ㅋㅋ",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "식곤증 사라짐",
+                      "caption": "오늘 점심 먹고도 멀쩡한 저... 지금 식곤증 장난 아닐 시간일 텐데 소파 눕자마자 잠 자던 게 진짜인지 요즘은 그런 거 하나도 없어요 ㅋㅋㅋ 이렇게 해결될 줄 몰랐음",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "피부 속건조 고민",
+                      "caption": "아... 그래도 화장은 많이 떠서 속건조 때문인가? 싶었거든요 ㅠㅠ 겉만 바른다고 잘 될 게 아니구나 싶었는데 몸 안에서 채워져야 진짜 중요한 거였더라고요...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "근본 해결 결심",
+                      "caption": "내 몸은 내가 챙겨야 한다!! 주변 전문가 지인분들한테 조언 많이 구했어요. 근본적인 해결책을 드릴 수 있을 것 같아서 내일부터 하나하나 더 풀어드릴게요!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "비교 콘텐츠",
+                      "caption": "(예전 vs 현재 변화 강조 - 인포그래픽 또는 사진)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-27",
+                  "weekday": "토",
+                  "d_label": "D-4",
+                  "phase": "교감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "DM 폭발 + 공유 결심",
+                      "caption": "어제 올리고 나서 진짜 궁금하다고 DM이랑 연락이 입정 왔다고 ㅋㅋ 감사해요!! 소파 눕자마자 답장 드리는데... 결국 이사님께 하기로 했다!! 카톡 보낸 이거 공유하기로 결심한 거 맞죠?? ㅋㅋ",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "식곤증 사라짐",
+                      "caption": "오늘 점심 먹고도 멀쩡한 저... 지금 식곤증 장난 아닐 시간일 텐데 소파 눕자마자 잠 자던 게 진짜인지 요즘은 그런 거 하나도 없어요 ㅋㅋㅋ 이렇게 해결될 줄 몰랐음",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "피부 속건조 고민",
+                      "caption": "아... 그래도 화장은 많이 떠서 속건조 때문인가? 싶었거든요 ㅠㅠ 겉만 바른다고 잘 될 게 아니구나 싶었는데 몸 안에서 채워져야 진짜 중요한 거였더라고요...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "근본 해결 결심",
+                      "caption": "내 몸은 내가 챙겨야 한다!! 주변 전문가 지인분들한테 조언 많이 구했어요. 근본적인 해결책을 드릴 수 있을 것 같아서 내일부터 하나하나 더 풀어드릴게요!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "주말 아침 한 포",
+                      "caption": "주말 아침도 어김없이 한 포! 일요일에도 빠짐없이 하는 루틴 됐어요 ㅋㅋ 좀 있다가 브런치 먹으러 나가야 하는데...",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "라이프스타일 컷",
+                      "caption": "(고화질 라이프스타일 컷 + 자연스러운 제품 노출)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-28",
+                  "weekday": "일",
+                  "d_label": "D-3",
+                  "phase": "정보",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "비교/리뷰",
+                      "caption": "기존에 먹던 거랑 비교해봤는데, 진짜 차이가 명확해요. 후기 사진 함께 올려요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "FAQ",
+                      "caption": "DM에 가장 많이 들어왔던 질문들 정리했어요. 효능 / 부작용 / 복용법 / 보관법 다 답변!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "USP 강조",
+                      "caption": "이 제품이 다른 거랑 다른 점 딱 3가지만! 그래서 제가 끝까지 못 끊은 이유 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "성분 설명",
+                      "caption": "오늘은 제가 먹는 이 제품 성분 한번 풀어볼게요. 굳이 제품명 안 까고도 어떻게 작용하는지 설명할 수 있어요 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "비교/리뷰",
+                      "caption": "기존에 먹던 거랑 비교해봤는데, 진짜 차이가 명확해요. 후기 사진 함께 올려요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "거울 셀카",
+                      "caption": "(피부/몸 변화 인증 + 진솔한 후기)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-29",
+                  "weekday": "월",
+                  "d_label": "D-2",
+                  "phase": "정보",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "FAQ",
+                      "caption": "DM에 가장 많이 들어왔던 질문들 정리했어요. 효능 / 부작용 / 복용법 / 보관법 다 답변!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "USP 강조",
+                      "caption": "이 제품이 다른 거랑 다른 점 딱 3가지만! 그래서 제가 끝까지 못 끊은 이유 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "성분 설명",
+                      "caption": "오늘은 제가 먹는 이 제품 성분 한번 풀어볼게요. 굳이 제품명 안 까고도 어떻게 작용하는지 설명할 수 있어요 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "비교/리뷰",
+                      "caption": "기존에 먹던 거랑 비교해봤는데, 진짜 차이가 명확해요. 후기 사진 함께 올려요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "FAQ",
+                      "caption": "DM에 가장 많이 들어왔던 질문들 정리했어요. 효능 / 부작용 / 복용법 / 보관법 다 답변!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "결심 / 에너지",
+                      "caption": "(에너지 넘치는 모습 + 변화 강조)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-06-30",
+                  "weekday": "화",
+                  "d_label": "D-1",
+                  "phase": "정보",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "USP 강조",
+                      "caption": "이 제품이 다른 거랑 다른 점 딱 3가지만! 그래서 제가 끝까지 못 끊은 이유 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "성분 설명",
+                      "caption": "오늘은 제가 먹는 이 제품 성분 한번 풀어볼게요. 굳이 제품명 안 까고도 어떻게 작용하는지 설명할 수 있어요 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "비교/리뷰",
+                      "caption": "기존에 먹던 거랑 비교해봤는데, 진짜 차이가 명확해요. 후기 사진 함께 올려요 👀",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "FAQ",
+                      "caption": "DM에 가장 많이 들어왔던 질문들 정리했어요. 효능 / 부작용 / 복용법 / 보관법 다 답변!",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "USP 강조",
+                      "caption": "이 제품이 다른 거랑 다른 점 딱 3가지만! 그래서 제가 끝까지 못 끊은 이유 ✨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "비교 콘텐츠",
+                      "caption": "(예전 vs 현재 변화 강조 - 인포그래픽 또는 사진)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-07-01",
+                  "weekday": "수",
+                  "d_label": "D-day",
+                  "phase": "임박",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "🎉 공구 OPEN",
+                      "caption": "드디어 오늘! 공동구매 시작했어요 🎉 링크는 프로필 / 하이라이트 / DM 가능! 이번이 진짜 마지막 기회예요 🔥",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "라이브 공지",
+                      "caption": "오후 8시에 인스타 라이브로 직접 보여드릴게요! 질문 미리 받아요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "주문 인증",
+                      "caption": "벌써 주문하신 분들 인증샷 받았어요! 다들 빠르세요... 재고 빨리 빠질 듯 🚨",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "🎉 공구 OPEN",
+                      "caption": "드디어 오늘! 공동구매 시작했어요 🎉 링크는 프로필 / 하이라이트 / DM 가능! 이번이 진짜 마지막 기회예요 🔥",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "라이브 공지",
+                      "caption": "오후 8시에 인스타 라이브로 직접 보여드릴게요! 질문 미리 받아요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "라이프스타일 컷",
+                      "caption": "(고화질 라이프스타일 컷 + 자연스러운 제품 노출)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-07-02",
+                  "weekday": "목",
+                  "d_label": "D+1",
+                  "phase": "마감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "재구매 안내",
+                      "caption": "한 번 드신 분들 재구매 문의 너무 많아서... 마감 전에 꼭 챙기세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "마감 D-1",
+                      "caption": "내일 자정 마감입니다! 마지막 D-1 알람 🔔 놓치지 마세요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "🔴 공구 마감",
+                      "caption": "오늘 자정으로 공구 마감됩니다. 마지막 기회예요. 진짜 후회 없으실 거예요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "후기 인증",
+                      "caption": "벌써 받으신 분들 후기 올라오기 시작! 너무 행복한 후기들 ㅠㅠ 감사합니다 💖",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "재구매 안내",
+                      "caption": "한 번 드신 분들 재구매 문의 너무 많아서... 마감 전에 꼭 챙기세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "거울 셀카",
+                      "caption": "(피부/몸 변화 인증 + 진솔한 후기)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-07-03",
+                  "weekday": "금",
+                  "d_label": "D+2",
+                  "phase": "마감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "마감 D-1",
+                      "caption": "내일 자정 마감입니다! 마지막 D-1 알람 🔔 놓치지 마세요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "🔴 공구 마감",
+                      "caption": "오늘 자정으로 공구 마감됩니다. 마지막 기회예요. 진짜 후회 없으실 거예요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "후기 인증",
+                      "caption": "벌써 받으신 분들 후기 올라오기 시작! 너무 행복한 후기들 ㅠㅠ 감사합니다 💖",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "재구매 안내",
+                      "caption": "한 번 드신 분들 재구매 문의 너무 많아서... 마감 전에 꼭 챙기세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "마감 D-1",
+                      "caption": "내일 자정 마감입니다! 마지막 D-1 알람 🔔 놓치지 마세요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "결심 / 에너지",
+                      "caption": "(에너지 넘치는 모습 + 변화 강조)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-07-04",
+                  "weekday": "토",
+                  "d_label": "D+3",
+                  "phase": "마감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "🔴 공구 마감",
+                      "caption": "오늘 자정으로 공구 마감됩니다. 마지막 기회예요. 진짜 후회 없으실 거예요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "후기 인증",
+                      "caption": "벌써 받으신 분들 후기 올라오기 시작! 너무 행복한 후기들 ㅠㅠ 감사합니다 💖",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "재구매 안내",
+                      "caption": "한 번 드신 분들 재구매 문의 너무 많아서... 마감 전에 꼭 챙기세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "마감 D-1",
+                      "caption": "내일 자정 마감입니다! 마지막 D-1 알람 🔔 놓치지 마세요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "🔴 공구 마감",
+                      "caption": "오늘 자정으로 공구 마감됩니다. 마지막 기회예요. 진짜 후회 없으실 거예요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "비교 콘텐츠",
+                      "caption": "(예전 vs 현재 변화 강조 - 인포그래픽 또는 사진)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                },
+                {
+                  "date": "2026-07-05",
+                  "weekday": "일",
+                  "d_label": "D+4",
+                  "phase": "마감",
+                  "slots": [
+                    {
+                      "type": "story",
+                      "title": "STORY 1",
+                      "concept": "후기 인증",
+                      "caption": "벌써 받으신 분들 후기 올라오기 시작! 너무 행복한 후기들 ㅠㅠ 감사합니다 💖",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 2",
+                      "concept": "재구매 안내",
+                      "caption": "한 번 드신 분들 재구매 문의 너무 많아서... 마감 전에 꼭 챙기세요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 3",
+                      "concept": "마감 D-1",
+                      "caption": "내일 자정 마감입니다! 마지막 D-1 알람 🔔 놓치지 마세요",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 4",
+                      "concept": "🔴 공구 마감",
+                      "caption": "오늘 자정으로 공구 마감됩니다. 마지막 기회예요. 진짜 후회 없으실 거예요 🙏",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "story",
+                      "title": "STORY 5",
+                      "concept": "후기 인증",
+                      "caption": "벌써 받으신 분들 후기 올라오기 시작! 너무 행복한 후기들 ㅠㅠ 감사합니다 💖",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    },
+                    {
+                      "type": "feed",
+                      "title": "게시물 (피드)",
+                      "concept": "라이프스타일 컷",
+                      "caption": "(고화질 라이프스타일 컷 + 자연스러운 제품 노출)",
+                      "image_url": "",
+                      "posted": false,
+                      "posted_at": ""
+                    }
+                  ]
+                }
+              ],
+              "events": [],
+              "drive_links": [],
+              "banners": {
+                "openfeed": {
+                  "checked": false,
+                  "draft_url": "",
+                  "final_url": "",
+                  "note": ""
+                },
+                "price": {
+                  "checked": false,
+                  "draft_url": "",
+                  "final_url": "",
+                  "note": ""
+                },
+                "event": {
+                  "checked": false,
+                  "draft_url": "",
+                  "final_url": "",
+                  "note": ""
+                }
+              },
+              "reels": [],
+              "revenue": 0,
+              "cost": 0,
+              "status": "준비중",
+              "created_at": "2026-06-19T04:05:23"
+            }
+          ],
+          "created_at": "2026-06-19T04:05:23"
+        }
+      ],
+      "created_at": "2026-06-19T04:05:23"
+    }
+  ],
+  "schema_version": 2,
+  "updated_at": "2026-06-19T04:05:23"
+}

@@ -211,40 +211,79 @@
   }
 
   function renderCamDetail(c) {
+    s.cachedCampaign = c;
     $("#camBcCampaign").textContent = `${c.seller_name || "?"} · ${c.brand || "?"} / ${c.product || "?"}`;
     $("#camBcSetSep").hidden = true;
     $("#camBcSet").hidden = true;
 
+    // 실시간 매출 (마켓 합산)
+    const tt = campaignTotals(c);
+    const liveEl = $("#camRevenueLive");
+    if (liveEl) liveEl.innerHTML = `매출 <b>${fmtKRW(tt.revenue)}</b> · 마진 <b>${marginPct(tt.revenue, tt.cost) ?? "—"}%</b>`;
+
+    const igHref = c.instagram_url || (c.linked_influencer_handle ? `https://instagram.com/${c.linked_influencer_handle}/` : "");
     $("#camMetaBody").innerHTML = `
-      <div class="cam-meta-row"><span class="lbl">셀러명</span><span class="val">${esc(c.seller_name || "-")}</span></div>
-      <div class="cam-meta-row"><span class="lbl">브랜드</span><span class="val">${esc(c.brand || "-")}</span></div>
-      <div class="cam-meta-row"><span class="lbl">제품</span><span class="val">${esc(c.product || "-")}</span></div>
+      <div class="cam-meta-row"><span class="lbl">셀러명</span><span class="val"><b>${esc(c.seller_name || "-")}</b></span></div>
+      <div class="cam-meta-row"><span class="lbl">브랜드 / 제품</span><span class="val">${esc(c.brand || "-")} / ${esc(c.product || "-")}</span></div>
       <div class="cam-meta-row"><span class="lbl">타입</span><span class="val"><span class="cam-type cam-type-${esc(c.type || "")}">${esc(c.type || "-")}</span></span></div>
-      <div class="cam-meta-row"><span class="lbl">상태</span><span class="val"><span class="cam-status s-${esc(c.status || "준비중")}">${esc(c.status || "준비중")}</span></span></div>
-      <div class="cam-meta-row"><span class="lbl">마켓 일정</span><span class="val">${esc(c.market_schedule || "-")}</span></div>
-      ${c.linked_influencer_handle ? `<div class="cam-meta-row"><span class="lbl">연결 인플루언서</span><span class="val">@${esc(c.linked_influencer_handle)}</span></div>` : ""}
+      <div class="cam-meta-row"><span class="lbl">상태</span><span class="val">
+        <select data-v2="cam-edit-status" class="cam-edit-sel">
+          ${["준비중","진행중","완료","중단"].map(v => `<option ${v===c.status?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </span></div>
+      <div class="cam-meta-row"><span class="lbl">인스타</span><span class="val">
+        ${igHref ? `<a href="${esc(igHref)}" target="_blank" rel="noopener" style="color:var(--blue)">@${esc(c.linked_influencer_handle || igHref.split("/").filter(Boolean).pop() || "")}  ↗</a>` : "<span class='hint'>미연결</span>"}
+      </span></div>
+      <div class="cam-meta-row"><span class="lbl">마켓 시작</span><span class="val">${esc(c.market_schedule || "-")}</span></div>
+      <div class="cam-meta-row cam-meta-wide"><span class="lbl">셀러 특징</span>
+        <textarea class="cam-edit-textarea" data-v2="cam-edit-traits" rows="2" placeholder="톤·스타일·USP·주의사항">${esc(c.seller_traits || "")}</textarea>
+      </div>
+      <div class="cam-meta-row cam-meta-wide"><span class="lbl">메모 (내부)</span>
+        <textarea class="cam-edit-textarea" data-v2="cam-edit-notes" rows="2">${esc(c.notes || "")}</textarea>
+      </div>
     `;
+
+    // 제품 발송 (캠페인 레벨)
+    const ps = c.product_shipping || {};
+    const shipRoot = $("#camShippingBody");
+    if (shipRoot) {
+      shipRoot.innerHTML = `
+        <div class="cam-meta-row"><span class="lbl">발송일</span><span class="val"><input type="date" data-v2="cam-ship" data-f="sent_date" value="${esc(ps.sent_date || "")}" /></span></div>
+        <div class="cam-meta-row"><span class="lbl">택배사</span><span class="val"><input type="text" data-v2="cam-ship" data-f="carrier" value="${esc(ps.carrier || "")}" placeholder="CJ대한통운" /></span></div>
+        <div class="cam-meta-row"><span class="lbl">송장번호</span><span class="val"><input type="text" data-v2="cam-ship" data-f="tracking_no" value="${esc(ps.tracking_no || "")}" /></span></div>
+        <div class="cam-meta-row cam-meta-wide"><span class="lbl">메모</span><span class="val"><input type="text" data-v2="cam-ship" data-f="note" value="${esc(ps.note || "")}" placeholder="구성: 3개월 분량, 1+1 등" /></span></div>
+      `;
+    }
 
     const setsRoot = $("#camSetsBody");
     if (!(c.sets || []).length) {
       setsRoot.innerHTML = `<div class="empty" style="padding:30px;text-align:center;color:#888">세트 없음. [+ 다음 차수 추가] 클릭</div>`;
     } else {
-      setsRoot.innerHTML = c.sets.map(st => `
-        <div class="cam-set ${st.id === s.activeSetId ? "active" : ""}" data-v2="set-open" data-id="${esc(st.id)}">
-          <div class="cam-set-head">
-            <span class="cam-set-round">${esc(st.label || st.round + "차")}</span>
-            <span class="hint">${(st.ads || []).length}건 마켓</span>
+      setsRoot.innerHTML = c.sets.map(st => {
+        const tt = setTotals(st);
+        const margin = marginPct(tt.revenue, tt.cost);
+        const adCount = (st.ads || []).length;
+        const sd = (st.ads || [])[0]?.scheduling?.start_date || "";
+        const ed = (st.ads || [])[0]?.scheduling?.end_date || "";
+        return `
+          <div class="cam-set ${st.id === s.activeSetId ? "active" : ""}">
+            <div class="cam-set-head" data-v2="set-open" data-id="${esc(st.id)}">
+              <span class="cam-set-round">${esc(st.label || st.round + "차")}</span>
+              <span class="cam-set-stat">${adCount}개 마켓 · ${sd || "—"} ~ ${ed || "—"}</span>
+              <span class="cam-set-rev">매출 <b>${fmtKRW(tt.revenue)}</b> · 마진 <b>${margin ?? "—"}%</b></span>
+            </div>
+            <input class="cam-set-memo" placeholder="세트 메모 (이번 차수 키 포인트)" data-v2="set-memo" data-id="${esc(st.id)}" value="${esc(st.memo || "")}" />
+            <div class="cam-set-ads">
+              ${(st.ads || []).map(a => `
+                <div class="cam-ad-chip ${a.id === s.activeMarketId ? "active" : ""}" data-v2="ad-open" data-set="${esc(st.id)}" data-id="${esc(a.id)}">
+                  <span>${esc(a.name)}</span>
+                  <span class="cam-status s-${esc(a.status || "준비중")}">${esc(a.status || "준비중")}</span>
+                </div>
+              `).join("")}
+            </div>
           </div>
-          <div class="cam-set-ads">
-            ${(st.ads || []).map(a => `
-              <div class="cam-ad-chip ${a.id === s.activeMarketId ? "active" : ""}" data-v2="ad-open" data-set="${esc(st.id)}" data-id="${esc(a.id)}">
-                <span>${esc(a.name)}</span>
-                <span class="cam-status s-${esc(a.status || "준비중")}">${esc(a.status || "준비중")}</span>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     if (s.activeMarketId) {
@@ -264,9 +303,10 @@
 
     $("#camAdStatusLabel").textContent = ad.status || "준비중";
     $("#camAdStatusSel").value = ad.status || "준비중";
-    $("#adProductSentDate").value = ad.product_sent_date || "";
     $("#adSchedStart").value = ad.scheduling?.start_date || "";
     $("#adSchedEnd").value = ad.scheduling?.end_date || "";
+
+    renderContentGuide(ad);
 
     const items = ad.scheduling?.items || [];
     $("#adSchedItems").innerHTML = items.length
@@ -451,6 +491,161 @@
     `;
   }
 
+  // ─── 콘텐츠 가이드 (스토리 자동 스케줄) ───────────────
+  function renderContentGuide(ad) {
+    const root = $("#contentGuideBody");
+    const stat = $("#contentGuideStat");
+    if (!root) return;
+    const days = ad.content_days || [];
+    if (stat) stat.textContent = days.length ? `${days.length}일 · 슬롯 ${days.length * 6}개` : "비어있음";
+    if (!days.length) {
+      root.innerHTML = `
+        <div class="empty" style="padding:30px;text-align:center">
+          시작일 박은 후 [⚡ 자동 재생성] 클릭<br>
+          <span class="hint">자동: D-10 도입 → 교감 → 정보 → 임박(D-day) → 마감</span>
+        </div>`;
+      return;
+    }
+    root.innerHTML = `
+      <div class="cg-table-wrap">
+        <table class="cg-table">
+          <thead>
+            <tr>
+              <th style="width:78px">날짜</th>
+              <th style="width:60px">D-day</th>
+              ${[1,2,3,4,5].map(i => `<th>STORY ${i}</th>`).join("")}
+              <th>📸 피드</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${days.map((d, di) => `
+              <tr class="cg-day cg-phase-${esc(d.phase)}">
+                <td class="cg-date-cell"><b>${esc(d.date.slice(5))}</b><br><span class="hint">${esc(d.weekday)}</span></td>
+                <td class="cg-dday-cell"><span class="cg-dlabel">${esc(d.d_label)}</span><br><span class="cg-phase-tag">${esc(d.phase)}</span></td>
+                ${(d.slots || []).slice(0, 5).map((sl, si) => `
+                  <td class="cg-slot ${sl.posted ? "cg-posted" : ""}" data-di="${di}" data-si="${si}">
+                    <input class="cg-concept" placeholder="컨셉" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="concept" value="${esc(sl.concept || "")}" />
+                    <textarea class="cg-caption" placeholder="멘트" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="caption" rows="3">${esc(sl.caption || "")}</textarea>
+                    <div class="cg-slot-foot">
+                      <input class="cg-img" placeholder="이미지 URL" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="image_url" value="${esc(sl.image_url || "")}" />
+                      <button class="btn-text cg-post-btn" data-v2="cg-toggle-posted" data-di="${di}" data-si="${si}" title="${sl.posted ? '게시 취소' : '게시 완료'}">${sl.posted ? "✅" : "⬜"}</button>
+                    </div>
+                  </td>
+                `).join("")}
+                ${(d.slots || []).slice(5, 6).map((sl, si) => `
+                  <td class="cg-slot cg-feed-slot ${sl.posted ? "cg-posted" : ""}">
+                    <input class="cg-concept" placeholder="피드 컨셉" data-v2="cg-slot-edit" data-di="${di}" data-si="5" data-f="concept" value="${esc(sl.concept || "")}" />
+                    <textarea class="cg-caption" placeholder="피드 멘트" data-v2="cg-slot-edit" data-di="${di}" data-si="5" data-f="caption" rows="3">${esc(sl.caption || "")}</textarea>
+                    <input class="cg-img" placeholder="이미지 URL" data-v2="cg-slot-edit" data-di="${di}" data-si="5" data-f="image_url" value="${esc(sl.image_url || "")}" />
+                    <button class="btn-text cg-post-btn" data-v2="cg-toggle-posted" data-di="${di}" data-si="5">${sl.posted ? "✅" : "⬜"}</button>
+                  </td>
+                `).join("")}
+                <td class="cg-day-actions">
+                  <button class="btn-text" data-v2="cg-clear-day" data-di="${di}" title="이 날 빈슬롯">🧹</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="hint" style="padding:8px 12px">💡 셀에 직접 입력 → 자동 저장 · 컨셉 미리 박힌 것은 제안일 뿐, 자유롭게 수정</div>
+    `;
+  }
+
+  async function patchContentSlot(di, si, field, value) {
+    const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+    const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+    if (!ad) return;
+    const days = JSON.parse(JSON.stringify(ad.content_days || []));
+    if (!days[di] || !days[di].slots || !days[di].slots[si]) return;
+    days[di].slots[si][field] = value;
+    return patchAd({ content_days: days });
+  }
+
+  async function regenerateContent() {
+    if (!confirm("기존 콘텐츠 가이드 다 지우고 자동 재생성? (수정한 내용 다 사라짐)")) return;
+    return patchAd({ regenerate_content_schedule: true });
+  }
+
+  function exportContentToClipboard() {
+    const c = s.cachedCampaign;
+    const set = c?.sets?.find(x => x.id === s.activeSetId);
+    const ad = set?.ads?.find(x => x.id === s.activeMarketId);
+    if (!ad?.content_days?.length) { alert("콘텐츠 없음"); return; }
+    const lines = [];
+    lines.push(`${c.seller_name || ""}${c.linked_influencer_handle ? "(@" + c.linked_influencer_handle + ")" : ""} × 하루픽스 ${c.brand || ""} ${set?.label || ""} 공동구매 스케줄링`);
+    lines.push("");
+    if (c.seller_traits) { lines.push(`[셀러 특징] ${c.seller_traits}`); lines.push(""); }
+    ad.content_days.forEach(d => {
+      lines.push(`━━━━━ ${d.date}(${d.weekday}) ${d.d_label} [${d.phase}] ━━━━━`);
+      d.slots.forEach((sl, i) => {
+        if (sl.concept || sl.caption) {
+          lines.push(`▸ ${sl.title} — ${sl.concept || ""}`);
+          if (sl.caption) lines.push(`  "${sl.caption}"`);
+          if (sl.image_url) lines.push(`  📷 ${sl.image_url}`);
+        }
+      });
+      lines.push("");
+    });
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      window.showToast?.({ icon: "📋", title: "복사됨", body: `${ad.content_days.length}일치 콘텐츠`, accent: true });
+    });
+  }
+
+  function previewSellerSheet() {
+    const c = s.cachedCampaign;
+    const set = c?.sets?.find(x => x.id === s.activeSetId);
+    const ad = set?.ads?.find(x => x.id === s.activeMarketId);
+    if (!ad) return;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    const days = ad.content_days || [];
+    const igLink = c.instagram_url || (c.linked_influencer_handle ? `https://instagram.com/${c.linked_influencer_handle}/` : "");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(c.seller_name || "")} 공구 스케줄</title>
+      <style>
+        body{font-family:Pretendard,sans-serif;padding:30px;max-width:1400px;margin:auto;background:#fafaf6;color:#222}
+        h1{color:#FF6B35;border-bottom:3px solid #FF6B35;padding-bottom:10px}
+        h2{color:#FF6B35;margin-top:24px;font-size:16px}
+        .hdr{background:#fff5e8;padding:12px 16px;border-radius:8px;margin-bottom:18px;border-left:4px solid #FF6B35}
+        table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.05);font-size:11px}
+        th{background:#fff5e8;padding:10px;font-size:11px;text-align:left;border:1px solid #f0ede5}
+        td{padding:10px;border:1px solid #f0ede5;vertical-align:top}
+        .date-cell{background:#fafaf6;font-weight:700;white-space:nowrap}
+        .dday{color:#FF6B35;font-weight:700}
+        .phase{font-size:10px;color:#888}
+        .slot{min-width:170px}
+        .slot b{display:block;margin-bottom:4px;color:#FF6B35;font-size:11px}
+        .slot .cap{font-size:11.5px;line-height:1.5;color:#333;white-space:pre-wrap}
+        .feed{background:#fffbeb}
+      </style></head><body>
+      <h1>${esc(c.seller_name || "")}${c.linked_influencer_handle ? `(@${esc(c.linked_influencer_handle)})` : ""} × 하루픽스 ${esc(c.brand || "")} ${esc(set?.label || "")} 공동구매 스케줄링</h1>
+      <div class="hdr">
+        <b>📦 제품:</b> ${esc(c.product || "-")} ·
+        <b>📅 일정:</b> ${esc((ad.scheduling || {}).start_date || "-")} ~ ${esc((ad.scheduling || {}).end_date || "-")}
+        ${igLink ? ` · <b>🔗</b> <a href="${esc(igLink)}" target="_blank">${esc(igLink)}</a>` : ""}
+      </div>
+      ${c.seller_traits ? `<div class="hdr"><b>✨ 셀러 특징:</b><br>${esc(c.seller_traits).replace(/\n/g, "<br>")}</div>` : ""}
+      <table>
+        <thead><tr>
+          <th style="width:80px">날짜</th><th style="width:60px">D-day</th>
+          ${[1,2,3,4,5].map(i => `<th>STORY ${i}</th>`).join("")}
+          <th>📸 피드</th>
+        </tr></thead>
+        <tbody>
+          ${days.map(d => `
+            <tr>
+              <td class="date-cell">${esc(d.date.slice(5))} (${esc(d.weekday)})</td>
+              <td class="date-cell"><div class="dday">${esc(d.d_label)}</div><div class="phase">${esc(d.phase)}</div></td>
+              ${d.slots.slice(0, 5).map(sl => `<td class="slot"><b>${esc(sl.concept || sl.title)}</b><div class="cap">${esc(sl.caption || "—")}</div></td>`).join("")}
+              ${d.slots.slice(5, 6).map(sl => `<td class="slot feed"><b>${esc(sl.concept || sl.title)}</b><div class="cap">${esc(sl.caption || "—")}</div></td>`).join("")}
+            </tr>`).join("")}
+        </tbody>
+      </table>
+      </body></html>`);
+    w.document.close();
+  }
+
   // ─── ACTIONS ────────────────────────────────────────────
   async function patchAd(patch) {
     try {
@@ -479,22 +674,39 @@
     const fd = new FormData(form);
     const seller = (fd.get("seller_name") || "").toString().trim();
     if (!seller) { alert("셀러명 박아"); return; }
+
+    // 인스타 링크 → 핸들 추출
+    let igUrl = (fd.get("instagram_url") || "").toString().trim();
+    let handle = "";
+    if (igUrl) {
+      const m = igUrl.match(/instagram\.com\/([^/?\s]+)/);
+      if (m) handle = m[1];
+      else handle = igUrl.replace(/^@/, "").trim();
+      if (!igUrl.startsWith("http")) igUrl = `https://www.instagram.com/${handle}/`;
+    }
+
     const payload = {
       seller_name: seller,
       brand: (fd.get("brand") || "").toString().trim(),
       product: (fd.get("product") || "").toString().trim(),
       type: fd.get("type") || "마이크로",
       status: fd.get("status") || "준비중",
-      market_schedule: fd.get("market_schedule") || "",
-      expected_revenue: parseInt(fd.get("expected_revenue")) || 0,
-      expected_cost: parseInt(fd.get("expected_cost")) || 0,
-      linked_handle: (fd.get("linked_handle") || "").toString().trim().replace(/^@/, ""),
+      start_date: fd.get("start_date") || "",
+      end_date: fd.get("end_date") || "",
+      instagram_url: igUrl,
+      linked_handle: handle,
+      seller_traits: (fd.get("seller_traits") || "").toString().trim(),
       notes: (fd.get("notes") || "").toString().trim(),
+      auto_schedule: true,
     };
     try {
       const r = await api("/api/campaigns_v2", { method: "POST", body: JSON.stringify(payload) });
       $("#campNewDialog")?.close?.();
-      window.showToast?.({ icon: "📣", title: "캠페인 만들어짐", body: `${seller} · ${payload.brand}`, accent: true });
+      window.showToast?.({
+        icon: "📣", title: "캠페인 만들어짐",
+        body: `${seller}${payload.start_date ? " · 스케줄 자동 생성" : ""}`,
+        accent: true,
+      });
       await loadList();
       openCampaign(r.campaign.id);
     } catch (err) { alert("실패: " + err.message); }
@@ -589,6 +801,31 @@
 
     if (what === "cam-new") return newCampaign();
     if (what === "cnf-close") { $("#campNewDialog")?.close?.(); return; }
+    if (what === "cg-regenerate") return regenerateContent();
+    if (what === "cg-preview") return previewSellerSheet();
+    if (what === "cg-export-clip") return exportContentToClipboard();
+    if (what === "cg-toggle-posted") {
+      const di = parseInt(trg.dataset.di), si = parseInt(trg.dataset.si);
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+      const days = JSON.parse(JSON.stringify(ad.content_days || []));
+      if (days[di]?.slots?.[si]) {
+        days[di].slots[si].posted = !days[di].slots[si].posted;
+        days[di].slots[si].posted_at = days[di].slots[si].posted ? new Date().toISOString() : "";
+      }
+      return patchAd({ content_days: days });
+    }
+    if (what === "cg-clear-day") {
+      const di = parseInt(trg.dataset.di);
+      if (!confirm("이 날 슬롯 다 비울까?")) return;
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+      const days = JSON.parse(JSON.stringify(ad.content_days || []));
+      if (days[di]?.slots) {
+        days[di].slots.forEach(sl => { sl.concept = ""; sl.caption = ""; sl.image_url = ""; });
+      }
+      return patchAd({ content_days: days });
+    }
     if (what === "cam-open" || what === "cam-detail") return openCampaign(trg.dataset.id);
     if (what === "set-open" || what === "set-detail") {
       const camId = trg.dataset.cam || s.activeCamId;
@@ -721,7 +958,38 @@
     }
   });
 
+  // 캠페인 메타 인라인 편집
+  async function patchCampaign(patch) {
+    try {
+      await api(`/api/campaigns_v2/${s.activeCamId}`, { method: "PATCH", body: JSON.stringify(patch) });
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      renderCamDetail(c);
+    } catch (err) { alert("실패: " + err.message); }
+  }
+
+  document.addEventListener("change", (e) => {
+    if (e.target.dataset.v2 === "cam-edit-status") patchCampaign({ status: e.target.value });
+    if (e.target.dataset.v2 === "cam-ship") {
+      const f = e.target.dataset.f;
+      patchCampaign({ product_shipping: { [f]: e.target.value } });
+    }
+  });
+
   document.addEventListener("blur", async (e) => {
+    if (e.target.dataset.v2 === "cam-edit-traits") patchCampaign({ seller_traits: e.target.value });
+    if (e.target.dataset.v2 === "cam-edit-notes") patchCampaign({ notes: e.target.value });
+    if (e.target.dataset.v2 === "set-memo") {
+      try {
+        await api(`/api/campaigns_v2/${s.activeCamId}/sets/${e.target.dataset.id}`, {
+          method: "PATCH", body: JSON.stringify({ memo: e.target.value }),
+        });
+      } catch {}
+    }
+    if (e.target.dataset.v2 === "cg-slot-edit") {
+      const di = parseInt(e.target.dataset.di), si = parseInt(e.target.dataset.si);
+      const f = e.target.dataset.f;
+      await patchContentSlot(di, si, f, e.target.value);
+    }
     if (e.target.dataset.v2 === "ad-banner-field") {
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);

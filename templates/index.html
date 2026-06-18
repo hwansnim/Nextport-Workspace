@@ -290,15 +290,25 @@
             <span class="cam-bc-current" id="camBcSet" hidden></span>
           </div>
 
-          <!-- 캠페인 메타 정보 -->
+          <!-- 캠페인 메타 정보 + 셀러 특징 -->
           <section class="panel" id="camMetaPanel">
             <div class="panel-head">
-              <h2>📌 캠페인 정보</h2>
+              <h2>📌 셀러 정보 + 캠페인</h2>
               <div class="head-actions">
+                <span class="hint" id="camRevenueLive">실시간 매출 —</span>
                 <button class="btn-text" data-v2="cam-edit-meta">✎ 편집</button>
               </div>
             </div>
             <div class="cam-meta-grid" id="camMetaBody"></div>
+          </section>
+
+          <!-- 제품 발송 (캠페인 레벨 — 한 셀러 한 번만) -->
+          <section class="panel" id="camShippingPanel">
+            <div class="panel-head">
+              <h2>📦 제품 발송 (셀러 1회)</h2>
+              <span class="hint">차수마다 따로 보내는 게 아니라 셀러한테 1번만</span>
+            </div>
+            <div class="cam-ship-grid" id="camShippingBody"></div>
           </section>
 
           <!-- 세트(차수) 리스트 -->
@@ -328,20 +338,24 @@
                 </div>
               </div>
 
-              <!-- 6 섹션 그리드 -->
-              <div class="ad-section-grid">
-
-                <!-- 1. 제품 발송 -->
-                <div class="ad-section">
-                  <div class="ad-sec-head">📦 제품 발송</div>
-                  <div class="ad-sec-body">
-                    <label class="ad-field">
-                      <span>마지막 발송일</span>
-                      <input type="date" id="adProductSentDate" />
-                    </label>
-                    <button class="btn-secondary" data-v2="ad-save-product">저장</button>
+              <!-- 콘텐츠 가이드 (스토리 자동 스케줄) -->
+              <section class="panel content-guide-panel">
+                <div class="panel-head">
+                  <h2>📅 콘텐츠 가이드 (셀러한테 보낼 일자별 스토리 제안)</h2>
+                  <div class="head-actions">
+                    <span class="hint" id="contentGuideStat">—</span>
+                    <button class="btn-secondary" data-v2="cg-regenerate">⚡ 자동 재생성</button>
+                    <button class="btn-secondary" data-v2="cg-preview">👁 셀러 시트 미리보기</button>
+                    <button class="btn-secondary" data-v2="cg-export-clip">📋 복사</button>
                   </div>
                 </div>
+                <div class="content-guide-body" id="contentGuideBody">
+                  <div class="empty" style="padding:30px;text-align:center">시작일 박으면 자동 생성</div>
+                </div>
+              </section>
+
+              <!-- 6 섹션 그리드 -->
+              <div class="ad-section-grid">
 
                 <!-- 2. 스케줄링 -->
                 <div class="ad-section">
@@ -1536,31 +1550,33 @@
             <select name="status">
               <option value="준비중">준비중</option>
               <option value="진행중">진행중</option>
+              <option value="완료">완료</option>
+              <option value="중단">중단</option>
             </select>
           </label>
           <label class="cnf-field">
-            <span>마켓 시작일</span>
-            <input type="date" name="market_schedule" />
+            <span>1차 시작일</span>
+            <input type="date" name="start_date" />
           </label>
           <label class="cnf-field">
-            <span>예상 매출 (원)</span>
-            <input type="number" name="expected_revenue" min="0" placeholder="0" />
-          </label>
-          <label class="cnf-field">
-            <span>예상 비용 (원)</span>
-            <input type="number" name="expected_cost" min="0" placeholder="0" />
+            <span>1차 종료일</span>
+            <input type="date" name="end_date" />
           </label>
           <label class="cnf-field cnf-wide">
-            <span>연결 인플루언서 (선택, 인스타ID @빼고)</span>
-            <input name="linked_handle" placeholder="진행 예정 셀러에서 연결된 경우 자동" />
+            <span>인스타 링크 (또는 @핸들)</span>
+            <input name="instagram_url" placeholder="@thefashion_kr  또는  https://instagram.com/thefashion_kr" />
           </label>
           <label class="cnf-field cnf-wide">
-            <span>메모</span>
+            <span>셀러 특징 (스토리 톤·콘텐츠 스타일·USP·주의사항)</span>
+            <textarea name="seller_traits" rows="3" placeholder="예: 30대 여성 타겟, 라이프스타일 톤, 가격 강조 X, 제품 효능 비교 강조, 댓글 활발"></textarea>
+          </label>
+          <label class="cnf-field cnf-wide">
+            <span>메모 (내부용)</span>
             <textarea name="notes" rows="2" placeholder="셀러 미팅 요약, 특이사항 등"></textarea>
           </label>
         </div>
         <p class="hint" style="margin-top:8px">
-          💡 캠페인 만들면 1차 세트 + 1차 공동구매(마켓) 자동 생성 → 바로 디테일로 진입
+          💡 1차 시작일 박으면 D-10부터 자동 콘텐츠 스케줄링 생성됨
         </p>
       </div>
 
