@@ -338,19 +338,22 @@
                 </div>
               </div>
 
-              <!-- 콘텐츠 가이드 (스토리 자동 스케줄) -->
+              <!-- 콘텐츠 가이드 (셀러 톤 매칭 생성) -->
               <section class="panel content-guide-panel">
                 <div class="panel-head">
-                  <h2>📅 콘텐츠 가이드 (셀러한테 보낼 일자별 스토리 제안)</h2>
+                  <h2>📅 콘텐츠 가이드 (셀러한테 보낼 일자별 스토리)</h2>
                   <div class="head-actions">
                     <span class="hint" id="contentGuideStat">—</span>
-                    <button class="btn-secondary" data-v2="cg-regenerate">⚡ 자동 재생성</button>
-                    <button class="btn-secondary" data-v2="cg-preview">👁 셀러 시트 미리보기</button>
+                    <button class="btn-primary" data-v2="cg-open-gen">✨ 생성 / 재생성</button>
+                    <button class="btn-secondary" data-v2="cg-share">🔗 셀러 링크</button>
+                    <button class="btn-secondary" data-v2="cg-preview">👁 미리보기</button>
                     <button class="btn-secondary" data-v2="cg-export-clip">📋 복사</button>
                   </div>
                 </div>
                 <div class="content-guide-body" id="contentGuideBody">
-                  <div class="empty" style="padding:30px;text-align:center">시작일 박으면 자동 생성</div>
+                  <div class="empty" style="padding:30px;text-align:center">
+                    [✨ 생성] 눌러서 제품 정보 + 소구점 입력 → 셀러 말투 학습 후 콘텐츠 생성
+                  </div>
                 </div>
               </section>
 
@@ -1134,6 +1137,33 @@
                 <li>🖼️ <b>배너 (오픈피드/가격/이벤트)</b>: 체크 + 기획안 URL + 최종 이미지 URL + 메모</li>
                 <li>🎬 <b>릴스</b>: 기획안 + 영상 URL + 상태 (기획중/제작중/검수중/완료)</li>
               </ul>
+
+              <h3>📅 콘텐츠 가이드 (스토리 자동 생성)</h3>
+              <p>광고(마켓) 디테일 안 <b>콘텐츠 가이드</b> = 셀러한테 보낼 일자별 스토리 제안.</p>
+              <ul>
+                <li><b>✨ 생성/재생성</b>: 제품 정보 + 🎯 소구점(한 줄에 하나) + 글 길이 입력 → 생성. <b>자동 X</b>, 반드시 입력 후 생성.</li>
+                <li><b>셀러 말투 학습</b>: 연결된 셀러 인스타 핸들 기준. 셀러 아카이브에 그 셀러 콘텐츠가 있으면 실제 올렸던 글의 말투/이모지 습관을 학습해서 <b>복붙 가능한 퀄리티</b>로 생성.</li>
+                <li>D-10 ~ D-day ~ D+N, 각 날짜 STORY 1~5 + 피드. 단계(도입→교감→정보→임박→마감) 자동 흐름.</li>
+                <li><b>이미지</b>: URL 직접 입력 X. 이미지 박스 클릭 → <b>셀러 아카이브에서 선택</b> (자동 추천 + 변경).</li>
+                <li><b>🔗 셀러 링크</b>: 모바일 최적화 공유 링크 복사 → 셀러한테 카톡으로 전달.</li>
+                <li><b>👁 미리보기</b> / <b>📋 복사</b>: 셀러 시트 새 탭 / 텍스트 복사.</li>
+              </ul>
+
+              <h3>📱 셀러 모바일 뷰 (공유 링크)</h3>
+              <p>셀러가 <b>🔗 셀러 링크</b>를 폰에서 열면:</p>
+              <ul>
+                <li>날짜 카드 리스트 → 탭하면 풀스크린 스토리 뷰어</li>
+                <li>STORY 1~5 + 피드 <b>스와이프</b> (좌우 탭/스와이프)</li>
+                <li>각 스토리: 소구점/제목 + 멘트 + 레퍼런스 이미지 + <b>📋 복사하기</b> 버튼</li>
+                <li><b>체크리스트</b>: 올리면 체크 → 우리 화면에 ✅ 실시간 반영 + 진행률 바</li>
+                <li>(선택) 올린 스토리 링크 붙여넣기 → 우리가 🔗 라이브 클릭해서 확인</li>
+              </ul>
+              <div class="guide-callout">
+                <b>⚠️ 톤 학습 + 이미지</b><br>
+                셀러 말투 학습 + 레퍼런스 이미지는 <b>셀러 아카이브</b>에 데이터가 있어야 정확함.
+                [콘텐츠 도구 → 셀러 아카이브]에서 셀러 콘텐츠를 먼저 긁어오세요 (사용자 PC + 인스타 로그인 필요).
+                아카이브 없으면 generic 톤 + 이미지 없이 생성됩니다.
+              </div>
             </section>
 
             <section id="g-calendar" class="guide-section">
@@ -1585,6 +1615,82 @@
         <button type="submit" class="btn-primary">📣 만들기 + 디테일 진입</button>
       </footer>
     </form>
+  </dialog>
+
+  <!-- ✨ 콘텐츠 생성 다이얼로그 (제품 정보 + 소구점 + 길이) -->
+  <dialog id="contentGenDialog" class="cam-new-dialog">
+    <form method="dialog" class="cam-new-form" id="contentGenForm">
+      <header class="cnf-head">
+        <h2>✨ 콘텐츠 스케줄 생성</h2>
+        <button type="button" class="btn-text" data-v2="cg-gen-close" style="font-size:24px">×</button>
+      </header>
+      <div class="cnf-body">
+        <div class="cnf-grid">
+          <label class="cnf-field cnf-wide">
+            <span>제품명 <em>*</em></span>
+            <input name="p_name" required placeholder="예: 하루픽스 오메가369 밸런스" />
+          </label>
+          <label class="cnf-field cnf-wide">
+            <span>USP / 핵심 강점</span>
+            <input name="p_usp" placeholder="예: 식물성 오메가, 비린내 ZERO, 100% 식물성" />
+          </label>
+          <label class="cnf-field cnf-wide">
+            <span>제품 상세</span>
+            <textarea name="p_detail" rows="2" placeholder="성분, 복용법, 효과 등"></textarea>
+          </label>
+          <label class="cnf-field">
+            <span>가격 / 혜택</span>
+            <input name="p_price" placeholder="예: 9만원 이상 무료배송, 공구가 최저" />
+          </label>
+          <label class="cnf-field">
+            <span>금지 표현</span>
+            <input name="p_avoid" placeholder="예: 치료/효능 단정 X" />
+          </label>
+          <label class="cnf-field cnf-wide">
+            <span>🎯 소구점 (한 줄에 하나씩 — 이번 공구에서 밀 포인트)</span>
+            <textarea name="selling_points" rows="4" placeholder="식곤증 개선&#10;변비/장 건강&#10;피부 속건조&#10;비린내 없는 식물성&#10;가성비 (공구가)"></textarea>
+          </label>
+          <label class="cnf-field">
+            <span>글 길이</span>
+            <select name="length">
+              <option value="short">짧게 (20~45자)</option>
+              <option value="medium" selected>보통 (50~90자)</option>
+              <option value="long">길게 (100~160자)</option>
+            </select>
+          </label>
+          <label class="cnf-field">
+            <span>레퍼런스 이미지 자동 첨부</span>
+            <select name="attach_images">
+              <option value="1" selected>예 (셀러 아카이브에서)</option>
+              <option value="0">아니오 (직접 첨부)</option>
+            </select>
+          </label>
+        </div>
+        <div class="cnf-tone-note" id="cgToneNote"></div>
+        <p class="hint" style="margin-top:8px">
+          💡 연결된 셀러 인스타를 학습해서 그 말투로 생성합니다. (아카이브에 셀러 콘텐츠가 있으면 더 정확)<br>
+          ⏱ Gemini 생성 — 10~30초 걸릴 수 있어요.
+        </p>
+      </div>
+      <footer class="cnf-foot">
+        <button type="button" class="btn-text" data-v2="cg-gen-close">취소</button>
+        <button type="submit" class="btn-primary" id="cgGenSubmit">✨ 생성 시작</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- 🖼 이미지 피커 다이얼로그 (아카이브에서 선택) -->
+  <dialog id="imgPickerDialog" class="cam-new-dialog" style="max-width:880px">
+    <div class="cam-new-form">
+      <header class="cnf-head">
+        <h2>🖼 레퍼런스 이미지 선택</h2>
+        <button type="button" class="btn-text" data-v2="imgpick-close" style="font-size:24px">×</button>
+      </header>
+      <div class="cnf-body">
+        <div class="hint" style="margin-bottom:8px">셀러 아카이브에서 긁어온 이미지 · 클릭하면 이 슬롯에 박힘</div>
+        <div class="img-picker-grid" id="imgPickerGrid"><div class="empty">로딩…</div></div>
+      </div>
+    </div>
   </dialog>
 
   <!-- Modals -->

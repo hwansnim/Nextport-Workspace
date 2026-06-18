@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
 import threading
 import uuid
@@ -3642,11 +3643,8 @@ def api_campaigns_v2_list():
 
         start_date = payload.get("start_date") or ""
         end_date = payload.get("end_date") or ""
-
-        # 자동 콘텐츠 스케줄 (시작일 있을 때)
+        # 콘텐츠는 자동 생성 X — 캠페인 디테일에서 [생성] 버튼으로 제품정보+소구점 입력 후 생성
         content_days = []
-        if start_date and payload.get("auto_schedule", True):
-            content_days = _generate_content_schedule(start_date, end_date)
 
         cam = {
             "id": _next_id(items, "cam"),
@@ -3908,6 +3906,214 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
         log.warning(f"캘린더 sync 실패 (무시): {e}")
 
     return jsonify({"ok": True, "ad": ad})
+
+
+# ─── 콘텐츠 스케줄 생성 (입력 기반 + 셀러 톤 학습) ───
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/generate", methods=["POST"])
+def api_campaigns_v2_generate_content(cam_id, set_id, ad_id):
+    """제품 정보 + 소구점 + 길이 입력 → Gemini 셀러 톤 매칭 생성.
+    body: {product:{name,usp,detail,price,avoid}, selling_points:[..], length:"short|medium|long",
+           reference_handles:[..], attach_images:bool}"""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    st = next((s for s in cam.get("sets", []) if s["id"] == set_id), None)
+    ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
+    if not ad:
+        return jsonify({"error": "세트/광고 없음"}), 404
+
+    payload = request.get_json(force=True) or {}
+    sched = ad.get("scheduling") or {}
+    start_date = payload.get("start_date") or sched.get("start_date") or cam.get("market_schedule") or ""
+    if not start_date:
+        return jsonify({"error": "시작일이 없음 — 캠페인/광고 시작일 먼저 박아"}), 400
+    end_date = payload.get("end_date") or sched.get("end_date") or ""
+
+    try:
+        from content_gen import generate_content_schedule  # type: ignore
+    except ImportError as e:
+        return jsonify({"error": f"content_gen 모듈 실패: {e}"}), 500
+
+    handle = cam.get("linked_influencer_handle") or ""
+    if not handle and cam.get("instagram_url"):
+        m = re.search(r"instagram\.com/([^/?\s]+)", cam["instagram_url"])
+        handle = m.group(1) if m else cam["instagram_url"].lstrip("@")
+
+    result = generate_content_schedule(
+        seller_handle=handle,
+        product=payload.get("product") or {
+            "name": cam.get("product") or "",
+            "usp": "", "detail": "", "price": "", "avoid": "",
+        },
+        selling_points=payload.get("selling_points") or [],
+        length=payload.get("length") or "medium",
+        start_date=start_date,
+        end_date=end_date,
+        config=load_config() or {},
+        reference_handles=payload.get("reference_handles") or [],
+        attach_images=payload.get("attach_images", True),
+    )
+
+    ad["content_days"] = result["content_days"]
+    ad.setdefault("scheduling", {})["start_date"] = start_date
+    if end_date:
+        ad["scheduling"]["end_date"] = end_date
+    # 생성 메타 저장
+    ad["content_gen_meta"] = {
+        "product": payload.get("product") or {},
+        "selling_points": payload.get("selling_points") or [],
+        "length": payload.get("length") or "medium",
+        "gemini_used": result["gemini_used"],
+        "tone_samples_count": result["tone_samples_count"],
+        "images_attached": result["images_attached"],
+        "generated_at": result["generated_at"],
+    }
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, **{k: result[k] for k in ("gemini_used", "tone_samples_count", "images_attached")},
+                    "days": len(result["content_days"])})
+
+
+# ─── 아카이브 이미지 서빙 ───
+@app.route("/archive-img/<seller_folder>/<path:img_path>", methods=["GET"])
+def api_archive_img(seller_folder, img_path):
+    base = DATA_DIR / "local_archive" / seller_folder
+    full = (base / img_path).resolve()
+    # 경로 탈출 방지
+    if not str(full).startswith(str(base.resolve())):
+        return jsonify({"error": "잘못된 경로"}), 400
+    if not full.exists():
+        return jsonify({"error": "이미지 없음"}), 404
+    return send_from_directory(full.parent, full.name)
+
+
+# ─── 아카이브 이미지 풀 (피커용) ───
+@app.route("/api/archive/images", methods=["GET"])
+def api_archive_images():
+    """이미지 피커용 — 모든 셀러 아카이브 이미지 목록 (선택적 핸들 필터)."""
+    handle_filter = request.args.get("handle", "").strip().lower()
+    sellers = load_sellers()
+    out = []
+    for s in sellers:
+        if handle_filter and (s.get("instagram") or "").lower() != handle_filter:
+            continue
+        folder = f"{s['id']}.{s['name']}_@{s['instagram']}"
+        mp = DATA_DIR / "local_archive" / folder / "_manifest.json"
+        if not mp.exists():
+            continue
+        try:
+            data = json.loads(mp.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for it in data.get("items", []):
+            if it.get("media") != "image" or not it.get("file_path"):
+                continue
+            out.append({
+                "url": f"/archive-img/{folder}/{it['file_path']}",
+                "source": f"@{s['instagram']}",
+                "seller_name": s["name"],
+                "highlight": it.get("highlight_label", ""),
+                "alt": (it.get("alt_text") or "")[:80],
+                "fit": it.get("story_slot_fit", {}),
+            })
+    return jsonify({"images": out, "total": len(out)})
+
+
+# ─── 셀러 공유 뷰 (모바일 스와이프) ───
+def _seller_token(cam_id, set_id, ad_id) -> str:
+    import base64 as _b64
+    raw = f"{cam_id}|{set_id}|{ad_id}".encode("utf-8")
+    return _b64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _decode_seller_token(token: str):
+    import base64 as _b64
+    pad = "=" * (-len(token) % 4)
+    try:
+        raw = _b64.urlsafe_b64decode(token + pad).decode("utf-8")
+        parts = raw.split("|")
+        if len(parts) == 3:
+            return parts[0], parts[1], parts[2]
+    except Exception:
+        pass
+    return None, None, None
+
+
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/share", methods=["GET"])
+def api_campaigns_v2_share_link(cam_id, set_id, ad_id):
+    """셀러한테 보낼 공유 링크 토큰 발급."""
+    token = _seller_token(cam_id, set_id, ad_id)
+    return jsonify({"token": token, "path": f"/seller/{token}"})
+
+
+@app.route("/seller/<token>", methods=["GET"])
+def seller_view(token):
+    """셀러용 모바일 스와이프 뷰 — 날짜 리스트 → 탭 → STORY 스와이프 + 복사 + 체크."""
+    cam_id, set_id, ad_id = _decode_seller_token(token)
+    if not cam_id:
+        return "잘못된 링크", 404
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    st = next((s for s in (cam or {}).get("sets", []) if s["id"] == set_id), None) if cam else None
+    ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
+    if not ad:
+        return "콘텐츠를 찾을 수 없습니다", 404
+    return render_template(
+        "seller_view.html",
+        token=token,
+        campaign=cam,
+        set_label=(st.get("label") or ""),
+        ad=ad,
+        content_days=ad.get("content_days") or [],
+    )
+
+
+@app.route("/api/seller/<token>/slot", methods=["PATCH"])
+def api_seller_slot_update(token):
+    """셀러가 체크/링크 박을 때 — posted, live_url 만 허용."""
+    cam_id, set_id, ad_id = _decode_seller_token(token)
+    if not cam_id:
+        return jsonify({"error": "잘못된 토큰"}), 404
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    st = next((s for s in (cam or {}).get("sets", []) if s["id"] == set_id), None) if cam else None
+    ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
+    if not ad:
+        return jsonify({"error": "광고 없음"}), 404
+    p = request.get_json(force=True) or {}
+    di, si, field = p.get("day_index"), p.get("slot_index"), p.get("field")
+    if field not in ("posted", "live_url"):
+        return jsonify({"error": "허용되지 않는 필드"}), 400
+    days = ad.get("content_days") or []
+    if di is None or si is None or di >= len(days) or si >= len(days[di].get("slots", [])):
+        return jsonify({"error": "인덱스 초과"}), 400
+    days[di]["slots"][si][field] = p.get("value")
+    if field == "posted" and p.get("value"):
+        days[di]["slots"][si]["posted_at"] = datetime.now().isoformat(timespec="seconds")
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True})
+
+
+# ─── 콘텐츠 슬롯 단건 수정 (셀러뷰/내부 공용) ───
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/slot", methods=["PATCH"])
+def api_campaigns_v2_patch_slot(cam_id, set_id, ad_id):
+    """body: {day_index, slot_index, field, value}"""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    st = next((s for s in (cam or {}).get("sets", []) if s["id"] == set_id), None) if cam else None
+    ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
+    if not ad:
+        return jsonify({"error": "광고 없음"}), 404
+    p = request.get_json(force=True) or {}
+    di, si, field = p.get("day_index"), p.get("slot_index"), p.get("field")
+    days = ad.get("content_days") or []
+    if di is None or si is None or di >= len(days) or si >= len(days[di].get("slots", [])):
+        return jsonify({"error": "인덱스 범위 초과"}), 400
+    days[di]["slots"][si][field] = p.get("value")
+    if field == "posted" and p.get("value"):
+        days[di]["slots"][si]["posted_at"] = datetime.now().isoformat(timespec="seconds")
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/campaigns_v2/from_influencer/<inf_id>", methods=["POST"])

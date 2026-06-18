@@ -793,16 +793,82 @@ dialog .dialog-actions .spacer { flex: 1; }
 .cg-slot-foot {
   display: flex;
   gap: 4px;
-  margin-top: 3px;
+  margin-top: 5px;
   align-items: center;
+  justify-content: space-between;
 }
-.cg-img {
-  flex: 1;
+.cg-live-link {
+  font-size: 10px;
+  color: var(--blue);
+  text-decoration: none;
+}
+/* 이미지 박스 (URL input 대체) */
+.cg-img-box {
+  position: relative;
+  width: 100%;
+  height: 90px;
   border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 3px 6px;
-  font-size: 10.5px;
-  background: #fafaf6;
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f5f3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.cg-img-box img { width: 100%; height: 100%; object-fit: cover; }
+.cg-img-empty { font-size: 11px; color: #aaa; }
+.cg-img-change {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+  padding: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cg-img-box:hover .cg-img-change { opacity: 1; }
+
+/* 이미지 피커 그리드 */
+.img-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.img-pick-item {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 3/4;
+  background: #f5f3ec;
+}
+.img-pick-item:hover { border-color: var(--accent); }
+.img-pick-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-pick-item .ipi-src {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cnf-tone-note {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #fff5e8;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #555;
 }
 .cg-post-btn {
   background: transparent;

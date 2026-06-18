@@ -497,25 +497,44 @@
     const stat = $("#contentGuideStat");
     if (!root) return;
     const days = ad.content_days || [];
-    if (stat) stat.textContent = days.length ? `${days.length}일 · 슬롯 ${days.length * 6}개` : "비어있음";
+    const meta = ad.content_gen_meta || {};
+    if (stat) {
+      stat.textContent = days.length
+        ? `${days.length}일 · ${meta.gemini_used ? "🤖 AI 생성" : "수동"}${meta.tone_samples_count ? ` · 톤샘플 ${meta.tone_samples_count}` : ""}`
+        : "비어있음";
+    }
     if (!days.length) {
       root.innerHTML = `
         <div class="empty" style="padding:30px;text-align:center">
-          시작일 박은 후 [⚡ 자동 재생성] 클릭<br>
-          <span class="hint">자동: D-10 도입 → 교감 → 정보 → 임박(D-day) → 마감</span>
+          [✨ 생성] 눌러서 제품 정보 + 소구점 입력<br>
+          <span class="hint">셀러 인스타 말투를 학습해서 복붙 가능한 콘텐츠를 만들어줍니다</span>
         </div>`;
       return;
     }
+    const slotCell = (sl, di, si, isFeed) => `
+      <td class="cg-slot ${isFeed ? "cg-feed-slot" : ""} ${sl.posted ? "cg-posted" : ""}" data-di="${di}" data-si="${si}">
+        <div class="cg-img-box" data-v2="cg-pick-img" data-di="${di}" data-si="${si}">
+          ${sl.image_url
+            ? `<img src="${esc(sl.image_url)}" alt="" loading="lazy" /><span class="cg-img-change">🔄 변경</span>`
+            : `<span class="cg-img-empty">📷 이미지 선택</span>`}
+        </div>
+        <input class="cg-concept" placeholder="소구점/제목" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="concept" value="${esc(sl.concept || "")}" />
+        <textarea class="cg-caption" placeholder="스토리 멘트" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="caption" rows="4">${esc(sl.caption || "")}</textarea>
+        <div class="cg-slot-foot">
+          ${sl.live_url ? `<a href="${esc(sl.live_url)}" target="_blank" rel="noopener" class="cg-live-link" title="셀러가 올린 링크">🔗 라이브</a>` : `<span class="hint" style="font-size:10px">${sl.posted ? "✅ 올림" : "미게시"}</span>`}
+          <button class="btn-text cg-post-btn" data-v2="cg-toggle-posted" data-di="${di}" data-si="${si}" title="${sl.posted ? '게시 취소' : '게시 완료'}">${sl.posted ? "✅" : "⬜"}</button>
+        </div>
+      </td>`;
     root.innerHTML = `
       <div class="cg-table-wrap">
         <table class="cg-table">
           <thead>
             <tr>
-              <th style="width:78px">날짜</th>
-              <th style="width:60px">D-day</th>
+              <th style="width:70px">날짜</th>
+              <th style="width:56px">D-day</th>
               ${[1,2,3,4,5].map(i => `<th>STORY ${i}</th>`).join("")}
               <th>📸 피드</th>
-              <th style="width:50px"></th>
+              <th style="width:40px"></th>
             </tr>
           </thead>
           <tbody>
@@ -523,24 +542,8 @@
               <tr class="cg-day cg-phase-${esc(d.phase)}">
                 <td class="cg-date-cell"><b>${esc(d.date.slice(5))}</b><br><span class="hint">${esc(d.weekday)}</span></td>
                 <td class="cg-dday-cell"><span class="cg-dlabel">${esc(d.d_label)}</span><br><span class="cg-phase-tag">${esc(d.phase)}</span></td>
-                ${(d.slots || []).slice(0, 5).map((sl, si) => `
-                  <td class="cg-slot ${sl.posted ? "cg-posted" : ""}" data-di="${di}" data-si="${si}">
-                    <input class="cg-concept" placeholder="컨셉" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="concept" value="${esc(sl.concept || "")}" />
-                    <textarea class="cg-caption" placeholder="멘트" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="caption" rows="3">${esc(sl.caption || "")}</textarea>
-                    <div class="cg-slot-foot">
-                      <input class="cg-img" placeholder="이미지 URL" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="image_url" value="${esc(sl.image_url || "")}" />
-                      <button class="btn-text cg-post-btn" data-v2="cg-toggle-posted" data-di="${di}" data-si="${si}" title="${sl.posted ? '게시 취소' : '게시 완료'}">${sl.posted ? "✅" : "⬜"}</button>
-                    </div>
-                  </td>
-                `).join("")}
-                ${(d.slots || []).slice(5, 6).map((sl, si) => `
-                  <td class="cg-slot cg-feed-slot ${sl.posted ? "cg-posted" : ""}">
-                    <input class="cg-concept" placeholder="피드 컨셉" data-v2="cg-slot-edit" data-di="${di}" data-si="5" data-f="concept" value="${esc(sl.concept || "")}" />
-                    <textarea class="cg-caption" placeholder="피드 멘트" data-v2="cg-slot-edit" data-di="${di}" data-si="5" data-f="caption" rows="3">${esc(sl.caption || "")}</textarea>
-                    <input class="cg-img" placeholder="이미지 URL" data-v2="cg-slot-edit" data-di="${di}" data-si="5" data-f="image_url" value="${esc(sl.image_url || "")}" />
-                    <button class="btn-text cg-post-btn" data-v2="cg-toggle-posted" data-di="${di}" data-si="5">${sl.posted ? "✅" : "⬜"}</button>
-                  </td>
-                `).join("")}
+                ${(d.slots || []).slice(0, 5).map((sl, si) => slotCell(sl, di, si, false)).join("")}
+                ${(d.slots || []).slice(5, 6).map((sl) => slotCell(sl, di, 5, true)).join("")}
                 <td class="cg-day-actions">
                   <button class="btn-text" data-v2="cg-clear-day" data-di="${di}" title="이 날 빈슬롯">🧹</button>
                 </td>
@@ -549,7 +552,7 @@
           </tbody>
         </table>
       </div>
-      <div class="hint" style="padding:8px 12px">💡 셀에 직접 입력 → 자동 저장 · 컨셉 미리 박힌 것은 제안일 뿐, 자유롭게 수정</div>
+      <div class="hint" style="padding:8px 12px">💡 셀 직접 수정 → 자동 저장 · 이미지 클릭 = 아카이브에서 변경 · ✅ = 게시 완료 (셀러가 올리면 자동 체크됨)</div>
     `;
   }
 
@@ -563,9 +566,110 @@
     return patchAd({ content_days: days });
   }
 
-  async function regenerateContent() {
-    if (!confirm("기존 콘텐츠 가이드 다 지우고 자동 재생성? (수정한 내용 다 사라짐)")) return;
-    return patchAd({ regenerate_content_schedule: true });
+  // ─── 생성 다이얼로그 ───
+  function openGenDialog() {
+    const c = s.cachedCampaign;
+    const dlg = $("#contentGenDialog");
+    if (!dlg) return;
+    const form = $("#contentGenForm");
+    if (form) {
+      form.reset();
+      // 캠페인에서 제품명 자동 채움
+      if (c?.product) form.querySelector("[name=p_name]").value = c.product;
+    }
+    // 톤 안내
+    const note = $("#cgToneNote");
+    if (note) {
+      const handle = c?.linked_influencer_handle;
+      note.innerHTML = handle
+        ? `🎤 학습 대상: <b>@${esc(handle)}</b> — 아카이브에 이 셀러 콘텐츠가 있으면 말투를 더 정확히 따라합니다.`
+        : `⚠️ 연결된 인스타 핸들이 없어 generic 톤으로 생성됩니다. (캠페인 편집에서 인스타 링크 박으면 톤 학습)`;
+    }
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+  }
+
+  async function submitGen(e) {
+    e.preventDefault();
+    const form = $("#contentGenForm");
+    const fd = new FormData(form);
+    const pName = (fd.get("p_name") || "").toString().trim();
+    if (!pName) { alert("제품명 박아"); return; }
+    const sp = (fd.get("selling_points") || "").toString().split("\n").map(x => x.trim()).filter(Boolean);
+    const payload = {
+      product: {
+        name: pName,
+        usp: (fd.get("p_usp") || "").toString().trim(),
+        detail: (fd.get("p_detail") || "").toString().trim(),
+        price: (fd.get("p_price") || "").toString().trim(),
+        avoid: (fd.get("p_avoid") || "").toString().trim(),
+      },
+      selling_points: sp,
+      length: fd.get("length") || "medium",
+      attach_images: fd.get("attach_images") === "1",
+    };
+    const btn = $("#cgGenSubmit");
+    if (btn) { btn.disabled = true; btn.textContent = "✨ 생성 중… (최대 30초)"; }
+    try {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}/generate`, {
+        method: "POST", body: JSON.stringify(payload),
+      });
+      $("#contentGenDialog")?.close?.();
+      if (r.error) { alert("실패: " + r.error); return; }
+      window.showToast?.({
+        icon: r.gemini_used ? "🤖" : "📝",
+        title: r.gemini_used ? "AI 콘텐츠 생성 완료" : "생성 완료 (Gemini 미사용)",
+        body: `${r.days}일 · 톤샘플 ${r.tone_samples_count} · 이미지 ${r.images_attached}`,
+        accent: true, ttl: 6000,
+      });
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      renderCamDetail(c);
+    } catch (err) {
+      alert("실패: " + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "✨ 생성 시작"; }
+    }
+  }
+
+  // ─── 이미지 피커 ───
+  async function openImgPicker(di, si) {
+    s.pickTarget = { di, si };
+    const dlg = $("#imgPickerDialog");
+    if (!dlg) return;
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+    const grid = $("#imgPickerGrid");
+    grid.innerHTML = `<div class="empty">로딩…</div>`;
+    try {
+      const handle = s.cachedCampaign?.linked_influencer_handle || "";
+      // 본인 셀러 우선, 없으면 전체
+      let r = handle ? await api(`/api/archive/images?handle=${encodeURIComponent(handle)}`) : { images: [] };
+      if (!r.images?.length) r = await api(`/api/archive/images`);
+      if (!r.images?.length) {
+        grid.innerHTML = `<div class="empty" style="padding:30px;text-align:center">
+          아카이브에 이미지 없음.<br><span class="hint">[콘텐츠 도구 → 셀러 아카이브]에서 셀러 콘텐츠를 먼저 긁어오세요 (PC + 인스타 로그인 필요)</span>
+        </div>`;
+        return;
+      }
+      grid.innerHTML = r.images.map(img => `
+        <div class="img-pick-item" data-v2="imgpick-select" data-url="${esc(img.url)}">
+          <img src="${esc(img.url)}" alt="" loading="lazy" />
+          <span class="ipi-src">${esc(img.source)}${img.highlight ? " · " + esc(img.highlight) : ""}</span>
+        </div>`).join("");
+    } catch (e) {
+      grid.innerHTML = `<div class="empty">실패: ${esc(e.message)}</div>`;
+    }
+  }
+
+  async function shareLink() {
+    if (!s.activeMarketId) { alert("광고(마켓) 먼저 선택"); return; }
+    try {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}/share`);
+      const url = location.origin + r.path;
+      await navigator.clipboard.writeText(url);
+      window.showToast?.({ icon: "🔗", title: "셀러 링크 복사됨", body: "셀러한테 그대로 보내세요 (모바일 최적화)", accent: true, ttl: 7000 });
+      prompt("셀러한테 보낼 링크 (복사됨):", url);
+    } catch (e) { alert("실패: " + e.message); }
   }
 
   function exportContentToClipboard() {
@@ -801,9 +905,22 @@
 
     if (what === "cam-new") return newCampaign();
     if (what === "cnf-close") { $("#campNewDialog")?.close?.(); return; }
-    if (what === "cg-regenerate") return regenerateContent();
+    if (what === "cg-open-gen") return openGenDialog();
+    if (what === "cg-gen-close") { $("#contentGenDialog")?.close?.(); return; }
+    if (what === "cg-share") return shareLink();
     if (what === "cg-preview") return previewSellerSheet();
     if (what === "cg-export-clip") return exportContentToClipboard();
+    if (what === "cg-pick-img") return openImgPicker(parseInt(trg.dataset.di), parseInt(trg.dataset.si));
+    if (what === "imgpick-close") { $("#imgPickerDialog")?.close?.(); return; }
+    if (what === "imgpick-select") {
+      const url = trg.dataset.url;
+      const { di, si } = s.pickTarget || {};
+      if (di == null) return;
+      $("#imgPickerDialog")?.close?.();
+      await patchContentSlot(di, si, "image_url", url);
+      window.showToast?.({ icon: "🖼", title: "이미지 박힘", body: "" });
+      return;
+    }
     if (what === "cg-toggle-posted") {
       const di = parseInt(trg.dataset.di), si = parseInt(trg.dataset.si);
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
@@ -1029,6 +1146,8 @@
   setTimeout(() => {
     const form = document.getElementById("campNewForm");
     if (form) form.addEventListener("submit", submitCampaignForm);
+    const genForm = document.getElementById("contentGenForm");
+    if (genForm) genForm.addEventListener("submit", submitGen);
   }, 200);
 
   setTimeout(loadList, 800);

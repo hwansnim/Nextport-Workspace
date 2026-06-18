@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>{{ campaign.seller_name }} 공동구매 콘텐츠 가이드</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    :root { --accent:#FF6B35; --bg:#faf8f4; --card:#fff; --line:#eee5d8; --muted:#999; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { margin:0; font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif; background:var(--bg); color:#222; }
+    .sv-top { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--line); padding:14px 16px; }
+    .sv-top h1 { margin:0; font-size:16px; }
+    .sv-top .sub { font-size:11.5px; color:var(--muted); margin-top:3px; }
+    .sv-progress { margin-top:8px; height:6px; background:#f0ede5; border-radius:3px; overflow:hidden; }
+    .sv-progress > span { display:block; height:100%; background:var(--accent); transition:width .3s; }
+
+    /* 날짜 리스트 */
+    .sv-days { padding:10px 12px 100px; }
+    .sv-day-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; cursor:pointer; display:flex; align-items:center; gap:12px; }
+    .sv-day-card:active { transform:scale(.99); }
+    .sv-dday { font-size:18px; font-weight:800; color:var(--accent); min-width:54px; text-align:center; }
+    .sv-day-info { flex:1; }
+    .sv-day-date { font-size:14px; font-weight:600; }
+    .sv-day-phase { font-size:11px; color:var(--muted); margin-top:2px; }
+    .sv-day-count { font-size:11px; color:var(--muted); }
+    .sv-day-done { color:#2e9e44; font-weight:700; }
+    .phase-도입 .sv-dday { color:#3b82f6; }
+    .phase-교감 .sv-dday { color:#eab308; }
+    .phase-정보 .sv-dday { color:#22a35a; }
+    .phase-임박 .sv-dday { color:var(--accent); }
+    .phase-마감 .sv-dday { color:#ef4444; }
+
+    /* 스토리 뷰어 (풀스크린 스와이프) */
+    .sv-viewer { position:fixed; inset:0; z-index:50; background:#1a1a1a; display:none; flex-direction:column; }
+    .sv-viewer.open { display:flex; }
+    .sv-bars { display:flex; gap:4px; padding:10px 12px 6px; }
+    .sv-bar { flex:1; height:3px; background:rgba(255,255,255,.3); border-radius:2px; overflow:hidden; }
+    .sv-bar.active { background:#fff; }
+    .sv-bar.done { background:rgba(255,255,255,.7); }
+    .sv-vtop { display:flex; align-items:center; justify-content:space-between; padding:4px 14px 10px; color:#fff; }
+    .sv-vtop .vt-date { font-size:13px; font-weight:600; }
+    .sv-vclose { background:none; border:0; color:#fff; font-size:26px; cursor:pointer; padding:0 6px; }
+    .sv-slides { flex:1; position:relative; overflow:hidden; }
+    .sv-slide { position:absolute; inset:0; display:none; flex-direction:column; overflow-y:auto; padding:0 0 20px; }
+    .sv-slide.active { display:flex; }
+    .sv-slide-title { color:#fff; font-size:13px; font-weight:700; padding:6px 18px 12px; opacity:.85; }
+    .sv-img { width:100%; background:#000; }
+    .sv-img img { width:100%; display:block; max-height:50vh; object-fit:contain; }
+    .sv-img-empty { width:100%; height:180px; background:#2a2a2a; display:flex; align-items:center; justify-content:center; color:#666; font-size:13px; }
+    .sv-content { background:#fff; margin:0 14px; border-radius:14px; padding:16px; margin-top:-20px; position:relative; z-index:2; }
+    .sv-concept { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; }
+    .sv-caption { font-size:15px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+    .sv-actions { display:flex; gap:8px; margin-top:14px; }
+    .sv-btn { flex:1; border:0; border-radius:10px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .sv-btn-copy { background:var(--accent); color:#fff; }
+    .sv-btn-copy.copied { background:#2e9e44; }
+    .sv-check-row { display:flex; align-items:center; gap:10px; margin-top:12px; padding:12px; background:#f7f5f0; border-radius:10px; }
+    .sv-check-box { width:26px; height:26px; border-radius:7px; border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; flex-shrink:0; background:#fff; }
+    .sv-check-box.on { background:#2e9e44; border-color:#2e9e44; color:#fff; }
+    .sv-check-label { font-size:13px; flex:1; }
+    .sv-link-input { width:100%; margin-top:8px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; font-family:inherit; }
+    .sv-nav { position:absolute; top:0; bottom:0; width:30%; z-index:5; }
+    .sv-nav-left { left:0; }
+    .sv-nav-right { right:0; }
+    .sv-hint { text-align:center; color:rgba(255,255,255,.5); font-size:11px; padding:8px; }
+    .sv-foot { padding:16px; text-align:center; color:var(--muted); font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="sv-top">
+    <h1>📣 {{ campaign.seller_name }} × 하루픽스 {{ campaign.brand }} {{ set_label }}</h1>
+    <div class="sub">{{ campaign.product }} · 공구 일정 {{ (ad.scheduling.start_date or '미정') }} ~ {{ (ad.scheduling.end_date or '미정') }}</div>
+    {% if campaign.seller_traits %}<div class="sub">✨ {{ campaign.seller_traits }}</div>{% endif %}
+    <div class="sv-progress"><span id="svProgressBar" style="width:0%"></span></div>
+    <div class="sub" id="svProgressText" style="margin-top:5px"></div>
+  </div>
+
+  <div class="sv-days" id="svDays"></div>
+
+  <!-- 스토리 뷰어 -->
+  <div class="sv-viewer" id="svViewer">
+    <div class="sv-bars" id="svBars"></div>
+    <div class="sv-vtop">
+      <span class="vt-date" id="svViewerDate"></span>
+      <button class="sv-vclose" onclick="closeViewer()">×</button>
+    </div>
+    <div class="sv-slides" id="svSlides"></div>
+    <div class="sv-hint">← 좌우 탭 또는 스와이프로 이동 →</div>
+  </div>
+
+  <div class="sv-foot">넥스트포트 공동구매 워크스페이스 · 콘텐츠 그대로 복사해서 올려주시면 됩니다 🙏</div>
+
+  <script>
+    const TOKEN = {{ token|tojson }};
+    const DAYS = {{ content_days|tojson }};
+    let curDay = 0, curSlot = 0;
+
+    function countPosted() {
+      let total = 0, done = 0;
+      DAYS.forEach(d => (d.slots||[]).forEach(s => { total++; if (s.posted) done++; }));
+      return { total, done };
+    }
+    function renderProgress() {
+      const { total, done } = countPosted();
+      const pct = total ? Math.round(done/total*100) : 0;
+      document.getElementById("svProgressBar").style.width = pct + "%";
+      document.getElementById("svProgressText").textContent = `진행 ${done} / ${total}개 (${pct}%)`;
+    }
+    function renderDays() {
+      const root = document.getElementById("svDays");
+      root.innerHTML = DAYS.map((d, i) => {
+        const slots = d.slots || [];
+        const done = slots.filter(s => s.posted).length;
+        const allDone = done === slots.length && slots.length > 0;
+        return `<div class="sv-day-card phase-${d.phase}" onclick="openViewer(${i})">
+          <div class="sv-dday">${d.d_label}</div>
+          <div class="sv-day-info">
+            <div class="sv-day-date">${d.date.slice(5)} (${d.weekday}) · ${d.phase}</div>
+            <div class="sv-day-count ${allDone?'sv-day-done':''}">${allDone?'✅ 완료':`스토리 ${slots.length}개 · 올림 ${done}`}</div>
+          </div>
+          <div style="color:#ccc;font-size:20px">›</div>
+        </div>`;
+      }).join("");
+      renderProgress();
+    }
+
+    function openViewer(di) { curDay = di; curSlot = 0; document.getElementById("svViewer").classList.add("open"); renderViewer(); }
+    function closeViewer() { document.getElementById("svViewer").classList.remove("open"); renderDays(); }
+
+    function renderViewer() {
+      const d = DAYS[curDay];
+      const slots = d.slots || [];
+      document.getElementById("svViewerDate").textContent = `${d.date.slice(5)} (${d.weekday}) ${d.d_label}`;
+      document.getElementById("svBars").innerHTML = slots.map((s, i) =>
+        `<div class="sv-bar ${i===curSlot?'active':(i<curSlot?'done':'')}"></div>`).join("");
+      document.getElementById("svSlides").innerHTML = slots.map((s, i) => `
+        <div class="sv-slide ${i===curSlot?'active':''}" data-si="${i}">
+          <div class="sv-slide-title">${s.title}</div>
+          ${s.image_url
+            ? `<div class="sv-img"><img src="${s.image_url}" alt="" loading="lazy" /></div>`
+            : `<div class="sv-img-empty">📷 레퍼런스 이미지 없음</div>`}
+          <div class="sv-content">
+            ${s.concept ? `<div class="sv-concept">💡 ${escapeHtml(s.concept)}</div>` : ""}
+            <div class="sv-caption">${escapeHtml(s.caption || "(내용 준비 중)")}</div>
+            <div class="sv-actions">
+              <button class="sv-btn sv-btn-copy" onclick="copySlot(${i}, this)">📋 복사하기</button>
+            </div>
+            <div class="sv-check-row">
+              <div class="sv-check-box ${s.posted?'on':''}" onclick="togglePosted(${i}, this)">${s.posted?'✓':''}</div>
+              <div class="sv-check-label">${s.posted ? '올렸어요!' : '올리면 체크해주세요'}</div>
+            </div>
+            <input class="sv-link-input" placeholder="(선택) 올린 스토리 링크 붙여넣기" value="${(s.live_url||'').replace(/"/g,'&quot;')}" onchange="saveLink(${i}, this.value)" />
+          </div>
+          <div class="sv-nav sv-nav-left" onclick="prevSlot()"></div>
+          <div class="sv-nav sv-nav-right" onclick="nextSlot()"></div>
+        </div>`).join("");
+    }
+
+    function prevSlot() { if (curSlot > 0) { curSlot--; renderViewer(); } else if (curDay > 0) { curDay--; curSlot=(DAYS[curDay].slots||[]).length-1; renderViewer(); } }
+    function nextSlot() {
+      const slots = DAYS[curDay].slots || [];
+      if (curSlot < slots.length-1) { curSlot++; renderViewer(); }
+      else if (curDay < DAYS.length-1) { curDay++; curSlot=0; renderViewer(); }
+      else closeViewer();
+    }
+
+    function copySlot(si, btn) {
+      const cap = DAYS[curDay].slots[si].caption || "";
+      navigator.clipboard.writeText(cap).then(() => {
+        btn.textContent = "✅ 복사됨!"; btn.classList.add("copied");
+        setTimeout(() => { btn.textContent = "📋 복사하기"; btn.classList.remove("copied"); }, 1500);
+      });
+    }
+    function togglePosted(si, el) {
+      const cur = DAYS[curDay].slots[si].posted;
+      const next = !cur;
+      DAYS[curDay].slots[si].posted = next;
+      el.classList.toggle("on", next); el.textContent = next ? "✓" : "";
+      el.nextElementSibling.textContent = next ? "올렸어요!" : "올리면 체크해주세요";
+      patchSlot(si, "posted", next);
+    }
+    function saveLink(si, val) { DAYS[curDay].slots[si].live_url = val; patchSlot(si, "live_url", val); }
+    function patchSlot(si, field, value) {
+      fetch(`/api/seller/${TOKEN}/slot`, {
+        method: "PATCH", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ day_index: curDay, slot_index: si, field, value }),
+      }).catch(()=>{});
+    }
+    function escapeHtml(s){return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+
+    // 스와이프 제스처
+    let tsx = 0;
+    document.getElementById("svSlides").addEventListener("touchstart", e => tsx = e.touches[0].clientX, {passive:true});
+    document.getElementById("svSlides").addEventListener("touchend", e => {
+      const dx = e.changedTouches[0].clientX - tsx;
+      if (dx < -50) nextSlot(); else if (dx > 50) prevSlot();
+    }, {passive:true});
+
+    renderDays();
+  </script>
+</body>
+</html>
