@@ -303,19 +303,11 @@
 
     $("#camAdStatusLabel").textContent = ad.status || "준비중";
     $("#camAdStatusSel").value = ad.status || "준비중";
-    $("#adSchedStart").value = ad.scheduling?.start_date || "";
-    $("#adSchedEnd").value = ad.scheduling?.end_date || "";
+
+    // 세트 features 토글에 따라 섹션 표시/숨김
+    applyFeatureToggles(set);
 
     renderContentGuide(ad);
-
-    const items = ad.scheduling?.items || [];
-    $("#adSchedItems").innerHTML = items.length
-      ? items.map((it, i) => `<div class="ad-list-row">
-          <span class="ad-list-tag">${esc(it.date || "")}</span>
-          <span class="ad-list-text">${esc(it.label || "")}</span>
-          <button class="btn-text" data-v2="ad-sched-del" data-idx="${i}">×</button>
-        </div>`).join("")
-      : `<div class="hint">세부 일정 없음</div>`;
 
     const events = ad.events || [];
     $("#adEventList").innerHTML = events.length
@@ -375,120 +367,102 @@
           </div>`).join("")
       : `<div class="hint">릴스 없음. [+ 릴스 추가] 클릭</div>`;
 
-    // 매출/비용 + 스케줄링 자동생성 + 셀러 미리보기
-    renderMarketRevenue(ad);
-    renderSchedulingTools(ad);
-    renderSellerPreview(set, ad);
+    // 날짜별 매출 + 셀러 미리보기(모바일) + 트래킹
+    renderSalesTable(ad);
+    renderSellerMobilePreview(set, ad);
+    loadTracking();
   }
 
-  // 매출/비용 입력
-  function renderMarketRevenue(ad) {
-    const root = $("#adRevenueBody");
-    if (!root) return;
-    const rev = ad.revenue || 0;
-    const cost = ad.cost || 0;
-    const margin = marginPct(rev, cost);
-    root.innerHTML = `
-      <div class="ad-field"><span>매출</span><input type="number" id="adRevenueInput" value="${rev}" min="0" /></div>
-      <div class="ad-field"><span>비용</span><input type="number" id="adCostInput" value="${cost}" min="0" /></div>
-      <div class="ad-field"><span>마진율</span><span style="font-weight:700;color:${margin != null && margin > 0 ? 'var(--accent)' : '#888'}">${fmtPct(margin)}</span></div>
-      <button class="btn-secondary" data-v2="ad-save-revenue">저장</button>
-    `;
+  // 세트 features 토글 — 섹션 표시/숨김
+  function applyFeatureToggles(set) {
+    const feats = set.features || { schedule: true, events: true, drive: true, banners: true, reels: true };
+    document.querySelectorAll("#camAdDetailWrap [data-feat]").forEach(el => {
+      const f = el.dataset.feat;
+      // sales / preview 는 항상 표시
+      if (f === "sales" || f === "preview") { el.hidden = false; return; }
+      el.hidden = !feats[f];
+    });
   }
 
-  // 스케줄링 자동 생성 도구
-  function renderSchedulingTools(ad) {
-    const root = $("#adSchedAutoBody");
-    if (!root) return;
-    root.innerHTML = `
-      <div class="hint" style="margin-bottom:6px">라이브 시작일만 박으면 거꾸로 일정 전체 자동 생성</div>
-      <div class="ad-field"><span>라이브 시작</span><input type="date" id="adAutoLiveDate" value="${esc(ad.scheduling?.start_date || "")}" /></div>
-      <div class="ad-field"><span>라이브 길이</span>
-        <select id="adAutoLiveDays" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px">
-          <option value="3">3일</option>
-          <option value="5">5일</option>
-          <option value="7" selected>7일</option>
-          <option value="10">10일</option>
-        </select>
-      </div>
-      <button class="btn-primary" data-v2="ad-auto-schedule">⚡ 자동 스케줄링</button>
-      <div class="hint" style="margin-top:8px;font-size:11px">
-        자동 생성 항목: 제품 발송 (D-5) / 배너 마감 (D-3) / 릴스 마감 (D-2) / 리허설 (D-1) / 라이브 (D-day) / 마감 (D+N)
-      </div>
-    `;
+  // 날짜별 매출/비용 테이블
+  function renderSalesTable(ad) {
+    const body = $("#adSalesBody");
+    const foot = $("#adSalesFoot");
+    if (!body) return;
+    const sales = ad.sales || [];
+    body.innerHTML = sales.length
+      ? sales.map((r, i) => `
+        <tr data-idx="${i}">
+          <td>${esc(r.date || "")}</td>
+          <td>${esc(r.memo || "")}</td>
+          <td class="num">${r.qty || 0}</td>
+          <td class="num">${fmtKRW(r.revenue)}</td>
+          <td class="num" style="color:#888">${fmtKRW(r.cost)}</td>
+          <td><button class="btn-text" data-v2="ad-sales-del" data-idx="${i}">×</button></td>
+        </tr>`).join("")
+      : `<tr><td colspan="6" class="empty">매출 입력 없음 — 아래에서 날짜별로 박기</td></tr>`;
+    const tRev = sales.reduce((a, r) => a + (parseInt(r.revenue) || 0), 0);
+    const tCost = sales.reduce((a, r) => a + (parseInt(r.cost) || 0), 0);
+    const tQty = sales.reduce((a, r) => a + (parseInt(r.qty) || 0), 0);
+    const margin = marginPct(tRev, tCost);
+    if (foot) {
+      foot.innerHTML = sales.length ? `
+        <tr class="ad-sales-total">
+          <td colspan="2" style="text-align:right;font-weight:700">합계</td>
+          <td class="num"><b>${tQty}</b></td>
+          <td class="num"><b>${fmtKRW(tRev)}</b></td>
+          <td class="num"><b>${fmtKRW(tCost)}</b></td>
+          <td></td>
+        </tr>
+        <tr><td colspan="6" style="text-align:right;font-size:11.5px;color:var(--accent)">공헌이익 <b>${fmtKRW(tRev - tCost)}</b> · 마진율 <b>${fmtPct(margin)}</b></td></tr>
+      ` : "";
+    }
   }
 
-  // 셀러 노출 미리보기
-  function renderSellerPreview(set, ad) {
-    const root = $("#adSellerPreview");
+  // 셀러 노출 미리보기 — 모바일 프레임에 실제 셀러뷰 iframe
+  async function renderSellerMobilePreview(set, ad) {
+    const iframe = $("#adSellerIframe");
+    if (!iframe) return;
+    try {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}/share`);
+      const url = r.path + "?preview=1";
+      if (iframe.dataset.src !== url) {
+        iframe.dataset.src = url;
+        iframe.src = url;
+      }
+    } catch (e) { /* noop */ }
+  }
+
+  // 셀러 접속 트래킹
+  async function loadTracking() {
+    const root = $("#adSellerTrack");
     if (!root) return;
-    const sched = ad.scheduling || {};
-    const items = sched.items || [];
-    const drives = ad.drive_links || [];
-    const events = ad.events || [];
-    const bn = ad.banners || {};
-
-    const dateRange = sched.start_date && sched.end_date
-      ? `${sched.start_date} ~ ${sched.end_date}`
-      : "일정 미정";
-
-    root.innerHTML = `
-      <div class="seller-preview-card">
-        <div class="spc-head">
-          <h3>📋 셀러 전달용 스케줄 시트</h3>
-          <span class="hint">셀러가 보게 될 화면 미리보기</span>
+    try {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}/tracking`);
+      const fmtDur = sec => {
+        sec = sec || 0;
+        if (sec < 60) return `${sec}초`;
+        const m = Math.floor(sec / 60), s2 = sec % 60;
+        return m < 60 ? `${m}분 ${s2}초` : `${Math.floor(m/60)}시간 ${m%60}분`;
+      };
+      const sessions = r.sessions || [];
+      root.innerHTML = `
+        <div class="sp-track-stat">
+          <div><span class="t-num">${r.visit_count || 0}</span><span class="t-lbl">접속 횟수</span></div>
+          <div><span class="t-num">${fmtDur(r.total_seconds)}</span><span class="t-lbl">누적 체류</span></div>
         </div>
-
-        <div class="spc-section">
-          <div class="spc-label">공동구매 일정</div>
-          <div class="spc-value"><b>${esc(dateRange)}</b></div>
+        ${r.last_at ? `<div class="hint" style="margin:6px 0">마지막 접속: ${esc(r.last_at.replace("T"," "))}</div>` : ""}
+        <div class="sp-track-list">
+          ${sessions.length ? sessions.slice(0, 12).map(se => `
+            <div class="sp-track-row">
+              <span>${esc((se.started_at||"").replace("T"," ").slice(5,16))}</span>
+              <span class="t-dur">${fmtDur(se.seconds)}</span>
+            </div>`).join("") : '<div class="hint">아직 접속 기록 없음 — 셀러가 링크 열면 쌓임</div>'}
         </div>
-
-        <div class="spc-section">
-          <div class="spc-label">📅 진행 일정</div>
-          <div class="spc-timeline">
-            ${items.length ? items.map(it => `
-              <div class="spc-tl-row">
-                <span class="spc-tl-date">${esc(it.date || "")}</span>
-                <span class="spc-tl-text">${esc(it.label || "")}</span>
-              </div>
-            `).join("") : '<div class="hint">스케줄 미설정 — 위 [⚡ 자동 스케줄링]</div>'}
-          </div>
-        </div>
-
-        ${events.length ? `
-        <div class="spc-section">
-          <div class="spc-label">🎁 이벤트</div>
-          <ul class="spc-list">
-            ${events.map(e => `<li>${esc(typeof e === "string" ? e : e.text || "")}</li>`).join("")}
-          </ul>
-        </div>` : ""}
-
-        ${drives.length ? `
-        <div class="spc-section">
-          <div class="spc-label">🔗 전달 자료</div>
-          <ul class="spc-list">
-            ${drives.map(d => `<li><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label || "자료")}</a></li>`).join("")}
-          </ul>
-        </div>` : ""}
-
-        <div class="spc-section">
-          <div class="spc-label">🖼️ 배너 진행 현황</div>
-          <div class="spc-banner-grid">
-            ${["openfeed","price","event"].map(k => {
-              const v = bn[k] || {};
-              const lbl = { openfeed: "오픈피드", price: "가격", event: "이벤트" }[k];
-              return `<div class="spc-banner ${v.checked ? "spc-done" : ""}">${v.checked ? "✓" : "○"} ${lbl}</div>`;
-            }).join("")}
-          </div>
-        </div>
-
-        <div class="spc-actions">
-          <button class="btn-secondary" data-v2="ad-preview-export">📋 클립보드로 복사</button>
-          <button class="btn-secondary" data-v2="ad-preview-print">🖨 인쇄 / PDF</button>
-        </div>
-      </div>
-    `;
+      `;
+    } catch (e) {
+      root.innerHTML = `<div class="hint">트래킹 로드 실패</div>`;
+    }
   }
 
   // ─── 콘텐츠 가이드 (스토리 자동 스케줄) ───────────────
@@ -816,72 +790,39 @@
     } catch (err) { alert("실패: " + err.message); }
   }
 
-  async function addSet() {
+  // 차수(세트) 추가 — 기능 체크박스 다이얼로그
+  function openSetDialog() {
+    const dlg = $("#setAddDialog");
+    if (!dlg) return;
+    const form = $("#setAddForm");
+    if (form) {
+      form.reset();
+      form.querySelectorAll("input[name=feat]").forEach(cb => cb.checked = true);
+      const c = s.cachedCampaign;
+      const nextRound = ((c?.sets || []).length || 0) + 1;
+      $("#setAddLabel").value = `${nextRound}차`;
+    }
+    if (typeof dlg.showModal === "function") dlg.showModal();
+    else dlg.setAttribute("open", "");
+  }
+
+  async function submitSetForm(e) {
+    e.preventDefault();
+    const form = $("#setAddForm");
+    const fd = new FormData(form);
+    const feats = {};
+    ["schedule","events","drive","banners","reels"].forEach(f => feats[f] = false);
+    fd.getAll("feat").forEach(f => feats[f] = true);
     try {
-      await api(`/api/campaigns_v2/${s.activeCamId}/sets`, {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets`, {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({ label: (fd.get("set_label") || "").toString().trim(), features: feats }),
       });
+      $("#setAddDialog")?.close?.();
+      window.showToast?.({ icon: "🎬", title: "차수 추가됨", body: r.set?.label || "", accent: true });
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       renderCamDetail(c);
-    } catch (e) { alert("실패: " + e.message); }
-  }
-
-  // 자동 스케줄링 — 라이브 시작일 + 길이 → 거꾸로 일정 박기
-  async function autoSchedule() {
-    const date = $("#adAutoLiveDate").value;
-    const days = parseInt($("#adAutoLiveDays").value || "7");
-    if (!date) { alert("라이브 시작일 박아"); return; }
-    const start = new Date(date);
-    const end = new Date(start); end.setDate(end.getDate() + days - 1);
-    const off = d => { const x = new Date(start); x.setDate(x.getDate() + d); return x.toISOString().slice(0, 10); };
-
-    const items = [
-      { date: off(-5), label: "📦 제품 발송 마감" },
-      { date: off(-3), label: "🖼️ 배너 최종 마감" },
-      { date: off(-2), label: "🎬 릴스 최종 마감" },
-      { date: off(-1), label: "🎤 사전 리허설" },
-      { date: off(0), label: "🟢 공동구매 라이브 시작" },
-      { date: off(Math.floor(days / 2)), label: "📊 중간 점검" },
-      { date: off(days - 1), label: "🔴 공동구매 마감" },
-    ];
-    return patchAd({
-      scheduling: {
-        start_date: date,
-        end_date: end.toISOString().slice(0, 10),
-        items,
-      },
-    });
-  }
-
-  // 셀러 미리보기 → 클립보드 복사
-  function exportPreviewToClipboard() {
-    const root = $("#adSellerPreview");
-    if (!root) return;
-    const text = root.innerText.replace(/\n{3,}/g, "\n\n").trim();
-    navigator.clipboard.writeText(text).then(() => {
-      window.showToast?.({ icon: "📋", title: "클립보드 복사 완료", body: "셀러한테 그대로 붙여넣기" });
-    }).catch(e => alert("복사 실패: " + e.message));
-  }
-
-  function printPreview() {
-    const root = $("#adSellerPreview");
-    if (!root) return;
-    const w = window.open("", "_blank");
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>셀러 스케줄</title>
-      <style>body{font-family:Pretendard,sans-serif;padding:30px;max-width:700px;margin:auto}
-      h3{color:#FF6B35;border-bottom:2px solid #FF6B35;padding-bottom:6px}
-      .spc-section{margin:14px 0;padding:10px 12px;background:#fafaf6;border-radius:6px}
-      .spc-label{font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px}
-      .spc-tl-row{padding:4px 0;display:flex;gap:10px}
-      .spc-tl-date{font-weight:600;color:#FF6B35;min-width:90px}
-      .spc-banner-grid{display:flex;gap:8px}
-      .spc-banner{padding:4px 10px;background:#fff;border:1px solid #ccc;border-radius:4px;font-size:12px}
-      .spc-done{background:#e8f5e8;color:#2e7d32}
-      .spc-actions{display:none}
-      ul{padding-left:20px}</style></head><body>` + root.innerHTML + "</body></html>");
-    w.document.close();
-    setTimeout(() => w.print(), 300);
+    } catch (err) { alert("실패: " + err.message); }
   }
 
   // ─── EVENT HANDLERS ─────────────────────────────────────
@@ -973,44 +914,39 @@
       return;
     }
     if (what === "cam-back") return backToList();
-    if (what === "cam-add-set") return addSet();
-
-    // AD 내부 액션
-    if (what === "ad-save-product") return patchAd({ product_sent_date: $("#adProductSentDate").value || null });
-    if (what === "ad-save-sched") {
-      return patchAd({ scheduling: {
-        start_date: $("#adSchedStart").value || null,
-        end_date: $("#adSchedEnd").value || null,
-      }});
+    if (what === "cam-add-set") return openSetDialog();
+    if (what === "setadd-close") { $("#setAddDialog")?.close?.(); return; }
+    if (what === "sp-reload") {
+      const iframe = $("#adSellerIframe");
+      if (iframe && iframe.dataset.src) iframe.src = iframe.dataset.src;
+      loadTracking();
+      return;
     }
-    if (what === "ad-save-revenue") {
-      return patchAd({
-        revenue: parseInt($("#adRevenueInput").value) || 0,
-        cost: parseInt($("#adCostInput").value) || 0,
-      });
-    }
-    if (what === "ad-auto-schedule") return autoSchedule();
-    if (what === "ad-preview-export") return exportPreviewToClipboard();
-    if (what === "ad-preview-print") return printPreview();
 
-    if (what === "ad-sched-add") {
-      const date = $("#adSchedNewDate").value;
-      const label = $("#adSchedNewLabel").value.trim();
-      if (!date || !label) { alert("날짜 + 라벨 박아"); return; }
+    // 날짜별 매출 추가/삭제
+    if (what === "ad-sales-add") {
+      const date = $("#adSalesNewDate").value;
+      if (!date) { alert("날짜 박아"); return; }
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-      const items = ad.scheduling?.items || [];
-      items.push({ date, label });
-      $("#adSchedNewDate").value = "";
-      $("#adSchedNewLabel").value = "";
-      return patchAd({ scheduling: { ...(ad.scheduling || {}), items } });
+      const sales = [...(ad.sales || []), {
+        date,
+        memo: $("#adSalesNewMemo").value.trim(),
+        qty: parseInt($("#adSalesNewQty").value) || 0,
+        revenue: parseInt($("#adSalesNewRev").value) || 0,
+        cost: parseInt($("#adSalesNewCost").value) || 0,
+      }];
+      sales.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+      ["adSalesNewDate","adSalesNewMemo","adSalesNewQty","adSalesNewRev","adSalesNewCost"].forEach(id => { const e = $("#"+id); if (e) e.value = ""; });
+      return patchAd({ sales });
     }
-    if (what === "ad-sched-del") {
+    if (what === "ad-sales-del") {
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-      const items = (ad.scheduling?.items || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
-      return patchAd({ scheduling: { ...(ad.scheduling || {}), items } });
+      const sales = (ad.sales || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
+      return patchAd({ sales });
     }
+
     if (what === "ad-event-add") {
       const text = $("#adEventNew").value.trim();
       if (!text) return;
@@ -1148,6 +1084,8 @@
     if (form) form.addEventListener("submit", submitCampaignForm);
     const genForm = document.getElementById("contentGenForm");
     if (genForm) genForm.addEventListener("submit", submitGen);
+    const setForm = document.getElementById("setAddForm");
+    if (setForm) setForm.addEventListener("submit", submitSetForm);
   }, 200);
 
   setTimeout(loadList, 800);

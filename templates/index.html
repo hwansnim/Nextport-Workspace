@@ -338,8 +338,8 @@
                 </div>
               </div>
 
-              <!-- 콘텐츠 가이드 (셀러 톤 매칭 생성) -->
-              <section class="panel content-guide-panel">
+              <!-- 콘텐츠 가이드 (셀러 톤 매칭 생성) = 스케줄링 -->
+              <section class="panel content-guide-panel" data-feat="schedule">
                 <div class="panel-head">
                   <h2>📅 콘텐츠 가이드 (셀러한테 보낼 일자별 스토리)</h2>
                   <div class="head-actions">
@@ -357,34 +357,11 @@
                 </div>
               </section>
 
-              <!-- 6 섹션 그리드 -->
+              <!-- 기능 섹션 그리드 (세트 features 토글로 표시) -->
               <div class="ad-section-grid">
 
-                <!-- 2. 스케줄링 -->
-                <div class="ad-section">
-                  <div class="ad-sec-head">📅 스케줄링</div>
-                  <div class="ad-sec-body">
-                    <label class="ad-field">
-                      <span>시작일</span>
-                      <input type="date" id="adSchedStart" />
-                    </label>
-                    <label class="ad-field">
-                      <span>종료일</span>
-                      <input type="date" id="adSchedEnd" />
-                    </label>
-                    <div class="ad-sub-head">세부 일정</div>
-                    <div id="adSchedItems" class="ad-list-mini"></div>
-                    <div class="ad-add-row">
-                      <input type="date" id="adSchedNewDate" />
-                      <input type="text" id="adSchedNewLabel" placeholder="라이브 / 공구 오픈 / 마감 등" />
-                      <button class="btn-text" data-v2="ad-sched-add">+ 추가</button>
-                    </div>
-                    <button class="btn-secondary" data-v2="ad-save-sched">전체 저장</button>
-                  </div>
-                </div>
-
-                <!-- 3. 이벤트 -->
-                <div class="ad-section">
+                <!-- 이벤트 -->
+                <div class="ad-section" data-feat="events">
                   <div class="ad-sec-head">🎁 이벤트 관리</div>
                   <div class="ad-sec-body">
                     <div id="adEventList" class="ad-list-mini"></div>
@@ -395,8 +372,8 @@
                   </div>
                 </div>
 
-                <!-- 4. 구글 드라이브 -->
-                <div class="ad-section">
+                <!-- 구글 드라이브 -->
+                <div class="ad-section" data-feat="drive">
                   <div class="ad-sec-head">🔗 셀러 전달용 자료 (Drive)</div>
                   <div class="ad-sec-body">
                     <div id="adDriveList" class="ad-list-mini"></div>
@@ -408,16 +385,16 @@
                   </div>
                 </div>
 
-                <!-- 5. 배너 -->
-                <div class="ad-section ad-section-wide">
+                <!-- 배너 -->
+                <div class="ad-section ad-section-wide" data-feat="banners">
                   <div class="ad-sec-head">🖼️ 배너 (오픈피드 / 가격 / 이벤트)</div>
                   <div class="ad-sec-body">
                     <div class="ad-banner-grid" id="adBannerGrid"></div>
                   </div>
                 </div>
 
-                <!-- 6. 릴스 -->
-                <div class="ad-section ad-section-wide">
+                <!-- 릴스 -->
+                <div class="ad-section ad-section-wide" data-feat="reels">
                   <div class="ad-sec-head">🎬 릴스 기획안 + 영상</div>
                   <div class="ad-sec-body">
                     <div id="adReelsList" class="ad-list-cards"></div>
@@ -425,22 +402,49 @@
                   </div>
                 </div>
 
-                <!-- 7. 매출 / 비용 -->
-                <div class="ad-section">
-                  <div class="ad-sec-head">💰 매출 / 비용</div>
-                  <div class="ad-sec-body" id="adRevenueBody"></div>
+                <!-- 💰 매출/비용 — 날짜별 -->
+                <div class="ad-section ad-section-wide" data-feat="sales">
+                  <div class="ad-sec-head">💰 날짜별 매출 / 비용</div>
+                  <div class="ad-sec-body">
+                    <div class="ad-sales-wrap">
+                      <table class="ad-sales-table" id="adSalesTable">
+                        <thead><tr><th>날짜</th><th>제품/메모</th><th class="num">건수</th><th class="num">매출</th><th class="num">비용</th><th></th></tr></thead>
+                        <tbody id="adSalesBody"></tbody>
+                        <tfoot id="adSalesFoot"></tfoot>
+                      </table>
+                    </div>
+                    <div class="ad-add-row" style="margin-top:8px">
+                      <input type="date" id="adSalesNewDate" style="flex:0 0 130px" />
+                      <input type="text" id="adSalesNewMemo" placeholder="제품/메모 (예: 오메가 3개월)" />
+                      <input type="number" id="adSalesNewQty" placeholder="건수" style="flex:0 0 70px" min="0" />
+                      <input type="number" id="adSalesNewRev" placeholder="매출" style="flex:0 0 100px" min="0" />
+                      <input type="number" id="adSalesNewCost" placeholder="비용" style="flex:0 0 90px" min="0" />
+                      <button class="btn-text" data-v2="ad-sales-add">+ 행</button>
+                    </div>
+                  </div>
                 </div>
 
-                <!-- 8. 스케줄링 자동 생성 -->
-                <div class="ad-section">
-                  <div class="ad-sec-head">⚡ 스케줄링 자동 생성</div>
-                  <div class="ad-sec-body" id="adSchedAutoBody"></div>
-                </div>
-
-                <!-- 9. 셀러 노출 미리보기 -->
-                <div class="ad-section ad-section-wide">
-                  <div class="ad-sec-head">👁 셀러 노출 미리보기 (이대로 전달)</div>
-                  <div class="ad-sec-body" id="adSellerPreview"></div>
+                <!-- 👁 셀러 노출 미리보기 — 모바일 프레임 + 접속 트래킹 -->
+                <div class="ad-section ad-section-wide" data-feat="preview">
+                  <div class="ad-sec-head">👁 셀러 노출 미리보기 (실시간 더블체크)</div>
+                  <div class="ad-sec-body">
+                    <div class="seller-preview-split">
+                      <div class="sp-phone-col">
+                        <div class="sp-phone-frame">
+                          <div class="sp-phone-notch"></div>
+                          <iframe id="adSellerIframe" class="sp-phone-screen" title="셀러 화면"></iframe>
+                        </div>
+                        <div class="sp-phone-actions">
+                          <button class="btn-secondary" data-v2="cg-share">🔗 링크 복사</button>
+                          <button class="btn-text" data-v2="sp-reload">↻ 새로고침</button>
+                        </div>
+                      </div>
+                      <div class="sp-track-col">
+                        <h4>📡 셀러 접속 현황</h4>
+                        <div id="adSellerTrack" class="sp-track-body"><div class="hint">불러오는 중…</div></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
               </div>
@@ -1675,6 +1679,35 @@
       <footer class="cnf-foot">
         <button type="button" class="btn-text" data-v2="cg-gen-close">취소</button>
         <button type="submit" class="btn-primary" id="cgGenSubmit">✨ 생성 시작</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- 🎬 세트(차수) 추가 다이얼로그 — 기능 체크박스 -->
+  <dialog id="setAddDialog" class="cam-new-dialog" style="max-width:480px">
+    <form method="dialog" class="cam-new-form" id="setAddForm">
+      <header class="cnf-head">
+        <h2>🎬 새 차수(세트) 추가</h2>
+        <button type="button" class="btn-text" data-v2="setadd-close" style="font-size:24px">×</button>
+      </header>
+      <div class="cnf-body">
+        <label class="cnf-field cnf-wide">
+          <span>차수 라벨</span>
+          <input name="set_label" id="setAddLabel" placeholder="예: 2차" />
+        </label>
+        <div class="set-feat-title">이 차수에서 쓸 기능 선택</div>
+        <div class="set-feat-list">
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="schedule" checked /> <span>📅 콘텐츠 가이드 (스케줄링)</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="events" checked /> <span>🎁 이벤트 관리</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="drive" checked /> <span>🔗 셀러 전달용 자료</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="banners" checked /> <span>🖼️ 배너 (오픈피드/가격/이벤트)</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="reels" checked /> <span>🎬 릴스</span></label>
+        </div>
+        <p class="hint" style="margin-top:8px">💡 메가 셀러처럼 스케줄링 안 짜는 경우 체크 해제. 매출/비용 + 셀러 미리보기는 항상 표시.</p>
+      </div>
+      <footer class="cnf-foot">
+        <button type="button" class="btn-text" data-v2="setadd-close">취소</button>
+        <button type="submit" class="btn-primary">차수 추가</button>
       </footer>
     </form>
   </dialog>

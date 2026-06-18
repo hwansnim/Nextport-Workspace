@@ -199,6 +199,27 @@
     }, {passive:true});
 
     renderDays();
+
+    // ─── 접속 트래킹 (러닝타임 누적) — 내부 미리보기(?preview=1)는 제외 ───
+    const IS_PREVIEW = new URLSearchParams(location.search).get("preview") === "1";
+    const SID = (Date.now().toString(36) + Math.floor(performance.now()).toString(36));
+    function track(event, seconds) {
+      if (IS_PREVIEW) return;  // 내부 미리보기는 트래킹 X
+      try {
+        const body = JSON.stringify({ event, session_id: SID, seconds: seconds || 0 });
+        if (event === "close" && navigator.sendBeacon) {
+          navigator.sendBeacon(`/api/seller/${TOKEN}/track`, new Blob([body], {type:"application/json"}));
+        } else {
+          fetch(`/api/seller/${TOKEN}/track`, { method:"POST", headers:{"Content-Type":"application/json"}, body, keepalive:true }).catch(()=>{});
+        }
+      } catch(e){}
+    }
+    track("open");
+    let active = true, acc = 0;
+    document.addEventListener("visibilitychange", () => { active = !document.hidden; });
+    // 15초마다 heartbeat (보이는 동안만)
+    setInterval(() => { if (active) { acc += 15; track("ping", 15); } }, 15000);
+    window.addEventListener("beforeunload", () => track("close", active ? 5 : 0));
   </script>
 </body>
 </html>

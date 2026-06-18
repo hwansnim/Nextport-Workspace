@@ -3759,15 +3759,22 @@ def api_campaigns_v2_add_set(cam_id):
     payload = request.get_json(force=True) or {}
     sets = cam.setdefault("sets", [])
     round_num = payload.get("round") or len(sets) + 1
+    # 기능 토글 (기본 전부 ON)
+    feats = payload.get("features")
+    if not isinstance(feats, dict):
+        feats = {"schedule": True, "events": True, "drive": True, "banners": True, "reels": True}
     new_set = {
         "id": _next_id(sets, "set"),
         "round": round_num,
         "label": payload.get("label") or f"{round_num}차",
+        "memo": "",
+        "features": feats,
         "ads": [{
             "id": "ad_0001",
             "name": payload.get("ad_name") or f"공동구매 {round_num}차",
             "product_sent_date": None,
             "scheduling": {"start_date": None, "end_date": None, "items": []},
+            "content_days": [],
             "events": [],
             "drive_links": [],
             "banners": {
@@ -3776,6 +3783,9 @@ def api_campaigns_v2_add_set(cam_id):
                 "event": {"checked": False, "draft_url": "", "final_url": "", "note": ""},
             },
             "reels": [],
+            "sales": [],
+            "revenue": 0,
+            "cost": 0,
             "status": "준비중",
             "created_at": datetime.now().isoformat(timespec="seconds"),
         }],
@@ -3862,6 +3872,8 @@ def api_campaigns_v2_patch_set(cam_id, set_id):
     for k in ["label", "memo"]:
         if k in payload:
             st[k] = payload[k]
+    if "features" in payload and isinstance(payload["features"], dict):
+        st.setdefault("features", {}).update(payload["features"])
     _save_campaigns_v2(items)
     return jsonify({"ok": True, "set": st})
 
@@ -3888,9 +3900,13 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
     for k in ["scheduling", "banners"]:
         if k in payload and isinstance(payload[k], dict):
             ad.setdefault(k, {}).update(payload[k])
-    for k in ["events", "drive_links", "reels", "content_days"]:
+    for k in ["events", "drive_links", "reels", "content_days", "sales"]:
         if k in payload and isinstance(payload[k], list):
             ad[k] = payload[k]
+    # 날짜별 매출 입력 시 → revenue/cost 자동 합산
+    if "sales" in payload and isinstance(payload["sales"], list):
+        ad["revenue"] = sum(int(r.get("revenue") or 0) for r in payload["sales"])
+        ad["cost"] = sum(int(r.get("cost") or 0) for r in payload["sales"])
     # 스케줄링 시작일 바뀌면 콘텐츠 슬롯 자동 재생성 (옵션)
     if payload.get("regenerate_content_schedule"):
         sd = (ad.get("scheduling") or {}).get("start_date")
@@ -4066,6 +4082,60 @@ def seller_view(token):
         ad=ad,
         content_days=ad.get("content_days") or [],
     )
+
+
+SELLER_TRACK_FILE = DATA_DIR / "seller_tracking.json"
+
+
+def _load_seller_track() -> dict:
+    if not SELLER_TRACK_FILE.exists():
+        return {}
+    try:
+        return json.loads(SELLER_TRACK_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_seller_track(data: dict) -> None:
+    SELLER_TRACK_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/seller/<token>/track", methods=["POST"])
+def api_seller_track(token):
+    """셀러 접속 트래킹. event: open(세션 시작) | ping(heartbeat) | close.
+    body: {event, session_id, seconds?}"""
+    p = request.get_json(silent=True) or {}
+    event = p.get("event")
+    sid = p.get("session_id") or "anon"
+    now = datetime.now().isoformat(timespec="seconds")
+    data = _load_seller_track()
+    rec = data.setdefault(token, {"sessions": [], "total_seconds": 0, "visit_count": 0, "first_at": now, "last_at": now})
+    rec["last_at"] = now
+
+    if event == "open":
+        rec["visit_count"] = (rec.get("visit_count") or 0) + 1
+        rec["sessions"].insert(0, {"session_id": sid, "started_at": now, "seconds": 0, "last_ping": now})
+        rec["sessions"] = rec["sessions"][:100]  # 최근 100세션
+    elif event in ("ping", "close"):
+        sess = next((s for s in rec["sessions"] if s.get("session_id") == sid), None)
+        if sess:
+            add = int(p.get("seconds") or 0)
+            # 비정상 큰 값 방지 (heartbeat 간격 최대 60초로 클램프)
+            add = max(0, min(add, 90))
+            sess["seconds"] = (sess.get("seconds") or 0) + add
+            sess["last_ping"] = now
+            rec["total_seconds"] = (rec.get("total_seconds") or 0) + add
+    _save_seller_track(data)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/tracking", methods=["GET"])
+def api_seller_tracking_get(cam_id, set_id, ad_id):
+    """내부용 — 이 광고의 셀러 접속 현황."""
+    token = _seller_token(cam_id, set_id, ad_id)
+    data = _load_seller_track()
+    rec = data.get(token) or {"sessions": [], "total_seconds": 0, "visit_count": 0}
+    return jsonify(rec)
 
 
 @app.route("/api/seller/<token>/slot", methods=["PATCH"])

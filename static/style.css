@@ -706,6 +706,104 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ═══ Phase M: 세트 기능 체크박스 / 날짜별 매출 / 모바일 미리보기 / 트래킹 ═══ */
+.set-feat-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 12px 0 6px;
+}
+.set-feat-list { display: flex; flex-direction: column; gap: 6px; }
+.set-feat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.set-feat-item input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* 날짜별 매출 테이블 */
+.ad-sales-wrap { overflow-x: auto; }
+.ad-sales-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ad-sales-table th, .ad-sales-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f0ede5;
+  text-align: left;
+}
+.ad-sales-table th { background: #fafaf6; font-size: 11px; color: var(--muted); }
+.ad-sales-table .num { text-align: right; }
+.ad-sales-total td { background: #fff5e8; border-top: 2px solid var(--accent); }
+
+/* 셀러 모바일 미리보기 (실시간 더블체크) */
+.seller-preview-split {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.sp-phone-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.sp-phone-frame {
+  position: relative;
+  width: 300px;
+  height: 600px;
+  background: #1a1a1a;
+  border-radius: 36px;
+  padding: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+}
+.sp-phone-notch {
+  position: absolute;
+  top: 12px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 22px;
+  background: #1a1a1a;
+  border-radius: 0 0 14px 14px;
+  z-index: 2;
+}
+.sp-phone-screen {
+  width: 100%; height: 100%;
+  border: 0;
+  border-radius: 26px;
+  background: #fff;
+}
+.sp-phone-actions { display: flex; gap: 8px; }
+
+.sp-track-col h4 { margin: 0 0 10px; font-size: 14px; }
+.sp-track-body { font-size: 12.5px; }
+.sp-track-stat {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sp-track-stat > div {
+  flex: 1;
+  background: #fafaf6;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.sp-track-stat .t-num { display: block; font-size: 20px; font-weight: 800; color: var(--accent); }
+.sp-track-stat .t-lbl { font-size: 11px; color: var(--muted); }
+.sp-track-list { max-height: 360px; overflow-y: auto; }
+.sp-track-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-bottom: 1px solid #f0ede5;
+  font-size: 12px;
+}
+.sp-track-row .t-dur { color: var(--accent); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .seller-preview-split { grid-template-columns: 1fr; }
+  .sp-phone-col { order: 2; }
+}
+
 /* ═══ Phase K: 콘텐츠 가이드 (스토리 자동 스케줄) ═══ */
 .content-guide-panel { margin-bottom: 14px; }
 .content-guide-body { padding: 0 4px 8px; }
