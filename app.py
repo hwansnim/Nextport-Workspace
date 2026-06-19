@@ -3749,6 +3749,77 @@ def api_campaigns_v2_one(cam_id):
     return jsonify({"ok": True, "campaign": cam})
 
 
+@app.route("/api/campaigns_v2/<cam_id>/settlement", methods=["PATCH"])
+def api_campaigns_v2_settlement(cam_id):
+    """캠페인 정산 — settings(사업자/오픈타입/RS/수수료율/PG반반/보이는열) + rows(일자별).
+    body: {settings:{...}, rows:[...]}"""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    payload = request.get_json(force=True) or {}
+    stl = cam.setdefault("settlement", {"settings": {}, "rows": []})
+    if "settings" in payload and isinstance(payload["settings"], dict):
+        stl.setdefault("settings", {}).update(payload["settings"])
+    if "rows" in payload and isinstance(payload["rows"], list):
+        stl["rows"] = payload["rows"]
+        # 캠페인 revenue/cost roll-up (정산 있으면 우선)
+        cam["settlement_revenue"] = sum(int(r.get("revenue") or 0) for r in payload["rows"])
+        cam["settlement_contribution"] = sum(_row_contribution(r) for r in payload["rows"])
+    _save_campaigns_v2(items)
+    return jsonify({"ok": True, "settlement": stl,
+                    "revenue": cam.get("settlement_revenue", 0),
+                    "contribution": cam.get("settlement_contribution", 0)})
+
+
+def _row_contribution(r: dict) -> int:
+    rev = int(r.get("revenue") or 0)
+    cost = sum(int(r.get(k) or 0) for k in ("cogs", "shipping", "event_cost", "seller_fee", "pg_fee"))
+    return rev - cost
+
+
+@app.route("/api/campaigns_v2/totals", methods=["GET"])
+def api_campaigns_v2_totals():
+    """전체 캠페인 매출/공헌 합."""
+    items = _load_campaigns_v2()
+    rows = []
+    total_rev = 0
+    total_contrib = 0
+    for cam in items:
+        stl = cam.get("settlement") or {}
+        srows = stl.get("rows") or []
+        if srows:
+            rev = sum(int(r.get("revenue") or 0) for r in srows)
+            contrib = sum(_row_contribution(r) for r in srows)
+        else:
+            # 정산 없으면 마켓 sales 합산
+            rev = 0
+            cost = 0
+            for st in cam.get("sets", []):
+                for ad in st.get("ads", []):
+                    rev += int(ad.get("revenue") or 0)
+                    cost += int(ad.get("cost") or 0)
+            contrib = rev - cost
+        total_rev += rev
+        total_contrib += contrib
+        rows.append({
+            "id": cam["id"], "seller_name": cam.get("seller_name"),
+            "brand": cam.get("brand"), "type": cam.get("type"),
+            "status": cam.get("status"),
+            "revenue": rev, "contribution": contrib,
+            "contribution_pct": round(contrib / rev * 100, 1) if rev else None,
+            "has_settlement": bool(srows),
+        })
+    rows.sort(key=lambda x: -(x["revenue"] or 0))
+    return jsonify({
+        "campaigns": rows,
+        "total_revenue": total_rev,
+        "total_contribution": total_contrib,
+        "total_contribution_pct": round(total_contrib / total_rev * 100, 1) if total_rev else None,
+        "count": len(rows),
+    })
+
+
 @app.route("/api/campaigns_v2/<cam_id>/sets", methods=["POST"])
 def api_campaigns_v2_add_set(cam_id):
     """세트 = 공구 차수. {round: 1} 박으면 자동 ad 1개 생성."""

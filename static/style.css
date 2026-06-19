@@ -706,6 +706,137 @@ dialog .dialog-actions .spacer { flex: 1; }
   color: #90caf9;
 }
 
+/* ═══ Phase N: 캠페인 정산 (가로스크롤 + 열토글) / 전체합계 / 세트 진척도 ═══ */
+.cam-grandtotal {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.cgt-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+.cgt-card.cgt-profit { background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-color: #4caf50; }
+.cgt-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.cgt-value { font-size: 22px; font-weight: 800; color: #222; margin-top: 4px; }
+.cgt-profit .cgt-value { color: #2e7d32; }
+
+/* 정산 패널 */
+#camSettlePanel { position: relative; }
+.stl-defaults {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: #fafaf6;
+}
+.stl-def-item select, .stl-def-item input {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  margin: 0 4px;
+}
+.stl-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.stl-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.stl-table th {
+  background: #ecebe5;
+  border: 1px solid #d9d6cc;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #555;
+  position: sticky;
+  top: 0;
+  text-align: left;
+}
+.stl-table th.num { text-align: right; }
+.stl-table td {
+  border: 1px solid #efece4;
+  padding: 3px 4px;
+}
+.stl-table td.num { text-align: right; }
+.stl-cell-inp, .stl-cell-sel {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 6px;
+  font-size: 12px;
+  width: 100%;
+  min-width: 56px;
+  border-radius: 3px;
+  font-family: inherit;
+}
+.stl-cell-inp[type="number"] { text-align: right; }
+.stl-cell-inp:focus, .stl-cell-sel:focus {
+  border-color: var(--accent);
+  background: #fffbea;
+  outline: none;
+}
+.stl-table .stl-total td {
+  background: #fff5e8;
+  border-top: 2px solid var(--accent);
+  font-size: 12.5px;
+}
+/* 첫 컬럼(날짜) 고정 */
+.stl-table th:first-child, .stl-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: #fafaf6;
+  z-index: 1;
+}
+.stl-table th:first-child { z-index: 3; background: #ecebe5; }
+
+/* 열 토글 팝오버 */
+.stl-colpop {
+  position: absolute;
+  right: 16px;
+  top: 52px;
+  z-index: 20;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  padding: 14px;
+  width: 360px;
+}
+.stl-colpop-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+.stl-colpop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+.stl-colpop-grid label { font-size: 12.5px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.stl-colpop-grid input { accent-color: var(--accent); }
+
+/* 세트 진척도 */
+.cam-set-progress { margin: 6px 0 4px; }
+.csp-bar {
+  height: 6px;
+  background: #f0ede5;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.csp-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #FFA572, var(--accent)); transition: width 0.3s; }
+.csp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.csp-chip {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #f5f3ec;
+  color: #999;
+}
+.csp-chip.csp-done { background: #e8f5e8; color: #2e7d32; font-weight: 600; }
+
 /* ═══ Phase M: 세트 기능 체크박스 / 날짜별 매출 / 모바일 미리보기 / 트래킹 ═══ */
 .set-feat-title {
   font-size: 12px;
@@ -763,12 +894,14 @@ dialog .dialog-actions .spacer { flex: 1; }
   background: #1a1a1a;
   border-radius: 0 0 14px 14px;
   z-index: 2;
+  pointer-events: none; /* 클릭/스크롤 통과 — iframe 직접 조작 가능 */
 }
 .sp-phone-screen {
   width: 100%; height: 100%;
   border: 0;
   border-radius: 26px;
   background: #fff;
+  pointer-events: auto; /* 스크롤/클릭 가능 */
 }
 .sp-phone-actions { display: flex; gap: 8px; }
 

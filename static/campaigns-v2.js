@@ -25,6 +25,7 @@
       const r = await api("/api/campaigns_v2");
       s.campaigns = r.campaigns || [];
       renderAll();
+      loadGrandTotal();
     } catch (e) { console.error(e); }
   }
 
@@ -52,6 +53,31 @@
       const t = marketTotals(m);
       return { revenue: a.revenue + t.revenue, cost: a.cost + t.cost };
     }, { revenue: 0, cost: 0 });
+  }
+
+  // 세트 진척도 — features 기준 체크리스트
+  function setProgress(set) {
+    const feats = set.features || { schedule: true, events: true, drive: true, banners: true, reels: true };
+    const ad = (set.ads || [])[0] || {};
+    const chips = [];
+    if (feats.schedule) {
+      const days = ad.content_days || [];
+      const hasContent = days.length > 0 && days.some(d => (d.slots || []).some(s2 => s2.caption));
+      chips.push({ label: "콘텐츠 생성", done: hasContent });
+      // 공유 = 셀러가 한 번이라도 접속했거나 게시 시작
+      const posted = days.some(d => (d.slots || []).some(s2 => s2.posted));
+      chips.push({ label: "게시 시작", done: posted });
+    }
+    if (feats.events) chips.push({ label: "이벤트", done: (ad.events || []).length > 0 });
+    if (feats.drive) chips.push({ label: "자료 전달", done: (ad.drive_links || []).length > 0 });
+    if (feats.banners) {
+      const bn = ad.banners || {};
+      const allBanner = ["openfeed", "price", "event"].every(k => bn[k]?.checked);
+      chips.push({ label: "배너", done: allBanner });
+    }
+    if (feats.reels) chips.push({ label: "릴스", done: (ad.reels || []).some(r => r.status === "완료") });
+    const done = chips.filter(c => c.done).length;
+    return { chips, pct: chips.length ? Math.round(done / chips.length * 100) : 0 };
   }
   function campaignTotals(cam) {
     return (cam.sets || []).reduce((a, st) => {
@@ -189,6 +215,148 @@
     return m[s] || "⚪";
   }
 
+  // ─── 정산 (일자별 가로 스크롤 + 열 토글) ───────────────
+  // 컬럼 정의: computed는 자동계산
+  const STL_COLS = [
+    { key: "date", label: "날짜", type: "date", w: 110, fixed: true },
+    { key: "product", label: "제품", type: "text", w: 120 },
+    { key: "open_type", label: "오픈", type: "select", opts: ["본사", "셀러"], w: 70 },
+    { key: "is_business", label: "사업자", type: "select", opts: ["Y", "N"], w: 64 },
+    { key: "qty", label: "건수", type: "num", w: 64 },
+    { key: "revenue", label: "매출", type: "won", w: 110 },
+    { key: "rs_pct", label: "RS%", type: "pct", w: 64 },
+    { key: "cogs", label: "원가", type: "won", w: 100 },
+    { key: "shipping", label: "배송비", type: "won", w: 90 },
+    { key: "event_cost", label: "이벤트비", type: "won", w: 95 },
+    { key: "seller_fee", label: "셀러수수료", type: "won", w: 100 },
+    { key: "pg_fee", label: "PG수수료", type: "won", w: 95 },
+    { key: "pg_split", label: "PG반반", type: "select", opts: ["Y", "N"], w: 64 },
+    { key: "contribution", label: "공헌", type: "won", w: 110, computed: true },
+    { key: "contribution_pct", label: "매출대비%", type: "pct", w: 80, computed: true },
+    { key: "memo", label: "메모", type: "text", w: 140 },
+  ];
+  const STL_DEFAULT_VISIBLE = STL_COLS.map(c => c.key); // 기본 전부
+
+  function rowContribution(r) {
+    const rev = parseInt(r.revenue) || 0;
+    const cost = ["cogs", "shipping", "event_cost", "seller_fee", "pg_fee"]
+      .reduce((a, k) => a + (parseInt(r[k]) || 0), 0);
+    return rev - cost;
+  }
+
+  function renderSettlement(c) {
+    const stl = c.settlement || { settings: {}, rows: [] };
+    const visible = stl.settings?.visible_columns || STL_DEFAULT_VISIBLE;
+    const rows = stl.rows || [];
+    s.settleVisible = visible;
+
+    const cols = STL_COLS.filter(col => visible.includes(col.key) || col.fixed);
+
+    // 헤더
+    const head = $("#stlHead");
+    if (head) {
+      head.innerHTML = `<tr>${cols.map(col =>
+        `<th style="min-width:${col.w}px" class="${["won","num","pct"].includes(col.type)?'num':''}">${esc(col.label)}</th>`
+      ).join("")}<th style="min-width:40px"></th></tr>`;
+    }
+    // 바디
+    const body = $("#stlBody");
+    if (body) {
+      if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="${cols.length+1}" class="empty">정산 행 없음 — [+ 일자 추가]</td></tr>`;
+      } else {
+        body.innerHTML = rows.map((r, ri) => {
+          const contrib = rowContribution(r);
+          const rev = parseInt(r.revenue) || 0;
+          const cPct = rev ? Math.round(contrib / rev * 1000) / 10 : null;
+          return `<tr data-ri="${ri}">${cols.map(col => {
+            if (col.key === "contribution") return `<td class="num"><b style="color:${contrib>=0?'var(--accent)':'#c62828'}">${fmtKRW(contrib)}</b></td>`;
+            if (col.key === "contribution_pct") return `<td class="num">${cPct!=null?cPct+'%':'—'}</td>`;
+            const val = r[col.key] ?? "";
+            if (col.type === "select") {
+              return `<td><select class="stl-cell-sel" data-v2="stl-edit" data-ri="${ri}" data-k="${col.key}">
+                <option value=""></option>
+                ${col.opts.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join("")}
+              </select></td>`;
+            }
+            const align = ["won","num","pct"].includes(col.type) ? 'num' : '';
+            const inputType = (col.type==="date") ? "date" : (["won","num","pct"].includes(col.type) ? "number" : "text");
+            const disp = col.type === "won" && val !== "" ? val : val;
+            return `<td class="${align}"><input class="stl-cell-inp" type="${inputType}" data-v2="stl-edit" data-ri="${ri}" data-k="${col.key}" value="${esc(disp)}" /></td>`;
+          }).join("")}<td><button class="btn-text" data-v2="stl-del-row" data-ri="${ri}">×</button></td></tr>`;
+        }).join("");
+      }
+    }
+    // 합계
+    const foot = $("#stlFoot");
+    if (foot && rows.length) {
+      const sum = (k) => rows.reduce((a, r) => a + (parseInt(r[k]) || 0), 0);
+      const tRev = sum("revenue"), tContrib = rows.reduce((a, r) => a + rowContribution(r), 0);
+      const tPct = tRev ? Math.round(tContrib / tRev * 1000) / 10 : null;
+      foot.innerHTML = `<tr class="stl-total">${cols.map(col => {
+        if (col.fixed) return `<td><b>합계</b></td>`;
+        if (col.key === "revenue") return `<td class="num"><b>${fmtKRW(tRev)}</b></td>`;
+        if (col.key === "contribution") return `<td class="num"><b style="color:var(--accent)">${fmtKRW(tContrib)}</b></td>`;
+        if (col.key === "contribution_pct") return `<td class="num"><b>${tPct!=null?tPct+'%':'—'}</b></td>`;
+        if (["cogs","shipping","event_cost","seller_fee","pg_fee","qty"].includes(col.key)) return `<td class="num">${col.type==='won'?fmtKRW(sum(col.key)):sum(col.key)}</td>`;
+        return `<td></td>`;
+      }).join("")}<td></td></tr>`;
+    } else if (foot) foot.innerHTML = "";
+
+    // 요약 + 기본값
+    const summ = $("#camSettleSummary");
+    if (summ) {
+      const tRev = rows.reduce((a, r) => a + (parseInt(r.revenue)||0), 0);
+      const tContrib = rows.reduce((a, r) => a + rowContribution(r), 0);
+      summ.innerHTML = `매출 <b>${fmtKRW(tRev)}</b> · 공헌 <b style="color:var(--accent)">${fmtKRW(tContrib)}</b> · ${tRev?Math.round(tContrib/tRev*100):0}%`;
+    }
+    // 기본값 패널
+    const defRoot = $("#stlDefaults");
+    if (defRoot) {
+      const st = stl.settings || {};
+      defRoot.innerHTML = `
+        <span class="stl-def-item">신규행 기본:
+          오픈 <select data-v2="stl-default" data-k="open_type"><option value="">-</option>${["본사","셀러"].map(o=>`<option ${o===st.open_type?'selected':''}>${o}</option>`).join("")}</select>
+          사업자 <select data-v2="stl-default" data-k="is_business"><option value="">-</option>${["Y","N"].map(o=>`<option ${o===st.is_business?'selected':''}>${o}</option>`).join("")}</select>
+          RS% <input type="number" data-v2="stl-default" data-k="rs_pct" value="${esc(st.rs_pct??'')}" style="width:54px" />
+          PG반반 <select data-v2="stl-default" data-k="pg_split"><option value="">-</option>${["Y","N"].map(o=>`<option ${o===st.pg_split?'selected':''}>${o}</option>`).join("")}</select>
+        </span>`;
+    }
+  }
+
+  function toggleColPop() {
+    const pop = $("#stlColPop");
+    if (!pop) return;
+    if (!pop.hidden) { pop.hidden = true; return; }
+    const visible = s.settleVisible || STL_DEFAULT_VISIBLE;
+    pop.innerHTML = `<div class="stl-colpop-title">표시할 열 선택</div><div class="stl-colpop-grid">${
+      STL_COLS.filter(c => !c.fixed).map(c =>
+        `<label><input type="checkbox" data-v2="stl-col-toggle" data-k="${c.key}" ${visible.includes(c.key)?'checked':''} /> ${esc(c.label)}</label>`
+      ).join("")
+    }</div>`;
+    pop.hidden = false;
+  }
+
+  async function patchSettlement(patch) {
+    try {
+      await api(`/api/campaigns_v2/${s.activeCamId}/settlement`, { method: "PATCH", body: JSON.stringify(patch) });
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      s.cachedCampaign = c;
+      renderSettlement(c);
+      loadGrandTotal();
+    } catch (e) { alert("실패: " + e.message); }
+  }
+
+  async function loadGrandTotal() {
+    try {
+      const r = await api("/api/campaigns_v2/totals");
+      $("#cgtRevenue") && ($("#cgtRevenue").textContent = fmtKRW(r.total_revenue));
+      $("#cgtContrib") && ($("#cgtContrib").textContent = fmtKRW(r.total_contribution));
+      $("#cgtPct") && ($("#cgtPct").textContent = r.total_contribution_pct != null ? r.total_contribution_pct + "%" : "—");
+      $("#cgtCount") && ($("#cgtCount").textContent = (r.count || 0) + "개");
+    } catch (e) { /* noop */ }
+  }
+
   // ─── DETAIL ────────────────────────────────────────────
   async function openCampaign(camId) {
     try {
@@ -243,6 +411,9 @@
       </div>
     `;
 
+    // 정산 (일자별)
+    renderSettlement(c);
+
     // 제품 발송 (캠페인 레벨)
     const ps = c.product_shipping || {};
     const shipRoot = $("#camShippingBody");
@@ -265,12 +436,19 @@
         const adCount = (st.ads || []).length;
         const sd = (st.ads || [])[0]?.scheduling?.start_date || "";
         const ed = (st.ads || [])[0]?.scheduling?.end_date || "";
+        const prog = setProgress(st);
         return `
           <div class="cam-set ${st.id === s.activeSetId ? "active" : ""}">
             <div class="cam-set-head" data-v2="set-open" data-id="${esc(st.id)}">
               <span class="cam-set-round">${esc(st.label || st.round + "차")}</span>
               <span class="cam-set-stat">${adCount}개 마켓 · ${sd || "—"} ~ ${ed || "—"}</span>
               <span class="cam-set-rev">매출 <b>${fmtKRW(tt.revenue)}</b> · 마진 <b>${margin ?? "—"}%</b></span>
+            </div>
+            <div class="cam-set-progress">
+              <div class="csp-bar"><span style="width:${prog.pct}%"></span></div>
+              <div class="csp-chips">
+                ${prog.chips.map(ch => `<span class="csp-chip ${ch.done?'csp-done':''}">${ch.done?'✓':'○'} ${esc(ch.label)}</span>`).join("")}
+              </div>
             </div>
             <input class="cam-set-memo" placeholder="세트 메모 (이번 차수 키 포인트)" data-v2="set-memo" data-id="${esc(st.id)}" value="${esc(st.memo || "")}" />
             <div class="cam-set-ads">
@@ -915,6 +1093,22 @@
     }
     if (what === "cam-back") return backToList();
     if (what === "cam-add-set") return openSetDialog();
+
+    // ─── 정산 ───
+    if (what === "stl-settings") return toggleColPop();
+    if (what === "stl-add-row") {
+      const c = s.cachedCampaign;
+      const st = c.settlement?.settings || {};
+      const rows = [...(c.settlement?.rows || [])];
+      const today = new Date().toISOString().slice(0, 10);
+      rows.push({ date: today, product: c.product || "", open_type: st.open_type || "", is_business: st.is_business || "", rs_pct: st.rs_pct || "", pg_split: st.pg_split || "", qty: "", revenue: "", cogs: "", shipping: "", event_cost: "", seller_fee: "", pg_fee: "", memo: "" });
+      return patchSettlement({ rows });
+    }
+    if (what === "stl-del-row") {
+      const ri = parseInt(trg.dataset.ri);
+      const rows = (s.cachedCampaign.settlement?.rows || []).filter((_, i) => i !== ri);
+      return patchSettlement({ rows });
+    }
     if (what === "setadd-close") { $("#setAddDialog")?.close?.(); return; }
     if (what === "sp-reload") {
       const iframe = $("#adSellerIframe");
@@ -1009,6 +1203,24 @@
         loadList();
       } catch (err) { alert("실패: " + err.message); }
     }
+    // 정산 select 셀 편집 (즉시 저장)
+    if (e.target.dataset.v2 === "stl-edit" && e.target.tagName === "SELECT") {
+      const ri = parseInt(e.target.dataset.ri), k = e.target.dataset.k;
+      const rows = JSON.parse(JSON.stringify(s.cachedCampaign.settlement?.rows || []));
+      if (rows[ri]) { rows[ri][k] = e.target.value; patchSettlement({ rows }); }
+    }
+    // 열 토글
+    if (e.target.dataset.v2 === "stl-col-toggle") {
+      let vis = [...(s.settleVisible || STL_DEFAULT_VISIBLE)];
+      const k = e.target.dataset.k;
+      if (e.target.checked) { if (!vis.includes(k)) vis.push(k); }
+      else vis = vis.filter(x => x !== k);
+      patchSettlement({ settings: { visible_columns: vis } });
+    }
+    // 신규행 기본값
+    if (e.target.dataset.v2 === "stl-default") {
+      patchSettlement({ settings: { [e.target.dataset.k]: e.target.value } });
+    }
   });
 
   // 캠페인 메타 인라인 편집
@@ -1029,6 +1241,16 @@
   });
 
   document.addEventListener("blur", async (e) => {
+    // 정산 input 셀 (text/num/date) blur 저장
+    if (e.target.dataset.v2 === "stl-edit" && e.target.tagName === "INPUT") {
+      const ri = parseInt(e.target.dataset.ri), k = e.target.dataset.k;
+      const rows = JSON.parse(JSON.stringify(s.cachedCampaign.settlement?.rows || []));
+      if (rows[ri] && String(rows[ri][k] ?? "") !== e.target.value) {
+        rows[ri][k] = e.target.value;
+        patchSettlement({ rows });
+      }
+      return;
+    }
     if (e.target.dataset.v2 === "cam-edit-traits") patchCampaign({ seller_traits: e.target.value });
     if (e.target.dataset.v2 === "cam-edit-notes") patchCampaign({ notes: e.target.value });
     if (e.target.dataset.v2 === "set-memo") {

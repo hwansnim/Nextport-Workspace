@@ -168,6 +168,14 @@
             </div>
           </div>
 
+          <!-- 전체 캠페인 매출/공헌 합계 -->
+          <div class="cam-grandtotal" id="camGrandTotal">
+            <div class="cgt-card"><div class="cgt-label">전체 캠페인 매출</div><div class="cgt-value" id="cgtRevenue">—</div></div>
+            <div class="cgt-card cgt-profit"><div class="cgt-label">전체 공헌 이익</div><div class="cgt-value" id="cgtContrib">—</div></div>
+            <div class="cgt-card"><div class="cgt-label">평균 공헌율</div><div class="cgt-value" id="cgtPct">—</div></div>
+            <div class="cgt-card"><div class="cgt-label">캠페인 수</div><div class="cgt-value" id="cgtCount">—</div></div>
+          </div>
+
           <div class="cam-toolbar">
             <input type="search" id="camV2Search" placeholder="🔍 셀러 / 브랜드 / 제품" />
             <select id="camV2TypeFilter" class="filter-sel">
@@ -309,6 +317,29 @@
               <span class="hint">차수마다 따로 보내는 게 아니라 셀러한테 1번만</span>
             </div>
             <div class="cam-ship-grid" id="camShippingBody"></div>
+          </section>
+
+          <!-- 💰 캠페인 정산 (일자별 가로 스크롤 + 열 토글) -->
+          <section class="panel" id="camSettlePanel">
+            <div class="panel-head">
+              <h2>💰 정산 (일자별)</h2>
+              <div class="head-actions">
+                <span class="hint" id="camSettleSummary">—</span>
+                <button class="btn-secondary" data-v2="stl-settings">⚙️ 열 설정</button>
+                <button class="btn-secondary" data-v2="stl-add-row">+ 일자 추가</button>
+              </div>
+            </div>
+            <!-- 열 토글 팝오버 -->
+            <div class="stl-colpop" id="stlColPop" hidden></div>
+            <!-- 캠페인 정산 기본값 -->
+            <div class="stl-defaults" id="stlDefaults"></div>
+            <div class="stl-table-wrap">
+              <table class="stl-table" id="stlTable">
+                <thead id="stlHead"></thead>
+                <tbody id="stlBody"></tbody>
+                <tfoot id="stlFoot"></tfoot>
+              </table>
+            </div>
           </section>
 
           <!-- 세트(차수) 리스트 -->
