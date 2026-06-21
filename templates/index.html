@@ -565,31 +565,31 @@
 
       <!-- 💬 TAB: DM (수신) — 통합 인박스 -->
       <section class="tab-pane" id="tab-dm-inbox">
-        <div class="page-head">
-          <h1>DM (수신)</h1>
-          <p class="page-sub">100+ 인스타 계정으로 들어온 모든 답장. 셀러별로 자동 묶임.</p>
-        </div>
-
-        <div class="inbox-toolbar">
-          <input type="search" id="inboxSearch" placeholder="🔍 셀러명 / 핸들 / 메시지" />
-          <select id="inboxAccountFilter" title="계정 필터">
-            <option value="">전체 계정</option>
-          </select>
-          <label class="dm-overwrite-toggle" style="margin-left:0">
-            <input type="checkbox" id="inboxOnlyUnread" />
-            <span>안 읽은 것만</span>
-          </label>
-          <span class="hint" id="inboxStat" style="margin-left:auto">로딩…</span>
-          <button class="btn-secondary" data-v2="inbox-sync">답장 동기화</button>
-        </div>
-
-        <div class="inbox-layout">
-          <aside class="inbox-list" id="inboxList">
-            <div class="empty" style="padding:20px;font-size:12px">불러오는 중…</div>
-          </aside>
-          <section class="inbox-thread" id="inboxThread">
-            <div class="empty" style="padding:40px;text-align:center;color:#888">← 좌측에서 대화 선택</div>
-          </section>
+        <div class="inbox-shell">
+          <header class="inbox-head">
+            <div>
+              <h1>DM 수신</h1>
+              <p class="page-sub">100+ 인스타 계정 통합 인박스 · 셀러별 자동 묶음</p>
+            </div>
+            <button class="btn-outline" data-v2="inbox-sync">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0 0 20.5 15"/></svg>
+              답장 동기화
+            </button>
+          </header>
+          <div class="inbox-body">
+            <aside class="inbox-side">
+              <div class="inbox-search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#86868b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+                <input type="search" id="inboxSearch" placeholder="대화 검색" />
+              </div>
+              <div class="inbox-list" id="inboxList">
+                <div class="inbox-empty-sm">불러오는 중…</div>
+              </div>
+            </aside>
+            <section class="inbox-thread" id="inboxThread">
+              <div class="inbox-empty">← 좌측에서 대화 선택</div>
+            </section>
+          </div>
         </div>
       </section>
 

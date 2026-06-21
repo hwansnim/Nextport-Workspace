@@ -234,33 +234,49 @@
     }
   }
 
+  // 아바타 색 (핸들 해시 → 팔레트)
+  const AV_COLORS = ["#0071e3", "#1d8a3f", "#e8830c", "#5e5ce6", "#d23b3b", "#0a7ea4", "#b8860b"];
+  function avatarColor(s) {
+    let h = 0; for (const ch of (s || "?")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return AV_COLORS[h % AV_COLORS.length];
+  }
+  function relTime(iso) {
+    if (!iso) return "";
+    const d = new Date(String(iso).replace(" ", "T"));
+    if (isNaN(d)) return "";
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return "방금";
+    if (diff < 3600) return Math.floor(diff / 60) + "분";
+    if (diff < 86400) return Math.floor(diff / 3600) + "시간";
+    const days = Math.floor(diff / 86400);
+    return days === 1 ? "어제" : days + "일";
+  }
+
   function renderInbox() {
-    const stat = $("#inboxStat");
-    if (stat) {
-      const s = state.inboxSummary;
-      stat.textContent = `총 ${s.total || 0} · 안 읽음 ${s.unread_total || 0}`;
-    }
     const root = $("#inboxList");
     if (!root) return;
     if (!state.inbox.length) {
-      root.innerHTML = `<div class="empty" style="padding:30px;text-align:center;font-size:12px">대화 없음. [🔄 답장 동기화] 클릭</div>`;
+      root.innerHTML = `<div class="inbox-empty-sm">대화 없음 · [답장 동기화] 클릭</div>`;
       return;
     }
     root.innerHTML = state.inbox.map(c => {
       const unread = (c.unread_count || 0) > 0;
       const active = c.id === state.activeConvId;
-      const ts = (c.last_message_at || "").replace("T", " ").slice(0, 16);
+      const handle = c.their_handle || "";
+      const initial = (handle[0] || "?").toUpperCase();
       return `
         <div class="inbox-conv ${active ? "active" : ""} ${unread ? "unread" : ""}" data-v2="open-conv" data-cid="${esc(c.id)}">
-          <div class="ic-head">
-            <span class="ic-them">@${esc(c.their_handle || "")}</span>
-            ${unread ? `<span class="ic-badge">${c.unread_count}</span>` : ""}
-          </div>
-          <div class="ic-seller">${esc(c.seller_name || "")}</div>
-          <div class="ic-preview">${esc((c.last_message_preview || "").slice(0, 60))}</div>
-          <div class="ic-meta">
-            <span>via @${esc(c.our_account_handle || "?")}</span>
-            <span class="ic-time">${esc(ts)}</span>
+          <div class="ic-avatar" style="background:${avatarColor(handle)}">${esc(initial)}</div>
+          <div class="ic-main">
+            <div class="ic-row">
+              <span class="ic-handle">${esc(handle)}</span>
+              <span class="ic-time">${esc(relTime(c.last_message_at))}</span>
+            </div>
+            <div class="ic-seller">${esc(c.seller_name || "")}</div>
+            <div class="ic-row">
+              <span class="ic-preview">${esc((c.last_message_preview || "").slice(0, 40))}</span>
+              ${unread ? `<span class="ic-badge">${c.unread_count}</span>` : ""}
+            </div>
           </div>
         </div>
       `;
@@ -289,28 +305,31 @@
     const root = $("#inboxThread");
     if (!root || !state.activeConv) return;
     const c = state.activeConv;
+    const handle = c.their_handle || "";
+    const initial = (handle[0] || "?").toUpperCase();
+    const acct = "@" + (c.our_account_handle || "?");
     const msgs = (c.messages || []).map(m => `
-      <div class="thread-msg ${m.from === "us" ? "us" : "them"}">
-        <div class="tm-bubble">${esc(m.text || "")}</div>
-        <div class="tm-time">${esc((m.ts || "").replace("T", " ").slice(0, 16))}</div>
-      </div>
+      <div class="tmsg ${m.from === "us" ? "us" : "them"}"><div class="tbub">${esc(m.text || "")}</div></div>
     `).join("");
     root.innerHTML = `
       <div class="thread-head">
-        <div>
-          <h3>@${esc(c.their_handle || "")}</h3>
-          <div class="hint">${esc(c.seller_name || "")} · 발송 계정 @${esc(c.our_account_handle || "?")}</div>
+        <div class="th-avatar" style="background:${avatarColor(handle)}">${esc(initial)}</div>
+        <div class="th-info">
+          <div class="th-name">${esc(handle)}</div>
+          <div class="th-sub">${esc(c.seller_name || "")} · 수신 계정 ${esc(acct)}</div>
         </div>
-        <div>
-          ${c.influencer_id ? `<span class="dm-chip s-active">${esc(c.influencer_id)}</span>` : ""}
-        </div>
+        <button class="btn-outline btn-outline-sm" data-v2="inbox-book-meeting" data-cid="${esc(c.id)}">미팅 잡기</button>
       </div>
       <div class="thread-body" id="threadBody">
-        ${msgs || '<div class="empty">메시지 없음</div>'}
+        ${msgs || '<div class="inbox-empty">메시지 없음</div>'}
       </div>
       <div class="thread-compose">
-        <textarea id="replyText" placeholder="답장을 박아…" rows="2"></textarea>
-        <button class="btn-primary" data-v2="reply-send" data-cid="${esc(c.id)}">📤 답장</button>
+        <div class="tc-pill">
+          <textarea id="replyText" rows="1" placeholder="메시지 입력 — 이 대화의 ${esc(acct)}로 발송"></textarea>
+          <button class="tc-send" data-v2="reply-send" data-cid="${esc(c.id)}" title="발송">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
       </div>
     `;
     // 가장 아래로 스크롤
@@ -322,7 +341,7 @@
     const ta = $("#replyText");
     const text = (ta?.value || "").trim();
     if (!text) { alert("내용 박아"); return; }
-    if (btn) { btn.disabled = true; btn.textContent = "발송중…"; }
+    if (btn) { btn.disabled = true; btn.style.opacity = ".5"; }
     try {
       const r = await api(`/api/dm/inbox/${cid}/reply`, {
         method: "POST",
@@ -337,13 +356,13 @@
     } catch (e) {
       alert("실패: " + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = "📤 답장"; }
+      if (btn) { btn.disabled = false; btn.style.opacity = ""; }
     }
   }
 
   async function syncInbox(btn) {
     if (!confirm("모든 활성 계정에서 받은 답장 동기화. 시간 좀 걸림 (계정당 ~10초). 진행할까?")) return;
-    if (btn) { btn.disabled = true; btn.textContent = "동기화 중…"; }
+    if (btn) { btn.disabled = true; btn.style.opacity = ".5"; }
     try {
       const r = await api("/api/dm/inbox/sync", { method: "POST", body: "{}" });
       if (r.error) {
@@ -355,7 +374,7 @@
     } catch (e) {
       alert("실패: " + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = "🔄 답장 동기화"; }
+      if (btn) { btn.disabled = false; btn.style.opacity = ""; }
     }
   }
 
@@ -378,6 +397,22 @@
     }
     if (what === "inbox-sync") {
       return syncInbox(trg);
+    }
+    if (what === "inbox-book-meeting") {
+      document.querySelector('.side-item[data-tab="meetings"]')?.click();
+      setTimeout(() => document.getElementById("btnAddMeeting")?.click(), 150);
+      return;
+    }
+  });
+
+  // Enter = 발송, Shift+Enter = 줄바꿈
+  document.addEventListener("keydown", (e) => {
+    if (e.target.id === "replyText" && e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      const cid = e.target.closest("[data-cid]")?.dataset.cid
+        || document.querySelector('[data-v2="reply-send"]')?.dataset.cid;
+      const btn = document.querySelector('[data-v2="reply-send"]');
+      if (cid) sendReply(cid, btn);
     }
   });
 
