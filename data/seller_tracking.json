@@ -1,0 +1,46 @@
+{
+  "Y2FtXzAwMDF8c2V0XzAwMDF8YWRfMDAwMQ": {
+    "sessions": [
+      {
+        "session_id": "mqob5awe3l",
+        "started_at": "2026-06-21T21:37:42",
+        "seconds": 15,
+        "last_ping": "2026-06-21T21:37:57"
+      },
+      {
+        "session_id": "mqob58kc38",
+        "started_at": "2026-06-21T21:37:39",
+        "seconds": 0,
+        "last_ping": "2026-06-21T21:37:39"
+      },
+      {
+        "session_id": "mqob574o4q",
+        "started_at": "2026-06-21T21:37:37",
+        "seconds": 0,
+        "last_ping": "2026-06-21T21:37:37"
+      },
+      {
+        "session_id": "mqo9z59q4d",
+        "started_at": "2026-06-21T21:04:55",
+        "seconds": 30,
+        "last_ping": "2026-06-21T21:05:40"
+      },
+      {
+        "session_id": "mqo9a2jx46",
+        "started_at": "2026-06-21T20:45:26",
+        "seconds": 5,
+        "last_ping": "2026-06-21T20:45:29"
+      },
+      {
+        "session_id": "mqo8rhaud8",
+        "started_at": "2026-06-21T20:30:58",
+        "seconds": 30,
+        "last_ping": "2026-06-21T20:31:28"
+      }
+    ],
+    "total_seconds": 80,
+    "visit_count": 6,
+    "first_at": "2026-06-21T20:30:58",
+    "last_at": "2026-06-21T21:37:57"
+  }
+}

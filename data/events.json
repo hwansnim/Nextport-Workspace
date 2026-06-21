@@ -13,15 +13,42 @@
       "created_at": "2026-05-20T11:48:56"
     },
     {
-      "id": "adcal_cDEV_sDEV_aDEV_live",
-      "title": "[개발테스트] 1차 라이브",
-      "date": "2026-06-22",
-      "end_date": "2026-06-24",
+      "id": "adcal_cam_0001_set_0001_ad_0001_live",
+      "title": "[지나] 1차 라이브",
+      "date": "2026-04-14",
+      "end_date": "2026-04-17",
       "type": "campaign_live",
-      "linked_campaign_id": "cDEV",
-      "linked_set_id": "sDEV",
-      "linked_ad_id": "aDEV",
-      "brand": "t"
+      "linked_campaign_id": "cam_0001",
+      "linked_set_id": "set_0001",
+      "linked_ad_id": "ad_0001",
+      "brand": "하루픽스"
+    },
+    {
+      "id": "camcal_cam_0001_market",
+      "title": "[지나] 마켓 시작",
+      "date": "2026-04-14",
+      "type": "campaign_market",
+      "linked_campaign_id": "cam_0001",
+      "note": "2026-04-14"
+    },
+    {
+      "id": "camcal_cam_0002_market",
+      "title": "[양미라] 마켓 시작",
+      "date": "2026-05-18",
+      "type": "campaign_market",
+      "linked_campaign_id": "cam_0002",
+      "note": "2026-05-18"
+    },
+    {
+      "id": "adcal_cam_0002_set_0001_ad_0001_live",
+      "title": "[양미라] 1차 라이브",
+      "date": "2026-05-18",
+      "end_date": "2026-05-25",
+      "type": "campaign_live",
+      "linked_campaign_id": "cam_0002",
+      "linked_set_id": "set_0001",
+      "linked_ad_id": "ad_0001",
+      "brand": "하루픽스"
     }
   ]
 }

@@ -895,17 +895,15 @@
               <th style="width:70px">날짜</th>
               <th style="width:56px">D-day</th>
               ${[1,2,3,4,5].map(i => `<th>STORY ${i}</th>`).join("")}
-              <th>📸 피드</th>
               <th style="width:40px"></th>
             </tr>
           </thead>
           <tbody>
             ${days.map((d, di) => `
               <tr class="cg-day cg-phase-${esc(d.phase)}">
-                <td class="cg-date-cell"><b>${esc(d.date.slice(5))}</b><br><span class="hint">${esc(d.weekday)}</span></td>
+                <td class="cg-date-cell"><b>${esc((d.date||"").slice(5))}</b><br><span class="hint">${esc(d.weekday || "")}</span></td>
                 <td class="cg-dday-cell"><span class="cg-dlabel">${esc(d.d_label)}</span><br><span class="cg-phase-tag">${esc(d.phase)}</span></td>
-                ${(d.slots || []).slice(0, 5).map((sl, si) => slotCell(sl, di, si, false)).join("")}
-                ${(d.slots || []).slice(5, 6).map((sl) => slotCell(sl, di, 5, true)).join("")}
+                ${(d.slots || []).filter(sl => sl.type !== "feed").slice(0, 5).map((sl, si) => slotCell(sl, di, si, false)).join("")}
                 <td class="cg-day-actions">
                   <button class="btn-text" data-v2="cg-clear-day" data-di="${di}" title="이 날 빈슬롯">🧹</button>
                 </td>
@@ -969,6 +967,9 @@
       selling_points: sp,
       length: fd.get("length") || "medium",
       attach_images: fd.get("attach_images") === "1",
+      prep_start: (fd.get("prep_start") || "").toString(),
+      start_date: (fd.get("gen_start") || "").toString(),
+      end_date: (fd.get("gen_end") || "").toString(),
     };
     const btn = $("#cgGenSubmit");
     if (btn) { btn.disabled = true; btn.textContent = "✨ 생성 중… (최대 30초)"; }

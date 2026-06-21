@@ -3641,76 +3641,74 @@ FEED_CONCEPTS = [
 ]
 
 
-def _generate_content_schedule(start_date: str, end_date: str = "") -> list[dict]:
-    """마켓 시작일 박으면 D-10부터 D+N까지 자동 콘텐츠 슬롯 생성.
-    각 날짜에 STORY 1~5 + 피드 1 슬롯 박힘. 컨셉 풀에서 자동 제안.
+def _generate_content_schedule(start_date: str, end_date: str = "", prep_start: str = "", per_day: int = 5) -> list[dict]:
+    """콘텐츠 가이드(스케줄링) 자동 생성 — 스토리만 (피드 없음).
+    - 사전 기간(prep_start ~ D-11): 주차별로 묶어 일주일에 per_day개 ("N월 M주차").
+    - 집중 기간(D-10 ~ 마켓 D-day ~ 마감 D+N): 하루 per_day개 무조건.
     """
     try:
         sd = datetime.strptime(start_date[:10], "%Y-%m-%d")
     except (ValueError, TypeError):
         return []
     try:
-        ed = datetime.strptime(end_date[:10], "%Y-%m-%d") if end_date else sd + timedelta(days=4)
+        ed = datetime.strptime(end_date[:10], "%Y-%m-%d") if end_date else sd
     except (ValueError, TypeError):
-        ed = sd + timedelta(days=4)
+        ed = sd
+    weekday_kr = ["월", "화", "수", "목", "금", "토", "일"]
+    intensive_start = sd - timedelta(days=10)  # D-10
+    try:
+        ps = datetime.strptime(prep_start[:10], "%Y-%m-%d") if prep_start else intensive_start
+    except (ValueError, TypeError):
+        ps = intensive_start
+
+    def story_slots(phase: str, seed: int) -> list[dict]:
+        pool = STORY_CONCEPTS_BY_PHASE.get(phase, [])
+        out = []
+        for i in range(max(1, per_day)):
+            cp = pool[(seed + i) % len(pool)] if pool else {"title": "", "caption": ""}
+            out.append({
+                "type": "story", "title": f"STORY {i + 1}",
+                "concept": cp["title"], "caption": cp["caption"],
+                "image_url": "", "posted": False, "posted_at": "",
+            })
+        return out
 
     days = []
-    weekday_kr = ["월", "화", "수", "목", "금", "토", "일"]
 
-    # D-10 ~ D-day ~ D+last
-    pre_days = 10
+    # 1) 사전 기간 — 주차별 (prep_start ~ D-11): 주당 per_day개
+    if ps < intensive_start:
+        cursor = ps
+        wk = 0
+        while cursor < intensive_start:
+            wom = ((cursor.day - 1) // 7) + 1
+            days.append({
+                "date": cursor.strftime("%Y-%m-%d"),
+                "weekday": "",
+                "d_label": f"{cursor.month}월 {wom}주차",
+                "phase": "사전",
+                "weekly": True,
+                "slots": story_slots("도입", wk),
+            })
+            cursor += timedelta(days=7)
+            wk += 1
+
+    # 2) 집중 기간 — 일별 (D-10 ~ D-day ~ 마감 D+N): 하루 per_day개
     post_days = (ed - sd).days
-
-    for offset in range(-pre_days, post_days + 2):
+    for offset in range(-10, max(post_days, 0) + 1):
         d = sd + timedelta(days=offset)
         if offset < 0:
             d_label = f"D-{-offset}"
-            if offset >= -3:
-                phase = "임박" if offset == 0 else "정보"
-            elif offset >= -6:
-                phase = "교감"
-            else:
-                phase = "도입"
+            phase = "정보" if offset >= -3 else ("교감" if offset >= -6 else "도입")
         elif offset == 0:
-            d_label = "D-day"
-            phase = "임박"
+            d_label = "D-day"; phase = "임박"
         else:
-            d_label = f"D+{offset}"
-            phase = "마감"
-
-        pool = STORY_CONCEPTS_BY_PHASE.get(phase, [])
-        # 5개 슬롯에 풀에서 ROUND-ROBIN 으로 박기 (풀 부족하면 반복)
-        story_slots = []
-        for i in range(5):
-            cp = pool[(offset + i) % len(pool)] if pool else {"title": "", "caption": ""}
-            story_slots.append({
-                "type": "story",
-                "title": f"STORY {i + 1}",
-                "concept": cp["title"],
-                "caption": cp["caption"],
-                "image_url": "",
-                "posted": False,
-                "posted_at": "",
-            })
-
-        # 피드 1슬롯 (저녁 게시물)
-        fc = FEED_CONCEPTS[offset % len(FEED_CONCEPTS)] if FEED_CONCEPTS else {}
-        feed_slot = {
-            "type": "feed",
-            "title": "게시물 (피드)",
-            "concept": fc.get("title", ""),
-            "caption": fc.get("caption", ""),
-            "image_url": "",
-            "posted": False,
-            "posted_at": "",
-        }
-
+            d_label = f"D+{offset}"; phase = "마감"
         days.append({
             "date": d.strftime("%Y-%m-%d"),
             "weekday": weekday_kr[d.weekday()],
             "d_label": d_label,
             "phase": phase,
-            "slots": story_slots + [feed_slot],
+            "slots": story_slots(phase, offset),
         })
 
     return days
@@ -4086,7 +4084,7 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
         sd = (ad.get("scheduling") or {}).get("start_date")
         ed = (ad.get("scheduling") or {}).get("end_date")
         if sd:
-            ad["content_days"] = _generate_content_schedule(sd, ed or "")
+            ad["content_days"] = _generate_content_schedule(sd, ed or "", payload.get("prep_start") or "", int(payload.get("per_day") or 5))
     _save_campaigns_v2(items)
 
     # 캘린더 자동 sync (스케줄링/제품발송 변경 시)
@@ -4145,7 +4143,23 @@ def api_campaigns_v2_generate_content(cam_id, set_id, ad_id):
         attach_images=payload.get("attach_images", True),
     )
 
-    ad["content_days"] = result["content_days"]
+    # 결정형 스케줄 뼈대(주차별 사전 + 일별 D-10~마감, 피드 없음)에 Gemini 캡션을 순서대로 채움
+    prep_start = payload.get("prep_start") or ""
+    skeleton = _generate_content_schedule(start_date, end_date, prep_start, 5)
+    gen_slots = [sl for d in result["content_days"] for sl in (d.get("slots") or []) if sl.get("type") != "feed"]
+    gi = 0
+    for d in skeleton:
+        for sl in d["slots"]:
+            if gi < len(gen_slots):
+                g = gen_slots[gi]
+                if g.get("concept"):
+                    sl["concept"] = g["concept"]
+                if g.get("caption"):
+                    sl["caption"] = g["caption"]
+                if g.get("image_url"):
+                    sl["image_url"] = g["image_url"]
+                gi += 1
+    ad["content_days"] = skeleton
     ad.setdefault("scheduling", {})["start_date"] = start_date
     if end_date:
         ad["scheduling"]["end_date"] = end_date
