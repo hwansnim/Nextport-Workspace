@@ -1417,6 +1417,29 @@ def api_upload():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/backup/status", methods=["GET"])
+def api_drive_backup_status():
+    """백업(드라이브 동기화) 상태 — 마지막 저장 시각 등."""
+    try:
+        from modules import drive_sync
+        return jsonify(drive_sync.status())
+    except Exception as e:
+        return jsonify({"enabled": False, "error": str(e)})
+
+
+@app.route("/api/backup/now", methods=["POST"])
+def api_drive_backup_now():
+    """지금 즉시 모든 데이터를 드라이브로 백업."""
+    try:
+        from modules import drive_sync
+        if not drive_sync.enabled():
+            return jsonify({"ok": False, "error": "드라이브 미연결 (token 없음)"}), 503
+        r = drive_sync.force_sync_all(DATA_DIR)
+        return jsonify({"ok": True, **r})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/file/<file_id>", methods=["GET"])
 def api_file(file_id):
     try:

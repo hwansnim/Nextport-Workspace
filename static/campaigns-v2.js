@@ -437,7 +437,7 @@
       <div class="cam-meta-row"><span class="lbl">인스타</span><span class="val">
         ${igHref ? `<a href="${esc(igHref)}" target="_blank" rel="noopener" style="color:var(--blue)">@${esc(c.linked_influencer_handle || igHref.split("/").filter(Boolean).pop() || "")}  ↗</a>` : "<span class='hint'>미연결</span>"}
       </span></div>
-      <div class="cam-meta-row"><span class="lbl">마켓 시작</span><span class="val">${esc(c.market_schedule || "-")}</span></div>
+      <div class="cam-meta-row"><span class="lbl">마켓 일정</span><span class="val">${esc(c.market_schedule || (c.sets?.[0]?.ads?.[0]?.scheduling?.start_date) || "-")} ~ ${esc((c.sets?.[0]?.ads?.[0]?.scheduling?.end_date) || c.market_end || "-")}</span></div>
       <div class="cam-meta-row cam-meta-wide"><span class="lbl">셀러 특징</span>
         <textarea class="cam-edit-textarea" data-v2="cam-edit-traits" rows="2" placeholder="톤·스타일·USP·주의사항">${esc(c.seller_traits || "")}</textarea>
       </div>

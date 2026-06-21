@@ -116,12 +116,18 @@ def download_all(data_dir: Path) -> int:
     return n
 
 
+last_sync_at: Optional[str] = None   # 마지막으로 드라이브에 올린 시각 (ISO)
+last_sync_file: Optional[str] = None  # 마지막으로 올린 파일명
+
+
 def upload(path: Path) -> bool:
     """파일 1개를 드라이브 폴더에 업서트(있으면 갱신, 없으면 생성)."""
+    global last_sync_at, last_sync_file
     svc = _get_service()
     if not svc:
         return False
     from googleapiclient.http import MediaFileUpload
+    from datetime import datetime as _dt
     fid = _folder_id()
     name = path.name
     try:
@@ -134,10 +140,31 @@ def upload(path: Path) -> bool:
                 body={"name": name, "parents": [fid]},
                 media_body=media, fields="id",
             ).execute()
+        last_sync_at = _dt.now().isoformat(timespec="seconds")
+        last_sync_file = name
         return True
     except Exception as e:
         log.warning(f"[drive_sync] 업로드 실패 {name}: {e}")
         return False
+
+
+def force_sync_all(data_dir: Path) -> dict:
+    """모든 data/*.json 을 즉시 드라이브로 업로드 (수동 백업). {count, last} 반환."""
+    n = 0
+    for p in _data_files(data_dir):
+        if upload(p):
+            n += 1
+    return {"count": n, "last": last_sync_at}
+
+
+def status() -> dict:
+    """백업 상태 — 연동 여부 / 마지막 동기화 시각 / 폴더."""
+    return {
+        "enabled": enabled(),
+        "last_sync_at": last_sync_at,
+        "last_sync_file": last_sync_file,
+        "folder_id": _folder_id(),
+    }
 
 
 _uploads_folder_id_cache: Optional[str] = None

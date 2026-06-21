@@ -2965,3 +2965,36 @@ const Tower = (function () {
 setInterval(refreshConfigStatus, 30000);
 setInterval(loadSellers, 60000);
 setInterval(loadToday, 120000);
+
+// ─── 우상단 실시간 시계 + 백업 상태 ───
+(function topClock() {
+  const tEl = document.getElementById("tcTime");
+  const sEl = document.getElementById("tcSave");
+  const bBtn = document.getElementById("tcBackup");
+  if (!tEl) return;
+  function tick() {
+    const d = new Date(), p = n => String(n).padStart(2, "0");
+    tEl.textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+  tick(); setInterval(tick, 1000);
+  async function refreshStatus() {
+    try {
+      const r = await fetch("/api/backup/status").then(x => x.json());
+      if (!r.enabled) { sEl.textContent = "백업 미연결 (PC 로컬만)"; sEl.className = "tc-save warn"; return; }
+      if (r.last_sync_at) {
+        sEl.textContent = "✓ 마지막 백업 " + r.last_sync_at.replace("T", " ").slice(11, 19);
+        sEl.className = "tc-save ok";
+      } else { sEl.textContent = "자동 백업 대기 중"; sEl.className = "tc-save"; }
+    } catch { sEl.textContent = "백업 상태 확인 실패"; sEl.className = "tc-save warn"; }
+  }
+  refreshStatus(); setInterval(refreshStatus, 15000);
+  bBtn?.addEventListener("click", async () => {
+    bBtn.disabled = true; const orig = bBtn.textContent; bBtn.textContent = "백업 중…";
+    try {
+      const r = await fetch("/api/backup/now", { method: "POST" }).then(x => x.json());
+      if (r.ok) { window.showToast?.({ icon: "💾", title: "백업 완료", body: `${r.count}개 파일 드라이브 저장됨`, accent: true }); await refreshStatus(); }
+      else alert("백업 실패: " + (r.error || "?"));
+    } catch (e) { alert("백업 실패: " + e.message); }
+    finally { bBtn.disabled = false; bBtn.textContent = orig; }
+  });
+})();

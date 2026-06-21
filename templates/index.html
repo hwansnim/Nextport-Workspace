@@ -11,6 +11,13 @@
   <link rel="stylesheet" href="/static/chat-widget.css?v={{ ver }}" />
 </head>
 <body>
+  <!-- 우상단: 실시간 시계 + 마지막 백업 + 지금 백업 -->
+  <div class="topclock" id="topClock">
+    <span class="tc-time" id="tcTime">--:--:--</span>
+    <span class="tc-sep"></span>
+    <span class="tc-save" id="tcSave" title="드라이브 자동 백업 시각">백업 확인 중…</span>
+    <button class="tc-backup" id="tcBackup" title="지금 즉시 드라이브 백업">💾 지금 백업</button>
+  </div>
   <div class="app">
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
