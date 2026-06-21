@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, make_response, render_template, request, send_from_directory
 from flask_cors import CORS
 
 # Project paths
@@ -149,12 +149,29 @@ def run_archive_job(job_id: str, seller: dict[str, Any]) -> None:
 
 # Flask app
 app = Flask(__name__, template_folder=str(ROOT / "templates"), static_folder=str(ROOT / "static"))
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0  # 정적파일 장기 캐시 방지
 CORS(app)
 
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # 정적파일 캐시 버스팅 — style.css/js 가 바뀌면 버전이 바뀌어 브라우저가 새로 받음
+    try:
+        static_dir = ROOT / "static"
+        latest = max(
+            (f.stat().st_mtime for f in static_dir.glob("*.css")),
+            default=0,
+        )
+        latest = max(
+            latest,
+            *(f.stat().st_mtime for f in static_dir.glob("*.js")),
+        ) if any(static_dir.glob("*.js")) else latest
+        ver = str(int(latest))
+    except Exception:
+        ver = "1"
+    resp = make_response(render_template("index.html", ver=ver))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 @app.route("/api/sellers", methods=["GET"])

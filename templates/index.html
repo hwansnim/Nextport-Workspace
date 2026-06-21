@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="/static/chat-widget.css" />
+  <link rel="stylesheet" href="/static/style.css?v={{ ver }}" />
+  <link rel="stylesheet" href="/static/chat-widget.css?v={{ ver }}" />
 </head>
 <body>
   <div class="app">
@@ -2055,16 +2055,16 @@ username2	password2	sender_name2"></textarea>
     </form>
   </dialog>
 
-  <script src="/static/app.js"></script>
-  <script src="/static/dm-widget.js"></script>
-  <script src="/static/dm-v2-widget.js"></script>
-  <script src="/static/dm-queue-inbox.js"></script>
-  <script src="/static/dm-phase-d.js"></script>
-  <script src="/static/campaigns-v2.js"></script>
-  <script src="/static/activity-tracker.js"></script>
-  <script src="/static/mobile-mode.js"></script>
-  <script src="/static/dashboard-v2.js"></script>
-  <script src="/static/meeting-recorder.js"></script>
+  <script src="/static/app.js?v={{ ver }}"></script>
+  <script src="/static/dm-widget.js?v={{ ver }}"></script>
+  <script src="/static/dm-v2-widget.js?v={{ ver }}"></script>
+  <script src="/static/dm-queue-inbox.js?v={{ ver }}"></script>
+  <script src="/static/dm-phase-d.js?v={{ ver }}"></script>
+  <script src="/static/campaigns-v2.js?v={{ ver }}"></script>
+  <script src="/static/activity-tracker.js?v={{ ver }}"></script>
+  <script src="/static/mobile-mode.js?v={{ ver }}"></script>
+  <script src="/static/dashboard-v2.js?v={{ ver }}"></script>
+  <script src="/static/meeting-recorder.js?v={{ ver }}"></script>
 
   <!-- ═══════════════════════════════════════════════════════
        AI 채팅 위젯 (격리된 모듈 — 제거 시 이 블록만 지우면 됨)
@@ -2091,6 +2091,6 @@ username2	password2	sender_name2"></textarea>
       </div>
     </div>
   </div>
-  <script src="/static/chat-widget.js"></script>
+  <script src="/static/chat-widget.js?v={{ ver }}"></script>
 </body>
 </html>
