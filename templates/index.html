@@ -25,7 +25,7 @@
       <div class="brand-switcher" id="brandSwitcher">
         <div class="bs-label">브랜드</div>
         <div class="bs-list" id="brandList">
-          <div class="bs-item active" data-brand-id="">📊 전체</div>
+          <div class="bs-item active" data-brand-id="">전체</div>
         </div>
       </div>
 
@@ -47,7 +47,7 @@
           <span class="ico">📤</span><span>데일리 DM 관리</span>
         </button>
         <button class="side-item side-sub" data-tab="dm-live">
-          <span class="ico">▶️</span><span>DM 발송 (실시간)</span>
+          <span class="ico">▶</span><span>DM 발송 (실시간)</span>
           <span class="side-badge live" id="dmLiveBadge" hidden>●</span>
         </button>
         <button class="side-item side-sub" data-tab="dm-inbox">
@@ -92,11 +92,11 @@
 
       <div class="side-status">
         <div class="backup-status" id="backupStatusPanel">
-          <div class="b-title">💾 백업 상태 확인 중…</div>
+          <div class="b-title">백업 상태 확인 중…</div>
         </div>
         <div class="status-row" id="pillGemini">Gemini…</div>
-        <div class="status-row" id="driveSyncStatus" style="cursor:pointer" onclick="triggerDriveSync(true)" title="클릭 = 지금 sync">☁️ Drive sync · 대기</div>
-        <button id="btnIgLogin" class="btn-secondary side-btn">📷 인스타 로그인</button>
+        <div class="status-row" id="driveSyncStatus" style="cursor:pointer" onclick="triggerDriveSync(true)" title="클릭 = 지금 sync">Drive sync · 대기</div>
+        <button id="btnIgLogin" class="btn-secondary side-btn">인스타 로그인</button>
       </div>
     </aside>
 
@@ -229,7 +229,7 @@
               <h2>셀러 정보 + 캠페인</h2>
               <div class="head-actions">
                 <span class="hint" id="camRevenueLive">실시간 매출 —</span>
-                <button class="btn-text" data-v2="cam-edit-meta">✎ 편집</button>
+                <button class="btn-text" data-v2="cam-edit-meta">편집</button>
               </div>
             </div>
             <div class="cam-meta-grid" id="camMetaBody"></div>
@@ -250,7 +250,7 @@
               <h2>정산 (일자별)</h2>
               <div class="head-actions">
                 <span class="hint" id="camSettleSummary">—</span>
-                <button class="btn-secondary" data-v2="stl-settings">⚙️ 열 설정</button>
+                <button class="btn-secondary" data-v2="stl-settings">열 설정</button>
                 <button class="btn-secondary" data-v2="stl-add-row">+ 일자 추가</button>
               </div>
             </div>
@@ -300,15 +300,14 @@
                   <h2>콘텐츠 가이드 (셀러한테 보낼 일자별 스토리)</h2>
                   <div class="head-actions">
                     <span class="hint" id="contentGuideStat">—</span>
-                    <button class="btn-primary" data-v2="cg-open-gen">✨ 생성 / 재생성</button>
-                    <button class="btn-secondary" data-v2="cg-share">🔗 셀러 링크</button>
-                    <button class="btn-secondary" data-v2="cg-preview">👁 미리보기</button>
-                    <button class="btn-secondary" data-v2="cg-export-clip">📋 복사</button>
+                    <button class="btn-primary" data-v2="cg-open-gen">생성 / 재생성</button>
+                    <button class="btn-secondary" data-v2="cg-share">셀러 링크</button>
+                    <button class="btn-secondary" data-v2="cg-preview">미리보기</button>
+                    <button class="btn-secondary" data-v2="cg-export-clip">복사</button>
                   </div>
                 </div>
                 <div class="content-guide-body" id="contentGuideBody">
-                  <div class="empty" style="padding:30px;text-align:center">
-                    [✨ 생성] 눌러서 제품 정보 + 소구점 입력 → 셀러 말투 학습 후 콘텐츠 생성
+                  <div class="empty" style="padding:30px;text-align:center">[ 생성] 눌러서 제품 정보 + 소구점 입력 → 셀러 말투 학습 후 콘텐츠 생성
                   </div>
                 </div>
               </section>
@@ -318,7 +317,7 @@
 
                 <!-- 이벤트 -->
                 <div class="ad-section" data-feat="events">
-                  <div class="ad-sec-head">🎁 이벤트 관리</div>
+                  <div class="ad-sec-head">이벤트 관리</div>
                   <div class="ad-sec-body">
                     <div id="adEventList" class="ad-list-mini"></div>
                     <div class="ad-add-row">
@@ -330,7 +329,7 @@
 
                 <!-- 구글 드라이브 -->
                 <div class="ad-section" data-feat="drive">
-                  <div class="ad-sec-head">🔗 셀러 전달용 자료 (Drive)</div>
+                  <div class="ad-sec-head">셀러 전달용 자료 (Drive)</div>
                   <div class="ad-sec-body">
                     <div id="adDriveList" class="ad-list-mini"></div>
                     <div class="ad-add-row">
@@ -343,7 +342,7 @@
 
                 <!-- 배너 -->
                 <div class="ad-section ad-section-wide" data-feat="banners">
-                  <div class="ad-sec-head">🖼️ 배너 (오픈피드 / 가격 / 이벤트)</div>
+                  <div class="ad-sec-head">배너 (오픈피드 / 가격 / 이벤트)</div>
                   <div class="ad-sec-body">
                     <div class="ad-banner-grid" id="adBannerGrid"></div>
                   </div>
@@ -351,7 +350,7 @@
 
                 <!-- 릴스 -->
                 <div class="ad-section ad-section-wide" data-feat="reels">
-                  <div class="ad-sec-head">🎬 릴스 기획안 + 영상</div>
+                  <div class="ad-sec-head">릴스 기획안 + 영상</div>
                   <div class="ad-sec-body">
                     <div id="adReelsList" class="ad-list-cards"></div>
                     <button class="btn-secondary" data-v2="ad-reel-add">+ 릴스 추가</button>
@@ -360,7 +359,7 @@
 
                 <!-- 💰 매출/비용 — 날짜별 -->
                 <div class="ad-section ad-section-wide" data-feat="sales">
-                  <div class="ad-sec-head">💰 날짜별 매출 / 비용</div>
+                  <div class="ad-sec-head">날짜별 매출 / 비용</div>
                   <div class="ad-sec-body">
                     <div class="ad-sales-wrap">
                       <table class="ad-sales-table" id="adSalesTable">
@@ -382,7 +381,7 @@
 
                 <!-- 👁 셀러 노출 미리보기 — 모바일 프레임 + 접속 트래킹 -->
                 <div class="ad-section ad-section-wide" data-feat="preview">
-                  <div class="ad-sec-head">👁 셀러 노출 미리보기 (실시간 더블체크)</div>
+                  <div class="ad-sec-head">셀러 노출 미리보기 (실시간 더블체크)</div>
                   <div class="ad-sec-body">
                     <div class="seller-preview-split">
                       <div class="sp-phone-col">
@@ -391,12 +390,12 @@
                           <iframe id="adSellerIframe" class="sp-phone-screen" title="셀러 화면"></iframe>
                         </div>
                         <div class="sp-phone-actions">
-                          <button class="btn-secondary" data-v2="cg-share">🔗 링크 복사</button>
-                          <button class="btn-text" data-v2="sp-reload">↻ 새로고침</button>
+                          <button class="btn-secondary" data-v2="cg-share">링크 복사</button>
+                          <button class="btn-text" data-v2="sp-reload">새로고침</button>
                         </div>
                       </div>
                       <div class="sp-track-col">
-                        <h4>📡 셀러 접속 현황</h4>
+                        <h4>셀러 접속 현황</h4>
                         <div id="adSellerTrack" class="sp-track-body"><div class="hint">불러오는 중…</div></div>
                       </div>
                     </div>
@@ -460,7 +459,7 @@
             <h2>캠페인별 정산</h2>
             <div class="head-actions">
               <span class="hint">셀 클릭 = 편집 · Ctrl+C/V/Z/Y · =SUM(A1:A3) · 행 클릭 → 캠페인</span>
-              <button class="btn-text" data-v2="dv-export-csv">⤓ CSV</button>
+              <button class="btn-text" data-v2="dv-export-csv">CSV</button>
             </div>
           </div>
           <div class="dv-sheet-wrap">
@@ -514,7 +513,7 @@
       <!-- ▶️ TAB: DM 발송 (실시간) -->
       <section class="tab-pane" id="tab-dm-live">
         <div class="page-head">
-          <h1>▶ DM 발송 (실시간)</h1>
+          <h1>DM 발송 (실시간)</h1>
           <p class="page-sub">지금 어떤 계정으로 누구에게 컨택 중인지 실시간 로그.</p>
         </div>
 
@@ -530,7 +529,7 @@
           <div class="dm-live-now" id="dmLiveNow">
             <div class="empty" style="padding:30px;text-align:center;color:#888">
               발송 중인 작업 없음. <br><br>
-              <span style="font-size:12px">[📤 데일리 DM 관리] 탭에서 발송 시작 가능</span>
+              <span style="font-size:12px">[ 데일리 DM 관리] 탭에서 발송 시작 가능</span>
             </div>
           </div>
         </section>
@@ -540,8 +539,8 @@
             <h2>발송 로그 (실시간 스트림)</h2>
             <div class="head-actions">
               <span class="hint" id="dmLiveLogStat">0건</span>
-              <button class="btn-text" data-v2="live-clear">🗑 비우기</button>
-              <button class="btn-text" data-v2="live-export">⤓ CSV</button>
+              <button class="btn-text" data-v2="live-clear">비우기</button>
+              <button class="btn-text" data-v2="live-export">CSV</button>
             </div>
           </div>
           <div class="dm-live-log" id="dmLiveLog">
@@ -567,7 +566,7 @@
             <span>안 읽은 것만</span>
           </label>
           <span class="hint" id="inboxStat" style="margin-left:auto">로딩…</span>
-          <button class="btn-secondary" data-v2="inbox-sync">🔄 답장 동기화</button>
+          <button class="btn-secondary" data-v2="inbox-sync">답장 동기화</button>
         </div>
 
         <div class="inbox-layout">
@@ -593,7 +592,7 @@
             <span class="hint" id="dmImportsDirHint"></span>
           </div>
           <div class="dm-import-toolbar">
-            <a class="btn-secondary" href="/api/dm/import/template/influencers" download>📥 양식 다운로드</a>
+            <a class="btn-secondary" href="/api/dm/import/template/influencers" download>양식 다운로드</a>
             <label class="dm-overwrite-toggle">
               <input type="checkbox" id="dmImportOverwrite" />
               <span>덮어쓰기 모드 <em>(중복 시 갱신)</em></span>
@@ -602,7 +601,7 @@
           <div id="dmImportFiles">파일 확인 중…</div>
           <div class="hint" style="margin-top:8px">
             <b>신규 추가</b>: 엑셀에 행만 더 박고 → 기존 안 건드림, 신규만 들어옴 ·
-            <b>수정</b>: 적은 양 ✎ / 많은 양 [덮어쓰기 모드] ON ·
+            <b>수정</b>: 적은 양  / 많은 양 [덮어쓰기 모드] ON ·
             <b>위치</b> <code>data/imports/</code>
           </div>
         </section>
@@ -657,7 +656,7 @@
             <h2>엑셀 임포트</h2>
           </div>
           <div class="dm-import-toolbar">
-            <a class="btn-secondary" href="/api/dm/import/template/accounts" download>📥 양식 다운로드</a>
+            <a class="btn-secondary" href="/api/dm/import/template/accounts" download>양식 다운로드</a>
             <label class="dm-overwrite-toggle">
               <input type="checkbox" id="dmImportOverwriteAcc" />
               <span>덮어쓰기 모드 <em>(중복 시 갱신)</em></span>
@@ -732,7 +731,7 @@
               <div class="hint" style="margin-top:4px">변수: <code>[name]</code> 발신인 · <code>[targetname]</code> 받는사람</div>
             </div>
             <div class="dm-msg-right">
-              <label class="dm-msg-label">📊 양식별 회신율 (상위 5개)</label>
+              <label class="dm-msg-label">양식별 회신율 (상위 5개)</label>
               <div id="dmTemplateStats" class="dm-tpl-stats"><div class="empty" style="padding:14px;font-size:12px">발송 데이터 누적 후 표시</div></div>
             </div>
           </div>
@@ -743,8 +742,8 @@
             <h2>오늘 보낼 큐</h2>
             <div class="head-actions">
               <span class="hint" id="dmQueueStat">계산 전</span>
-              <button class="btn-secondary" data-v2="queue-rebuild">🔄 큐 재계산</button>
-              <button class="btn-primary" data-v2="queue-send-all" disabled>📤 전체 발송 시작</button>
+              <button class="btn-secondary" data-v2="queue-rebuild">큐 재계산</button>
+              <button class="btn-primary" data-v2="queue-send-all" disabled>전체 발송 시작</button>
             </div>
           </div>
           <div class="hint" style="padding:0 16px 8px">
@@ -764,7 +763,7 @@
                   <th></th>
                 </tr>
               </thead>
-              <tbody id="dmQueueBody"><tr><td colspan="8" class="empty">[🔄 큐 재계산] 클릭</td></tr></tbody>
+              <tbody id="dmQueueBody"><tr><td colspan="8" class="empty">[ 큐 재계산] 클릭</td></tr></tbody>
             </table>
           </div>
           <div class="hint" id="dmQueueReasons" style="padding:8px 16px;font-size:11px;color:#888"></div>
@@ -775,7 +774,7 @@
       <section class="tab-pane" id="tab-replies">
         <div class="page-head">
           <h1>회신 인플루언서 현황</h1>
-          <p class="page-sub">답장 받은 인플루언서 전체 정보. 행 클릭 = 인라인 편집 · 인스타ID 클릭 = 프로필 · [💬] = 대화로 이동.</p>
+          <p class="page-sub">답장 받은 인플루언서 전체 정보. 행 클릭 = 인라인 편집 · 인스타ID 클릭 = 프로필 · [] = 대화로 이동.</p>
         </div>
 
         <section class="panel">
@@ -890,23 +889,23 @@
         <div class="guide-layout">
           <aside class="guide-toc">
             <div class="guide-toc-title">목차</div>
-            <a href="#g-overview" class="guide-toc-link">🏁 전체 개요</a>
-            <a href="#g-flow" class="guide-toc-link">🔄 업무 흐름 (한눈에)</a>
-            <a href="#g-dm-daily" class="guide-toc-link">📤 데일리 DM 관리</a>
-            <a href="#g-dm-live" class="guide-toc-link">▶️ DM 발송 (실시간)</a>
-            <a href="#g-dm-inbox" class="guide-toc-link">💬 DM (수신)</a>
-            <a href="#g-influencers" class="guide-toc-link">👤 전체 인플루언서 DB</a>
-            <a href="#g-accounts" class="guide-toc-link">💻 기기 및 계정 관리</a>
-            <a href="#g-replies" class="guide-toc-link">📬 회신 인플루언서 현황</a>
-            <a href="#g-pipeline" class="guide-toc-link">🎯 진행 예정 셀러</a>
-            <a href="#g-campaign" class="guide-toc-link">📣 셀러 캠페인</a>
-            <a href="#g-calendar" class="guide-toc-link">🏠 캘린더 (홈)</a>
-            <a href="#g-rules" class="guide-toc-link">⚠️ 자동 적용 규칙</a>
-            <a href="#g-data-flow" class="guide-toc-link">🔗 시트별 자동 연동</a>
-            <a href="#g-dashboard" class="guide-toc-link">📊 대시보드 + 엑셀 인터랙션</a>
-            <a href="#g-recording" class="guide-toc-link">🎙 미팅 녹음</a>
-            <a href="#g-mobile" class="guide-toc-link">📱 모바일 보기</a>
-            <a href="#g-faq" class="guide-toc-link">❓ 자주 묻는 질문</a>
+            <a href="#g-overview" class="guide-toc-link">전체 개요</a>
+            <a href="#g-flow" class="guide-toc-link">업무 흐름 (한눈에)</a>
+            <a href="#g-dm-daily" class="guide-toc-link">데일리 DM 관리</a>
+            <a href="#g-dm-live" class="guide-toc-link">DM 발송 (실시간)</a>
+            <a href="#g-dm-inbox" class="guide-toc-link">DM (수신)</a>
+            <a href="#g-influencers" class="guide-toc-link">전체 인플루언서 DB</a>
+            <a href="#g-accounts" class="guide-toc-link">기기 및 계정 관리</a>
+            <a href="#g-replies" class="guide-toc-link">회신 인플루언서 현황</a>
+            <a href="#g-pipeline" class="guide-toc-link">진행 예정 셀러</a>
+            <a href="#g-campaign" class="guide-toc-link">셀러 캠페인</a>
+            <a href="#g-calendar" class="guide-toc-link">캘린더 (홈)</a>
+            <a href="#g-rules" class="guide-toc-link">자동 적용 규칙</a>
+            <a href="#g-data-flow" class="guide-toc-link">시트별 자동 연동</a>
+            <a href="#g-dashboard" class="guide-toc-link">대시보드 + 엑셀 인터랙션</a>
+            <a href="#g-recording" class="guide-toc-link">미팅 녹음</a>
+            <a href="#g-mobile" class="guide-toc-link">모바일 보기</a>
+            <a href="#g-faq" class="guide-toc-link">자주 묻는 질문</a>
           </aside>
 
           <article class="guide-content">
@@ -922,7 +921,7 @@
                 <li><b>메타 광고관리자 스타일 캠페인</b> — 캠페인 > 세트 > 공동구매</li>
               </ul>
               <div class="guide-callout">
-                <b>📍 URL</b><br>
+                <b>URL</b><br>
                 • 사용자 PC: <code>http://127.0.0.1:5000</code> — Playwright DM 발송/답장 동기화 가능<br>
                 • 클라우드: <code>https://nextport-workspace.onrender.com</code> — 데이터 조회/편집만 (발송 불가)
               </div>
@@ -966,23 +965,23 @@
               </ul>
               <h3>3. 오늘 보낼 큐</h3>
               <ul>
-                <li><b>🔄 큐 재계산</b>: 현재 인플루언서/계정 데이터로 후보 재산출</li>
-                <li><b>📤 전체 발송 시작</b>: 체크된 모든 큐 순차 발송 (사이 30~120초 랜덤 대기)</li>
-                <li><b>📤 개별 발송</b>: 한 행씩 즉시 발송</li>
+                <li><b>큐 재계산</b>: 현재 인플루언서/계정 데이터로 후보 재산출</li>
+                <li><b>전체 발송 시작</b>: 체크된 모든 큐 순차 발송 (사이 30~120초 랜덤 대기)</li>
+                <li><b>개별 발송</b>: 한 행씩 즉시 발송</li>
                 <li><b>제외 사유</b>: 통과/상태제외/10차도달/7일미경과/계정없음 통계 표시</li>
               </ul>
             </section>
 
             <section id="g-dm-live" class="guide-section">
-              <h2>▶ DM 발송 (실시간)</h2>
+              <h2>DM 발송 (실시간)</h2>
               <ul>
-                <li><b>🟢 현재 상태</b>: 발송 중인 작업 카드 (계정 → 셀러 + 차수 + 경과시간)</li>
-                <li><b>📜 발송 로그</b>: 콘솔 스타일 실시간 스트림 (start / done / fail)</li>
-                <li><b>🗑 비우기</b>: 로그 클리어</li>
-                <li><b>⤓ CSV</b>: 로그 다운로드</li>
+                <li><b>현재 상태</b>: 발송 중인 작업 카드 (계정 → 셀러 + 차수 + 경과시간)</li>
+                <li><b>발송 로그</b>: 콘솔 스타일 실시간 스트림 (start / done / fail)</li>
+                <li><b>비우기</b>: 로그 클리어</li>
+                <li><b>CSV</b>: 로그 다운로드</li>
               </ul>
               <div class="guide-callout">
-                <b>⚠️ 클라우드 제약</b><br>
+                <b>클라우드 제약</b><br>
                 Render 클라우드에서는 Playwright 브라우저를 못 띄움 → 실제 발송은 <b>사용자 PC</b>에서만 동작.
               </div>
             </section>
@@ -992,7 +991,7 @@
               <ul>
                 <li><b>좌측</b>: 셀러별 대화 리스트 (안 읽은 건 빨간 배지)</li>
                 <li><b>우측</b>: 메시지 thread (인스타식 말풍선)</li>
-                <li><b>🔄 답장 동기화</b>: 모든 활성 계정에서 받은 DM 한 번에 동기화 (~10초/계정)</li>
+                <li><b>답장 동기화</b>: 모든 활성 계정에서 받은 DM 한 번에 동기화 (~10초/계정)</li>
                 <li><b>답장 입력</b>: 그 대화의 우리 계정으로 자동 발송</li>
                 <li><b>알람</b>: 새 답장 오면 우상단 toast — 클릭 시 그 대화 자동 열기</li>
               </ul>
@@ -1002,15 +1001,15 @@
               <h2>전체 인플루언서 DB</h2>
               <h3>1. 엑셀 임포트</h3>
               <ul>
-                <li><b>📥 양식 다운로드</b>: 17컬럼 헤더 + 예시</li>
-                <li><b>임포트 폴더</b>: <code>data/imports/</code> 에 박은 후 [↻ 새로고침]</li>
+                <li><b>양식 다운로드</b>: 17컬럼 헤더 + 예시</li>
+                <li><b>임포트 폴더</b>: <code>data/imports/</code>에 박은 후 [ 새로고침]</li>
                 <li><b>덮어쓰기 모드</b>: 중복 instagram_id 발견 시 누적데이터(차수/히스토리)는 보존하고 메타 필드만 갱신</li>
               </ul>
               <h3>2. 마스터 표</h3>
               <ul>
                 <li>5,000명 페이지네이션 + 검색 (인스타ID / 셀러명)</li>
                 <li>상태 필터 (미발송/발송중/답장받음/컨펌/거절/비공개)</li>
-                <li>✎ 클릭 = 상태 변경 인라인</li>
+                <li>클릭 = 상태 변경 인라인</li>
               </ul>
             </section>
 
@@ -1097,25 +1096,25 @@
               <h3>콘텐츠 가이드 (스토리 자동 생성)</h3>
               <p>광고(마켓) 디테일 안 <b>콘텐츠 가이드</b> = 셀러한테 보낼 일자별 스토리 제안.</p>
               <ul>
-                <li><b>✨ 생성/재생성</b>: 제품 정보 + 🎯 소구점(한 줄에 하나) + 글 길이 입력 → 생성. <b>자동 X</b>, 반드시 입력 후 생성.</li>
+                <li><b>생성/재생성</b>: 제품 정보 +  소구점(한 줄에 하나) + 글 길이 입력 → 생성. <b>자동 X</b>, 반드시 입력 후 생성.</li>
                 <li><b>셀러 말투 학습</b>: 연결된 셀러 인스타 핸들 기준. 셀러 아카이브에 그 셀러 콘텐츠가 있으면 실제 올렸던 글의 말투/이모지 습관을 학습해서 <b>복붙 가능한 퀄리티</b>로 생성.</li>
                 <li>D-10 ~ D-day ~ D+N, 각 날짜 STORY 1~5 + 피드. 단계(도입→교감→정보→임박→마감) 자동 흐름.</li>
                 <li><b>이미지</b>: URL 직접 입력 X. 이미지 박스 클릭 → <b>셀러 아카이브에서 선택</b> (자동 추천 + 변경).</li>
-                <li><b>🔗 셀러 링크</b>: 모바일 최적화 공유 링크 복사 → 셀러한테 카톡으로 전달.</li>
-                <li><b>👁 미리보기</b> / <b>📋 복사</b>: 셀러 시트 새 탭 / 텍스트 복사.</li>
+                <li><b>셀러 링크</b>: 모바일 최적화 공유 링크 복사 → 셀러한테 카톡으로 전달.</li>
+                <li><b>미리보기</b> / <b>복사</b>: 셀러 시트 새 탭 / 텍스트 복사.</li>
               </ul>
 
               <h3>셀러 모바일 뷰 (공유 링크)</h3>
-              <p>셀러가 <b>🔗 셀러 링크</b>를 폰에서 열면:</p>
+              <p>셀러가 <b>셀러 링크</b>를 폰에서 열면:</p>
               <ul>
                 <li>날짜 카드 리스트 → 탭하면 풀스크린 스토리 뷰어</li>
                 <li>STORY 1~5 + 피드 <b>스와이프</b> (좌우 탭/스와이프)</li>
-                <li>각 스토리: 소구점/제목 + 멘트 + 레퍼런스 이미지 + <b>📋 복사하기</b> 버튼</li>
-                <li><b>체크리스트</b>: 올리면 체크 → 우리 화면에 ✅ 실시간 반영 + 진행률 바</li>
-                <li>(선택) 올린 스토리 링크 붙여넣기 → 우리가 🔗 라이브 클릭해서 확인</li>
+                <li>각 스토리: 소구점/제목 + 멘트 + 레퍼런스 이미지 + <b>복사하기</b> 버튼</li>
+                <li><b>체크리스트</b>: 올리면 체크 → 우리 화면에  실시간 반영 + 진행률 바</li>
+                <li>(선택) 올린 스토리 링크 붙여넣기 → 우리가  라이브 클릭해서 확인</li>
               </ul>
               <div class="guide-callout">
-                <b>⚠️ 톤 학습 + 이미지</b><br>
+                <b>톤 학습 + 이미지</b><br>
                 셀러 말투 학습 + 레퍼런스 이미지는 <b>셀러 아카이브</b>에 데이터가 있어야 정확함.
                 [콘텐츠 도구 → 셀러 아카이브]에서 셀러 콘텐츠를 먼저 긁어오세요 (사용자 PC + 인스타 로그인 필요).
                 아카이브 없으면 generic 톤 + 이미지 없이 생성됩니다.
@@ -1150,8 +1149,7 @@
 
             <section id="g-data-flow" class="guide-section">
               <h2>시트별 자동 연동</h2>
-              <pre class="guide-flow-code">
-[DM 발송]
+              <pre class="guide-flow-code">[DM 발송]
   → 인플루언서 (차수+1, 최종발송일, 마지막사용계정 갱신)
   → 계정 (누적+1, 마지막사용 갱신)
   → 라이브 로그 (실시간)
@@ -1165,12 +1163,12 @@
   → 우상단 toast 알람
   → 템플릿/계정 회신율 자동 갱신
 
-[회신 현황 → 미팅 박기 (📅)]
+[회신 현황 → 미팅 박기 ()]
   → 인플루언서 (status="미팅 fix", pipeline_stage="미팅예약")
   → 진행 예정 셀러 (자동 등록)
   → 캘린더 (이벤트 박힘)
 
-[진행 예정 → 캠페인 박기 (📣)]
+[진행 예정 → 캠페인 박기 ()]
   → 캠페인 v2 (1차 세트 + 광고 자동 생성)
   → 인플루언서 (pipeline_stage="캠페인진행중", campaign_id 연결)
 
@@ -1214,7 +1212,7 @@
               <h3>연동</h3>
               <ul>
                 <li><b>행 더블클릭 / [→] 버튼</b> → 셀러 캠페인 그 캠페인으로 자동 이동</li>
-                <li><b>⤓ CSV</b> 다운로드 (BOM + UTF-8)</li>
+                <li><b>CSV</b> 다운로드 (BOM + UTF-8)</li>
               </ul>
             </section>
 
@@ -1222,14 +1220,14 @@
               <h2>미팅 녹음 (실시간)</h2>
               <p>진행 예정 셀러 → 셀러명 클릭 → 모달 → 미팅 카드의 <b>🎙</b> 버튼.</p>
               <ol>
-                <li><b>🎙 클릭</b> → "확인 = 녹음 시작 / 취소 = 파일 업로드" 선택</li>
+                <li><b>클릭</b> → "확인 = 녹음 시작 / 취소 = 파일 업로드" 선택</li>
                 <li>확인 누르면 → 마이크 권한 요청 → 녹음 시작 (빨간 펄스 + 타이머)</li>
                 <li>다시 클릭하면 → 녹음 중지 + 자동 업로드</li>
                 <li>저장 위치: <code>data/meetings/</code> 폴더 (셀러명_날짜_차수.webm)</li>
                 <li>5분 주기 Drive sync 시 <code>[넥스트포트 공동구매 워크스페이스]</code>로 자동 백업</li>
               </ol>
               <div class="guide-callout">
-                <b>⚠️ 브라우저 요구사항</b><br>
+                <b>브라우저 요구사항</b><br>
                 마이크 녹음은 <b>HTTPS 또는 localhost</b> 에서만 작동. 클라우드(Render)는 HTTPS라 OK,
                 로컬은 <code>http://127.0.0.1:5000</code> 직접 접속 시 OK.
               </div>
@@ -1237,10 +1235,10 @@
 
             <section id="g-mobile" class="guide-section">
               <h2>모바일 보기</h2>
-              <p>설정 → 📱 화면 모드 → <b>모바일 보기</b> 토글 ON.</p>
+              <p>설정 →  화면 모드 → <b>모바일 보기</b> 토글 ON.</p>
               <ul>
                 <li><b>자동 적용</b>: 화면 너비 760px 미만이면 토글 OFF여도 자동</li>
-                <li><b>사이드바</b> → 좌측 드로어 + 좌상단 <b>☰ 햄버거</b> 버튼</li>
+                <li><b>사이드바</b> → 좌측 드로어 + 좌상단 <b>햄버거</b> 버튼</li>
                 <li>표 폰트 자동 축소 / 그리드 1열</li>
                 <li>인박스 대화 클릭 시 풀스크린</li>
                 <li><code>localStorage</code> 저장 → 다음 방문에도 유지</li>
@@ -1277,7 +1275,7 @@
 
               <details>
                 <summary>미팅 녹취 파일은 어디 저장?</summary>
-                <p>진행 예정 셀러 디테일 → 미팅 카드 → 🎙 클릭 → m4a/mp3/wav 업로드 → <code>data/meetings/</code> 에 저장. 자동 분석은 추후 Gemini 연동 예정.</p>
+                <p>진행 예정 셀러 디테일 → 미팅 카드 →  클릭 → m4a/mp3/wav 업로드 → <code>data/meetings/</code> 에 저장. 자동 분석은 추후 Gemini 연동 예정.</p>
               </details>
 
               <details>
@@ -1302,7 +1300,7 @@
           <div class="panel-head">
             <h2>셀러 명단</h2>
             <div class="head-actions">
-              <button id="btnRefresh" class="btn-text">↻ 새로고침</button>
+              <button id="btnRefresh" class="btn-text">새로고침</button>
               <button id="btnAddSeller" class="btn-secondary">+ 셀러 추가</button>
             </div>
           </div>
@@ -1417,7 +1415,7 @@
             <span id="schStatus" class="hint"></span>
           </div>
           <div class="action-row">
-            <button id="btnGenerateSheet" class="btn-primary big">📊 스케줄링 시트 생성</button>
+            <button id="btnGenerateSheet" class="btn-primary big">스케줄링 시트 생성</button>
             <a id="schResultLink" class="btn-secondary" hidden target="_blank">생성된 시트 열기 ↗</a>
           </div>
           <div id="schProgressBox" class="log-box" hidden></div>
@@ -1461,8 +1459,7 @@
                 <span class="hint">사이드바 → 하단 햄버거 / 표 → 카드 / 폰트 크기 자동 조정</span>
               </span>
             </label>
-            <div class="hint" style="margin-top:10px;font-size:11.5px">
-              ⚠️ 토글 OFF여도 화면 너비가 760px 미만이면 자동으로 모바일 모드 적용
+            <div class="hint" style="margin-top:10px;font-size:11.5px">토글 OFF여도 화면 너비가 760px 미만이면 자동으로 모바일 모드 적용
             </div>
           </div>
         </section>
@@ -1561,14 +1558,13 @@
             <textarea name="notes" rows="2" placeholder="셀러 미팅 요약, 특이사항 등"></textarea>
           </label>
         </div>
-        <p class="hint" style="margin-top:8px">
-          💡 1차 시작일 박으면 D-10부터 자동 콘텐츠 스케줄링 생성됨
+        <p class="hint" style="margin-top:8px">1차 시작일 박으면 D-10부터 자동 콘텐츠 스케줄링 생성됨
         </p>
       </div>
 
       <footer class="cnf-foot">
         <button type="button" class="btn-text" data-v2="cnf-close">취소</button>
-        <button type="submit" class="btn-primary">📣 만들기 + 디테일 진입</button>
+        <button type="submit" class="btn-primary">만들기 + 디테일 진입</button>
       </footer>
     </form>
   </dialog>
@@ -1603,7 +1599,7 @@
             <input name="p_avoid" placeholder="예: 치료/효능 단정 X" />
           </label>
           <label class="cnf-field cnf-wide">
-            <span>🎯 소구점 (한 줄에 하나씩 — 이번 공구에서 밀 포인트)</span>
+            <span>소구점 (한 줄에 하나씩 — 이번 공구에서 밀 포인트)</span>
             <textarea name="selling_points" rows="4" placeholder="식곤증 개선&#10;변비/장 건강&#10;피부 속건조&#10;비린내 없는 식물성&#10;가성비 (공구가)"></textarea>
           </label>
           <label class="cnf-field">
@@ -1623,14 +1619,13 @@
           </label>
         </div>
         <div class="cnf-tone-note" id="cgToneNote"></div>
-        <p class="hint" style="margin-top:8px">
-          💡 연결된 셀러 인스타를 학습해서 그 말투로 생성합니다. (아카이브에 셀러 콘텐츠가 있으면 더 정확)<br>
+        <p class="hint" style="margin-top:8px">연결된 셀러 인스타를 학습해서 그 말투로 생성합니다. (아카이브에 셀러 콘텐츠가 있으면 더 정확)<br>
           ⏱ Gemini 생성 — 10~30초 걸릴 수 있어요.
         </p>
       </div>
       <footer class="cnf-foot">
         <button type="button" class="btn-text" data-v2="cg-gen-close">취소</button>
-        <button type="submit" class="btn-primary" id="cgGenSubmit">✨ 생성 시작</button>
+        <button type="submit" class="btn-primary" id="cgGenSubmit">생성 시작</button>
       </footer>
     </form>
   </dialog>
@@ -1649,13 +1644,13 @@
         </label>
         <div class="set-feat-title">이 차수에서 쓸 기능 선택</div>
         <div class="set-feat-list">
-          <label class="set-feat-item"><input type="checkbox" name="feat" value="schedule" checked /> <span>📅 콘텐츠 가이드 (스케줄링)</span></label>
-          <label class="set-feat-item"><input type="checkbox" name="feat" value="events" checked /> <span>🎁 이벤트 관리</span></label>
-          <label class="set-feat-item"><input type="checkbox" name="feat" value="drive" checked /> <span>🔗 셀러 전달용 자료</span></label>
-          <label class="set-feat-item"><input type="checkbox" name="feat" value="banners" checked /> <span>🖼️ 배너 (오픈피드/가격/이벤트)</span></label>
-          <label class="set-feat-item"><input type="checkbox" name="feat" value="reels" checked /> <span>🎬 릴스</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="schedule" checked /> <span>콘텐츠 가이드 (스케줄링)</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="events" checked /> <span>이벤트 관리</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="drive" checked /> <span>셀러 전달용 자료</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="banners" checked /> <span>배너 (오픈피드/가격/이벤트)</span></label>
+          <label class="set-feat-item"><input type="checkbox" name="feat" value="reels" checked /> <span>릴스</span></label>
         </div>
-        <p class="hint" style="margin-top:8px">💡 메가 셀러처럼 스케줄링 안 짜는 경우 체크 해제. 매출/비용 + 셀러 미리보기는 항상 표시.</p>
+        <p class="hint" style="margin-top:8px">메가 셀러처럼 스케줄링 안 짜는 경우 체크 해제. 매출/비용 + 셀러 미리보기는 항상 표시.</p>
       </div>
       <footer class="cnf-foot">
         <button type="button" class="btn-text" data-v2="setadd-close">취소</button>
@@ -1755,8 +1750,8 @@
         <label>차수 (N차)<input name="round" type="number" min="1" value="1" /></label>
         <label>컨택 방식
           <select name="contact_type">
-            <option value="direct">🟠 직접 영업 (DM/이메일)</option>
-            <option value="inbound">🔵 외부 유입 (메가셀러 등)</option>
+            <option value="direct">직접 영업 (DM/이메일)</option>
+            <option value="inbound">외부 유입 (메가셀러 등)</option>
           </select>
         </label>
         <label>현재 단계
@@ -1789,9 +1784,9 @@
       </div>
 
       <div class="seller-link-box" id="sellerLinkBox" hidden>
-        <div class="slb-head">📱 셀러용 모바일 플레이북</div>
+        <div class="slb-head">셀러용 모바일 플레이북</div>
         <div class="slb-tunnel-row">
-          <span id="slbTunnelStatus" class="slb-tunnel-off">🔒 비공개 (너 PC만 접속 가능)</span>
+          <span id="slbTunnelStatus" class="slb-tunnel-off">비공개 (너 PC만 접속 가능)</span>
           <button type="button" class="btn-secondary slb-tunnel-toggle" data-action="toggle-tunnel">셀러 공개 켜기</button>
         </div>
         <div class="slb-slug-row">
@@ -1801,11 +1796,11 @@
         </div>
         <div class="slb-url" id="sellerLinkUrl"></div>
         <div class="slb-actions">
-          <button type="button" class="btn-secondary" data-action="copy-seller-link">🔗 링크 복사</button>
-          <button type="button" class="btn-secondary" data-action="preview-seller-page">📱 모바일 미리보기</button>
-          <button type="button" class="btn-secondary" data-action="edit-seller-schedule">📅 스케줄 편집</button>
-          <button type="button" class="btn-secondary" data-action="import-from-sheet">📥 시트에서 가져오기</button>
-          <button type="button" class="btn-secondary" data-action="edit-seller-faq">💬 무물 편집</button>
+          <button type="button" class="btn-secondary" data-action="copy-seller-link">링크 복사</button>
+          <button type="button" class="btn-secondary" data-action="preview-seller-page">모바일 미리보기</button>
+          <button type="button" class="btn-secondary" data-action="edit-seller-schedule">스케줄 편집</button>
+          <button type="button" class="btn-secondary" data-action="import-from-sheet">시트에서 가져오기</button>
+          <button type="button" class="btn-secondary" data-action="edit-seller-faq">무물 편집</button>
         </div>
       </div>
 
@@ -1836,9 +1831,9 @@
       <button type="button" class="btn-text" data-action="close-schedule-edit">닫기</button>
     </div>
     <div class="se-auto">
-      <div class="se-auto-title">⚡ 자동 일자 생성 — 입력하면 일자가 한꺼번에 만들어짐</div>
+      <div class="se-auto-title">자동 일자 생성 — 입력하면 일자가 한꺼번에 만들어짐</div>
       <div class="se-auto-grid">
-        <label>📣 기본 노출 시작
+        <label>기본 노출 시작
           <input type="date" id="seAutoPreStart" />
         </label>
         <label>↓ 끝 (= 마켓 전날)
@@ -1848,7 +1843,7 @@
           <input type="number" id="seAutoPreSlots" value="5" min="1" max="10" />
         </label>
 
-        <label>🔴 본 스케줄링 시작 (마켓일)
+        <label>본 스케줄링 시작 (마켓일)
           <input type="date" id="seAutoLiveStart" />
         </label>
         <label>↓ 끝 (마감일)
@@ -1858,7 +1853,7 @@
           <input type="number" id="seAutoLiveSlots" value="7" min="1" max="15" />
         </label>
 
-        <label>🌟 사후 (선택)
+        <label>사후 (선택)
           <input type="date" id="seAutoPostStart" />
         </label>
         <label>↓ 끝
@@ -1869,9 +1864,9 @@
         </label>
       </div>
       <div class="se-auto-actions">
-        <button type="button" class="btn-primary" data-action="auto-generate-schedule">⚡ 일자 자동 생성</button>
+        <button type="button" class="btn-primary" data-action="auto-generate-schedule">일자 자동 생성</button>
         <button type="button" class="btn-secondary" data-action="add-schedule-day">+ 빈 날짜 추가</button>
-        <span class="hint">⚡ 자동 생성하면 기존 일자에 추가됩니다 (덮어쓰기 X)</span>
+        <span class="hint">자동 생성하면 기존 일자에 추가됩니다 (덮어쓰기 X)</span>
       </div>
     </div>
     <div class="se-list" id="seList"></div>
@@ -1907,12 +1902,12 @@
       <label>시간 (선택)<input name="time" type="time" /></label>
       <label>종류
         <select name="kind">
-          <option value="meeting">🎤 미팅</option>
-          <option value="shipment">🎁 발송</option>
-          <option value="live_start">🔴 라이브 시작</option>
-          <option value="live_end">⚪ 라이브 종료</option>
+          <option value="meeting">미팅</option>
+          <option value="shipment">발송</option>
+          <option value="live_start">라이브 시작</option>
+          <option value="live_end">라이브 종료</option>
           <option value="deadline">⏰ 마감</option>
-          <option value="other" selected>📌 기타</option>
+          <option value="other" selected>기타</option>
         </select>
       </label>
       <label>제목 *<input name="title" required placeholder="예: 양미라 미팅" /></label>
@@ -2077,8 +2072,7 @@ username2	password2	sender_name2"></textarea>
     <div class="chat-panel">
       <div class="chat-header">
         <span class="chat-title">
-          <span class="dot"></span>
-          🤖 AI 어시스턴트
+          <span class="dot"></span>AI 어시스턴트
         </span>
         <div class="chat-header-actions">
           <button class="chat-icon-btn" id="chatNewBtn" title="새 대화">↻</button>

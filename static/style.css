@@ -206,9 +206,23 @@ body {
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
-.page-head { margin-bottom: 22px; }
-.page-head h1 { font-size: 19px; margin: 0 0 4px 0; font-weight: 600; letter-spacing: -.01em; }
-.page-sub { color: var(--muted); font-size: 13px; margin: 0; }
+/* 목업 셸: page-head = 가장자리까지 빼낸 sticky 헤더 (음수 마진) */
+.page-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+  margin: -28px -32px 24px;
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(251,251,253,.88);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  position: sticky; top: 0; z-index: 50;
+}
+.page-head h1 { font-size: 19px; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+.page-sub { color: var(--muted); font-size: 12px; margin: 1px 0 0; }
+/* 캠페인 디테일/리스트는 자체 page-head 가짐 */
+#camV2ListView .page-head, #camV2DetailView .page-head { margin: -28px -32px 24px; }
 
 /* PANEL */
 .panel {
