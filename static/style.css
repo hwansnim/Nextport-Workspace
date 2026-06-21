@@ -2486,17 +2486,22 @@ body.mobile-mode #toastContainer {
   font-size: 11.5px;
 }
 
-/* ─── 배너/레퍼런스 이미지 갤러리 (노션식 업로드) ─── */
-.ad-banner-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  border-radius: 12px;
-  transition: background .12s, box-shadow .12s;
+/* ─── 배너/레퍼런스 — 3종(오픈/가격구성/이벤트) 분리 ─── */
+.ad-banner-gallery { display: flex; flex-direction: column; gap: 16px; }
+.bn-cat {
+  border: 1px solid var(--hairline); border-radius: 12px; padding: 14px;
+  background: #fff; transition: background .12s, box-shadow .12s;
 }
-.ad-banner-gallery.bn-drag {
-  background: var(--accent-soft);
-  box-shadow: 0 0 0 2px var(--accent) inset;
+.bn-cat.bn-drag { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent) inset; }
+.bn-cat-head { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 9px; }
+.bn-cat-note {
+  width: 100%; border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; font-size: 12px; font-family: inherit; resize: vertical;
+  color: var(--text); margin-bottom: 10px; line-height: 1.5;
+}
+.bn-cat-note:focus { outline: none; border-color: var(--accent); }
+.bn-cat-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
 }
 .bn-tile {
   position: relative;
@@ -4030,3 +4035,18 @@ input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="
 /* 세트 카드 — 마지막 제품 발송일 (발송란 흡수) */
 .cam-set-ship { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin: 8px 0 2px; }
 .cam-set-ship input[type=date] { border: 1px solid var(--border-strong); border-radius: 7px; padding: 3px 8px; font-size: 12px; font-family: inherit; color: var(--text); }
+
+/* 세트 카드 — 사용 기능 체크칩 (중간 수정 가능) */
+.cam-set-feats { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.csf-label { font-size: 11.5px; color: var(--muted); margin-right: 2px; }
+.csf-chip {
+  font-size: 11.5px; font-weight: 500; padding: 3px 10px; border-radius: 980px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+  cursor: pointer; transition: all .12s;
+}
+.csf-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.csf-chip:hover { border-color: var(--accent); }
+
+/* 캠페인 생성 폼 — 기능 체크리스트 */
+.cnf-feats { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 4px; }
+.cnf-feats .set-feat-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text); cursor: pointer; }

@@ -3700,6 +3700,7 @@ def api_campaigns_v2_list():
                 "round": 1,
                 "label": "1차",
                 "memo": "",
+                "features": payload.get("features") or {"schedule": True, "events": True, "drive": True, "banners": True, "reels": True},
                 "ads": [{
                     "id": "ad_0001",
                     "name": "공동구매 1차",
@@ -3999,9 +4000,9 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
     for k in ["name", "product_sent_date", "status", "revenue", "cost"]:
         if k in payload:
             ad[k] = payload[k]
-    for k in ["scheduling", "banners"]:
+    for k in ["scheduling", "banners", "banner_cats"]:
         if k in payload and isinstance(payload[k], dict):
-            ad.setdefault(k, {}).update(payload[k])
+            ad[k] = payload[k] if k == "banner_cats" else {**ad.get(k, {}), **payload[k]}
     for k in ["events", "drive_links", "reels", "content_days", "sales", "banner_images"]:
         if k in payload and isinstance(payload[k], list):
             ad[k] = payload[k]

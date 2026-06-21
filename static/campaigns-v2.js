@@ -424,6 +424,13 @@
             </div>
             <input class="cam-set-memo" placeholder="세트 메모 (이번 차수 키 포인트)" data-v2="set-memo" data-id="${esc(st.id)}" value="${esc(st.memo || "")}" />
             <label class="cam-set-ship">📦 마지막 제품 발송일 <input type="date" data-v2="set-ship" data-id="${esc(st.id)}" value="${esc(st.last_ship_date || "")}" /></label>
+            <div class="cam-set-feats">
+              <span class="csf-label">사용 기능:</span>
+              ${[["schedule","스케줄링"],["events","이벤트"],["banners","배너"],["reels","릴스"],["drive","자료"]].map(([k,lbl])=>{
+                const on=(st.features||{schedule:true,events:true,drive:true,banners:true,reels:true})[k]!==false;
+                return `<button type="button" class="csf-chip ${on?'on':''}" data-v2="set-feat-toggle" data-id="${esc(st.id)}" data-feat="${k}">${on?'✓':'+'} ${lbl}</button>`;
+              }).join("")}
+            </div>
             <div class="cam-set-ads">
               ${(st.ads || []).map(a => `
                 <div class="cam-ad-chip ${a.id === s.activeMarketId ? "active" : ""}" data-v2="ad-open" data-set="${esc(st.id)}" data-id="${esc(a.id)}">
@@ -477,19 +484,35 @@
         </div>`).join("")
       : `<div class="hint">드라이브 링크 없음</div>`;
 
-    // 배너 / 레퍼런스 — 노션식 이미지 갤러리 + 업로드
-    const imgs = ad.banner_images || [];
-    $("#adBannerGrid").innerHTML =
-      imgs.map((im, i) => `
-        <div class="bn-tile">
-          <img src="${esc(im.url)}" alt="레퍼런스" loading="lazy" />
-          <button class="bn-del" data-v2="ad-banner-img-del" data-idx="${i}" title="삭제">×</button>
-          <input class="bn-cap" placeholder="메모 (선택)" data-v2="ad-banner-img-note" data-idx="${i}" value="${esc(im.note || "")}" />
-        </div>`).join("")
-      + `<button type="button" class="bn-add" data-v2="ad-banner-pick">
-           <span class="bn-add-plus">+</span>
-           <span class="bn-add-txt">이미지 추가<br><small>클릭 · 드래그 · 붙여넣기</small></span>
-         </button>`;
+    // 배너 / 레퍼런스 — 3종(오픈/가격구성/이벤트) 분리, 각 내용 + 이미지 갤러리
+    const BANNER_CATS = [
+      { key: "open", label: "오픈 배너" },
+      { key: "price", label: "가격구성 배너" },
+      { key: "event", label: "이벤트 배너" },
+    ];
+    // 구버전(flat banner_images) → open 으로 1회 이관
+    const cats = ad.banner_cats || {};
+    if (!ad.banner_cats && (ad.banner_images || []).length) cats.open = { note: "", imgs: ad.banner_images };
+    $("#adBannerGrid").innerHTML = BANNER_CATS.map(c => {
+      const cv = cats[c.key] || {};
+      const imgs = cv.imgs || [];
+      return `
+        <div class="bn-cat">
+          <div class="bn-cat-head">${esc(c.label)}</div>
+          <textarea class="bn-cat-note" data-v2="ad-banner-cat-note" data-cat="${c.key}" rows="2" placeholder="배너 내용/지시사항 (예: 가격, 구성, 강조 문구)">${esc(cv.note || "")}</textarea>
+          <div class="bn-cat-grid">
+            ${imgs.map((im, i) => `
+              <div class="bn-tile">
+                <img src="${esc(im.url)}" alt="${esc(c.label)}" loading="lazy" />
+                <button class="bn-del" data-v2="ad-banner-img-del" data-cat="${c.key}" data-idx="${i}" title="삭제">×</button>
+              </div>`).join("")}
+            <button type="button" class="bn-add" data-v2="ad-banner-pick" data-cat="${c.key}">
+              <span class="bn-add-plus">+</span>
+              <span class="bn-add-txt">이미지<br><small>클릭·드래그</small></span>
+            </button>
+          </div>
+        </div>`;
+    }).join("");
 
     // 릴스
     const reels = ad.reels || [];
@@ -956,6 +979,11 @@
       if (!igUrl.startsWith("http")) igUrl = `https://www.instagram.com/${handle}/`;
     }
 
+    // 사용 기능 체크리스트
+    const feats = {};
+    ["schedule", "events", "drive", "banners", "reels"].forEach(f => feats[f] = false);
+    fd.getAll("feat").forEach(f => feats[f] = true);
+
     const payload = {
       seller_name: seller,
       brand: (fd.get("brand") || "").toString().trim(),
@@ -968,6 +996,7 @@
       linked_handle: handle,
       seller_traits: (fd.get("seller_traits") || "").toString().trim(),
       notes: (fd.get("notes") || "").toString().trim(),
+      features: feats,
       auto_schedule: true,
     };
     try {
@@ -1130,6 +1159,20 @@
     }
     if (what === "cam-back") return backToList();
     if (what === "cam-add-set") return openSetDialog();
+    // 세트 사용 기능 토글 (중간 수정)
+    if (what === "set-feat-toggle") {
+      const setId = trg.dataset.id, feat = trg.dataset.feat;
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const st = c.sets.find(x => x.id === setId); if (!st) return;
+      const feats = { schedule: true, events: true, drive: true, banners: true, reels: true, ...(st.features || {}) };
+      feats[feat] = feats[feat] === false ? true : false;
+      try {
+        await api(`/api/campaigns_v2/${s.activeCamId}/sets/${setId}`, { method: "PATCH", body: JSON.stringify({ features: feats }) });
+        const fresh = await api(`/api/campaigns_v2/${s.activeCamId}`);
+        renderCamDetail(fresh);
+      } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
 
     // ─── 정산 ───
     if (what === "stl-settings") return toggleColPop();
@@ -1233,13 +1276,17 @@
     }
     // 배너/레퍼런스 이미지 — 추가(파일선택 트리거) / 삭제
     if (what === "ad-banner-pick") {
+      s.bannerPickCat = trg.dataset.cat || "open";
       $("#adBannerFile")?.click();
       return;
     }
     if (what === "ad-banner-img-del") {
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-      return patchAd({ banner_images: (ad.banner_images || []).filter((_, i) => i !== parseInt(trg.dataset.idx)) });
+      const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
+      const k = trg.dataset.cat;
+      if (cats[k]) cats[k].imgs = (cats[k].imgs || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
+      return patchAd({ banner_cats: cats });
     }
   });
 
@@ -1265,52 +1312,57 @@
     });
   }
 
-  async function addBannerImages(fileList) {
+  async function addBannerImages(fileList, catKey) {
+    const cat = catKey || s.bannerPickCat || "open";
     const files = [...fileList].filter(f => f.type.startsWith("image/"));
     if (!files.length || !s.activeMarketId) return;
     const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
     const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-    const imgs = [...(ad.banner_images || [])];
+    const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
+    cats[cat] = cats[cat] || { note: "", imgs: [] };
+    cats[cat].imgs = cats[cat].imgs || [];
     for (const f of files) {
       const url = await resizeImage(f);
-      if (url) imgs.push({ url, note: "" });
+      if (url) cats[cat].imgs.push({ url });
     }
-    await patchAd({ banner_images: imgs });
+    await patchAd({ banner_cats: cats });
   }
 
   // 파일 선택
   document.addEventListener("change", (e) => {
     if (e.target.id === "adBannerFile") {
-      addBannerImages(e.target.files);
+      addBannerImages(e.target.files, s.bannerPickCat);
       e.target.value = "";
     }
   });
-  // 캡션(메모) 수정
+  // 배너 카테고리 내용(지시사항) 수정
   document.addEventListener("blur", async (e) => {
-    if (e.target.dataset.v2 === "ad-banner-img-note") {
+    if (e.target.dataset.v2 === "ad-banner-cat-note") {
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-      const imgs = [...(ad.banner_images || [])];
-      const i = parseInt(e.target.dataset.idx);
-      if (imgs[i]) { imgs[i] = { ...imgs[i], note: e.target.value }; patchAd({ banner_images: imgs }); }
+      const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
+      const k = e.target.dataset.cat;
+      cats[k] = cats[k] || { note: "", imgs: [] };
+      cats[k].note = e.target.value;
+      patchAd({ banner_cats: cats });
     }
   }, true);
-  // 드래그&드롭
+  // 드래그&드롭 (카테고리별)
   document.addEventListener("dragover", (e) => {
-    if (e.target.closest("#adBannerGrid")) { e.preventDefault(); e.target.closest("#adBannerGrid").classList.add("bn-drag"); }
+    const cat = e.target.closest(".bn-cat");
+    if (cat) { e.preventDefault(); cat.classList.add("bn-drag"); }
   });
   document.addEventListener("dragleave", (e) => {
-    if (e.target.closest("#adBannerGrid")) e.target.closest("#adBannerGrid").classList.remove("bn-drag");
+    const cat = e.target.closest(".bn-cat");
+    if (cat) cat.classList.remove("bn-drag");
   });
   document.addEventListener("drop", (e) => {
-    const g = e.target.closest("#adBannerGrid");
-    if (g) { e.preventDefault(); g.classList.remove("bn-drag"); addBannerImages(e.dataTransfer.files); }
-  });
-  // 붙여넣기 (캠페인 디테일 열려있을 때)
-  document.addEventListener("paste", (e) => {
-    if ($("#camAdDetailWrap")?.hidden) return;
-    const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith("image/"));
-    if (items.length) addBannerImages(items.map(it => it.getAsFile()).filter(Boolean));
+    const cat = e.target.closest(".bn-cat");
+    if (cat) {
+      e.preventDefault(); cat.classList.remove("bn-drag");
+      const key = cat.querySelector("[data-cat]")?.dataset.cat || "open";
+      addBannerImages(e.dataTransfer.files, key);
+    }
   });
 
   // 셀러 미리보기 — 좌우 스와이프(터치/마우스 드래그)로 날짜 이동
