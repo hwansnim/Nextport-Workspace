@@ -107,44 +107,47 @@
       <section class="tab-pane active" id="tab-home">
         <div class="page-head">
           <div>
-            <h1 id="calTitle">캘린더</h1>
+            <h1>캘린더</h1>
             <p class="page-sub">미팅 · 발송 · 라이브 일정 한눈에. 빈 칸 클릭 = 새 이벤트, 이벤트 클릭 = 수정.</p>
           </div>
-          <div class="cal-controls">
-            <button class="btn-secondary" data-cal-nav="prev">◀</button>
-            <button class="btn-secondary" data-cal-nav="today">오늘</button>
-            <button class="btn-secondary" data-cal-nav="next">▶</button>
+          <div class="head-actions" style="align-items:center;gap:16px">
+            <div class="cal-legend" style="margin:0">
+              <span class="leg"><span class="leg-swatch" style="background:#0071e3"></span>미팅</span>
+              <span class="leg"><span class="leg-swatch" style="background:#1d8a3f"></span>발송</span>
+              <span class="leg"><span class="leg-swatch" style="background:#ff3b30"></span>라이브</span>
+            </div>
+            <button class="btn-primary" id="btnAddEventTop">+ 새 이벤트</button>
           </div>
         </div>
 
         <div class="home-grid">
-          <section class="panel home-cal">
-            <div id="calendar" class="calendar"></div>
-            <div class="cal-legend">
-              <span class="leg"><span class="leg-swatch" style="background:#c9a368"></span>진행중</span>
-              <span class="leg"><span class="leg-swatch" style="background:#d8e4f1"></span>예정</span>
-              <span class="leg"><span class="leg-swatch" style="background:#e8d9b8"></span>준비중</span>
-              <span class="leg"><span class="leg-swatch" style="background:#d2cfc4"></span>완료</span>
-              <span class="leg"><span class="leg-swatch" style="background:repeating-linear-gradient(45deg,#e6e3d8,#e6e3d8 3px,#ddd9cc 3px,#ddd9cc 6px)"></span>미정</span>
-              <span class="leg">🎤 미팅 · 🎁 발송 · 📌 기타 = 점</span>
+          <section>
+            <div class="cal-toolbar">
+              <h2 id="calTitle">2026년 6월</h2>
+              <div class="cal-controls">
+                <button class="btn-icon" data-cal-nav="prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+                <button class="btn-secondary" data-cal-nav="today">오늘</button>
+                <button class="btn-icon" data-cal-nav="next"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+              </div>
             </div>
+            <div id="calendar" class="calendar"></div>
           </section>
 
           <aside class="today-side">
             <section class="panel">
-              <div class="panel-head"><h2>🔥 오늘 / 마감 임박</h2></div>
+              <div class="panel-head"><h2>오늘 · 마감 임박</h2></div>
               <div id="todayUrgent" class="today-list"><div class="empty">불러오는 중…</div></div>
             </section>
             <section class="panel">
-              <div class="panel-head"><h2>⚠️ 지연</h2></div>
+              <div class="panel-head"><h2 style="color:var(--red)">지연</h2></div>
               <div id="todayOverdue" class="today-list"><div class="empty">없음</div></div>
             </section>
             <section class="panel">
-              <div class="panel-head"><h2>📅 이번 2주</h2></div>
+              <div class="panel-head"><h2>이번 2주</h2></div>
               <div id="todayWeek" class="today-list"><div class="empty">없음</div></div>
             </section>
             <section class="panel">
-              <div class="panel-head"><h2>⏸ 일정 미정</h2></div>
+              <div class="panel-head"><h2>일정 미정</h2></div>
               <div id="todayUndated" class="today-list"><div class="empty">없음</div></div>
             </section>
           </aside>

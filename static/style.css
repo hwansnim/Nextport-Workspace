@@ -2663,237 +2663,161 @@ body.mobile-mode #toastContainer {
 
 .home-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 14px;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
   align-items: start;
 }
-.home-cal { padding: 14px 14px 18px 14px; }
+.cal-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cal-toolbar h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.cal-controls { display: flex; gap: 6px; align-items: center; }
+.cal-controls .btn-icon {
+  width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text);
+}
+.cal-controls .btn-icon:hover { background: var(--hover); }
 
 @media (max-width: 1200px) {
   .home-grid { grid-template-columns: 1fr; }
 }
 
-/* ─── CALENDAR (주별 컨테이너 + 막대 overlay 구조) ─── */
+/* ─── CALENDAR — Apple 목업 (점 방식) ─── */
 .calendar {
   width: 100%;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px 20px;
   display: flex;
   flex-direction: column;
 }
-
-.cal-header {
+.cal-grid-head {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: #ecebe5;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .cal-dow {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 700;
   text-align: center;
-  padding: 11px 0;
-  letter-spacing: 1px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 4px 0;
 }
-.cal-dow.sat { color: var(--blue); }
+.cal-dow.sat { color: var(--accent); }
 .cal-dow.sun { color: var(--red); }
 
-/* 한 주 = 셀 layer + 막대 overlay layer */
-.cal-week {
-  position: relative;
-  border-bottom: 1px solid var(--border);
-}
-.cal-week:last-child { border-bottom: none; }
-
-/* 셀 7개 (날짜 / 공휴일 / 점 이벤트) */
-.cal-cells {
+.cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  min-height: calc(170px);
+  gap: 8px;
 }
 .cal-cell {
+  min-height: 92px;
   background: #fff;
-  padding: 0;
-  display: flex; flex-direction: column;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 8px 9px;
+  display: flex;
+  flex-direction: column;
   cursor: pointer;
-  position: relative;
-  border-right: 1px solid var(--border);
-  transition: background .12s;
-  /* 막대가 차지할 영역 확보 (위에서 30px = 날짜, 그 다음 막대 영역, 그 다음 점) */
-  padding-top: 0;
+  transition: background .12s, border-color .12s;
 }
-.cal-cell.last-col { border-right: none; }
-.cal-cell:hover { background: #f9fafb; }
-.cal-cell.off { background: #f7f5ee; color: #b8b3a6; }
-.cal-cell.off .cal-day { color: #b8b3a6; }
-.cal-cell.holiday { background: #fdf2f1; }
-.cal-cell.holiday-soft { background: #fcf8f7; }
+.cal-cell:hover { background: var(--hover); }
+.cal-cell.off { background: #fcfcfd; }
+.cal-cell.off .cal-day { color: #c7c7cc; }
+.cal-cell.holiday { background: #fdf3f3; }
+.cal-cell.holiday-soft { background: #fdf9f9; }
 
-/* 막대 overlay — 셀 위로 절대 위치, 셀 border 가로지름 */
-.cal-bars-overlay {
-  position: absolute;
-  top: 32px;  /* 날짜 라벨 아래부터 */
-  left: 0; right: 0;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 24px;
-  gap: 3px 0;
-  pointer-events: none;
-  z-index: 5;
-  padding: 0 1px;  /* 양 끝 살짝 여유 */
-}
-/* 공휴일 라벨이 있으면 막대 시작 위치 살짝 아래 */
-.cal-week:has(.cal-holiday-label) .cal-bars-overlay { top: 46px; }
-
-.cal-day-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 5px 8px 3px 8px;
-  min-height: 26px;
-}
 .cal-day {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text);
-  width: 22px; height: 22px;
+}
+.cal-cell.sat .cal-day { color: var(--accent); }
+.cal-cell.sun .cal-day, .cal-cell.holiday .cal-day { color: var(--red); }
+
+.cal-cell.today {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.cal-cell.today .cal-day {
+  color: #fff;
+  background: var(--accent);
+  font-weight: 700;
+  width: 21px; height: 21px;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 50%;
 }
-.cal-cell.sat .cal-day { color: var(--blue); }
-.cal-cell.sun .cal-day, .cal-cell.holiday .cal-day { color: var(--red); }
-
-/* 오늘 표시 — 강한 원형 배경 + outline (border 깨지지 않게) */
-.cal-cell.today .cal-day {
-  background: var(--brand);
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 0 0 3px rgba(26, 30, 45, 0.12);
-}
-.cal-cell.today {
-  outline: 2px solid var(--brand);
-  outline-offset: -2px;
-  z-index: 3;
-}
 
 .cal-holiday-label {
-  font-size: 9.5px;
+  font-size: 10px;
   color: var(--red);
-  font-weight: 600;
-  padding: 0 6px;
-  margin-bottom: 2px;
-  letter-spacing: -0.3px;
-}
-
-/* 캠페인 막대바 (연속) */
-.cal-bars {
-  display: flex; flex-direction: column; gap: 2px;
+  font-weight: 500;
   margin-top: 2px;
 }
-/* 막대 — column-span으로 여러 셀을 통째로 가로지름. 셀 border 위로 자연스럽게 표시 */
-.cal-bar {
-  pointer-events: auto;
-  cursor: pointer;
-  background: var(--accent);
-  color: #fff;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 3px 12px;
-  display: flex; align-items: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border-radius: 0;
-  box-sizing: border-box;
-  margin: 0;
-}
-.cal-bar:hover { filter: brightness(0.92); }
-.cal-bar.bar-rd-left {
-  border-top-left-radius: 13px;
-  border-bottom-left-radius: 13px;
-  margin-left: 4px;
-}
-.cal-bar.bar-rd-right {
-  border-top-right-radius: 13px;
-  border-bottom-right-radius: 13px;
-  margin-right: 4px;
-}
-/* 상태별 효과 (background는 셀러 컬러 유지, 상태는 opacity/effect로) */
-.cal-bar.st-예정 { opacity: 0.85; }
-.cal-bar.st-준비중 { opacity: 0.95; }
-.cal-bar.st-진행중 { opacity: 1; box-shadow: 0 0 0 1px rgba(255,255,255,0.3) inset; }
-.cal-bar.st-완료 { opacity: 0.5; }
-.cal-bar.st-미정 {
-  opacity: 0.45;
-  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 4px, transparent 4px, transparent 8px) !important;
-}
 
-/* 점 이벤트 (미팅/발송/마감/기타) — 막대 영역 아래 */
+/* 점 이벤트 — 7px 원형 (텍스트 없음, hover로 제목) */
 .cal-dots {
-  padding: 1px 4px 4px 4px;
-  display: flex; flex-direction: column; gap: 1px;
-  overflow: hidden;
-  margin-top: auto;  /* 셀 하단으로 밀어냄 (막대가 위쪽 차지) */
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 6px;
 }
 .cal-dot {
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 8px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: #f1ede3;
-  color: var(--text);
+  flex-shrink: 0;
 }
-.cal-dot.k-meeting { background: #dce6f3; color: #2c4d6e; }
-.cal-dot.k-shipment { background: #f5e3c5; color: #6b4514; }
-.cal-dot.k-deadline { background: #f4d8c5; color: #8a4d18; }
-.cal-dot.k-other { background: #eae6d8; color: #555; }
+.cal-dot.k-meeting { background: #0071e3; }
+.cal-dot.k-shipment, .cal-dot.k-send { background: #1d8a3f; }
+.cal-dot.k-live { background: #ff3b30; }
+.cal-dot.k-deadline { background: #ff9f0a; }
+.cal-dot.k-other { background: #86868b; }
+.cal-dot:hover { transform: scale(1.4); }
 
+/* 범례 */
 .cal-legend {
-  margin-top: 12px;
-  display: flex; gap: 8px; flex-wrap: wrap;
-  font-size: 11px; color: var(--muted);
+  margin-top: 14px;
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text2);
 }
-.leg {
-  padding: 3px 8px; border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #f9fafb;
-}
+.leg { display: inline-flex; align-items: center; gap: 6px; }
 .leg-swatch {
-  display: inline-block; width: 10px; height: 10px;
-  border-radius: 2px; margin-right: 4px; vertical-align: -1px;
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; vertical-align: middle;
 }
 
-/* ─── TODAY SIDEBAR ─── */
-.today-side { display: flex; flex-direction: column; gap: 10px; }
-.today-side .panel { padding: 12px 14px; }
-.today-side .panel-head { margin-bottom: 8px; }
-.today-side .panel-head h2 { font-size: 12px; }
+/* ─── TODAY SIDEBAR — Apple 카드 ─── */
+.today-side { display: flex; flex-direction: column; gap: 16px; }
+.today-side .panel { padding: 20px; margin-bottom: 0; }
+.today-side .panel-head { margin-bottom: 14px; }
+.today-side .panel-head h2 { font-size: 14px; font-weight: 600; }
 
-.today-list { display: flex; flex-direction: column; gap: 6px; }
+.today-list { display: flex; flex-direction: column; gap: 12px; }
 .today-item {
-  background: #f9fafb;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 12px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 13px;
   cursor: pointer;
-  transition: border-color .1s;
 }
-.today-item:hover { border-color: var(--accent); }
-.today-item .ti-title { font-weight: 600; color: var(--text); }
+.today-item:hover .ti-title { color: var(--accent); }
+.today-item .ti-title { font-weight: 500; color: var(--text); line-height: 1.4; }
 .today-item .ti-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
-  margin-top: 2px;
-  display: flex; justify-content: space-between;
+  margin-top: 3px;
+  display: flex; justify-content: space-between; gap: 8px;
 }
-.today-item.urgent { border-left: 3px solid var(--accent); }
-.today-item.overdue { border-left: 3px solid var(--red); background: #fdf3f1; }
-.today-item.dminus { color: var(--accent); font-weight: 700; }
+.today-item.overdue .ti-meta { color: var(--red); }
+.today-item.dminus .ti-title { color: var(--accent); }
 
 /* ─── CAMPAIGN TABLE ─── */
 .filter-sel {

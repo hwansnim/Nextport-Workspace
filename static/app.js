@@ -703,7 +703,7 @@ function renderCalendar() {
   if (!root) return;
   const { year, month } = state.calMonth;
   const titleEl = $("#calTitle");
-  if (titleEl) titleEl.textContent = `📅 ${year}년 ${month + 1}월`;
+  if (titleEl) titleEl.textContent = `${year}년 ${month + 1}월`;
 
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
@@ -748,122 +748,60 @@ function renderCalendar() {
   campaigns = filterByBrand(campaigns, campaignBrandId);
   campaigns.sort((a, b) => (a.live_start || "").localeCompare(b.live_start || ""));
 
-  // 점 이벤트 grouping (라이브 제외)
+  // 점 이벤트 grouping (Apple 목업: 작은 점만)
+  //  - calEvents (미팅/발송/마감 등) + 캠페인 라이브 기간 = 날짜별 라이브 점
   const dotByDate = {};
+  const pushDot = (date, obj) => { (dotByDate[date] = dotByDate[date] || []).push(obj); };
   for (const ev of state.calEvents || []) {
     if (!ev.date) continue;
     if (ev.kind === "live_start" || ev.kind === "live_end") continue;
-    (dotByDate[ev.date] = dotByDate[ev.date] || []).push(ev);
+    pushDot(ev.date, { type: "event", ev, kind: ev.kind || "other", title: ev.title });
+  }
+  for (const c of campaigns) {
+    const cs = parseYmd(c.live_start), ce = parseYmd(c.live_end);
+    if (!cs || !ce) continue;
+    const label = `[${c.brand || ""}] ${c.seller_name} ${c.round}차 공구`;
+    for (let t = +cs; t <= +ce; t += 86400000) {
+      pushDot(ymdLocal(new Date(t)), { type: "camp", camp: c, kind: "live", title: `${label} (${c.live_start}~${c.live_end})` });
+    }
   }
 
   // 헤더
   const dows = ["월", "화", "수", "목", "금", "토", "일"];
-  let html = '<div class="cal-header">';
+  let html = '<div class="cal-grid-head">';
   for (let i = 0; i < 7; i++) {
     const cls = i === 5 ? "sat" : i === 6 ? "sun" : "";
     html += `<div class="cal-dow ${cls}">${dows[i]}</div>`;
   }
   html += "</div>";
 
-  // 각 주(week) 단위로 렌더 — 셀 layer + 막대 overlay layer
-  for (let w = 0; w < totalWeeks; w++) {
-    // 그 주의 셀 7개
-    const weekCells = cellInfo.slice(w * 7, w * 7 + 7);
-
-    // 그 주에 활성인 캠페인 segment 계산
-    const weekStart = parseYmd(weekCells[0].dateStr);
-    const weekEnd = parseYmd(weekCells[6].dateStr);
-    const segs = [];
-    for (const c of campaigns) {
-      const cs = parseYmd(c.live_start);
-      const ce = parseYmd(c.live_end);
-      if (!cs || !ce) continue;
-      // 겹치는지
-      const segStart = cs > weekStart ? cs : weekStart;
-      const segEnd = ce < weekEnd ? ce : weekEnd;
-      if (segStart > segEnd) continue;
-      // 컬럼 인덱스 (0~6)
-      const startCol = Math.round((segStart - weekStart) / 86400000);
-      const endCol = Math.round((segEnd - weekStart) / 86400000);
-      segs.push({
-        campaign: c,
-        startCol,
-        endCol,
-        isCampStart: ymdLocal(segStart) === c.live_start,
-        isCampEnd: ymdLocal(segEnd) === c.live_end,
-      });
-    }
-    // 같은 주 안에서 row 할당 (충돌 회피)
-    segs.sort((a, b) => a.startCol - b.startCol || (b.endCol - b.startCol) - (a.endCol - a.startCol));
-    const rowEndCol = []; // rowEndCol[r] = 그 row에서 가장 마지막 점유 col
-    for (const s of segs) {
-      let placed = false;
-      for (let r = 0; r < rowEndCol.length; r++) {
-        if (rowEndCol[r] < s.startCol) {
-          s.row = r;
-          rowEndCol[r] = s.endCol;
-          placed = true;
-          break;
-        }
+  // 월 전체 단일 그리드 (점만)
+  html += '<div class="cal-grid">';
+  for (const ci of cellInfo) {
+    const dowCls = ci.dowMon === 5 ? "sat" : ci.dowMon === 6 ? "sun" : "";
+    const holidayCls = ci.holiday ? (ci.off ? "holiday-soft" : "holiday") : "";
+    const classes = [
+      "cal-cell",
+      ci.off ? "off" : "",
+      ci.isToday ? "today" : "",
+      dowCls,
+      holidayCls,
+    ].filter(Boolean).join(" ");
+    const dots = (dotByDate[ci.dateStr] || []).map(d => {
+      if (d.type === "event") {
+        const ev = d.ev;
+        return `<span class="cal-dot k-${d.kind}" data-event-id="${escapeHtml(ev.id)}" data-ref-kind="${escapeHtml(ev.ref_kind || "")}" data-ref-id="${escapeHtml(ev.ref_id || "")}" data-auto="${ev.auto ? "1" : "0"}" title="${escapeHtml(d.title)}"></span>`;
       }
-      if (!placed) {
-        s.row = rowEndCol.length;
-        rowEndCol.push(s.endCol);
-      }
-    }
-    const barRows = rowEndCol.length;
-
-    // 셀 + overlay 한 줄에
-    html += `<div class="cal-week" style="--bar-rows: ${barRows}">`;
-
-    // (1) 셀 그리드
-    html += '<div class="cal-cells">';
-    for (let i = 0; i < 7; i++) {
-      const ci = weekCells[i];
-      const dowCls = ci.dowMon === 5 ? "sat" : ci.dowMon === 6 ? "sun" : "";
-      const holidayCls = ci.holiday ? (ci.off ? "holiday-soft" : "holiday") : "";
-      const classes = [
-        "cal-cell",
-        ci.off ? "off" : "",
-        ci.isToday ? "today" : "",
-        dowCls,
-        holidayCls,
-        i === 6 ? "last-col" : "",
-      ].filter(Boolean).join(" ");
-      const dotsHtml = (dotByDate[ci.dateStr] || []).map(ev => {
-        const k = ev.kind || "other";
-        return `<div class="cal-dot k-${k}" data-event-id="${escapeHtml(ev.id)}" data-ref-kind="${escapeHtml(ev.ref_kind || "")}" data-ref-id="${escapeHtml(ev.ref_id || "")}" data-auto="${ev.auto ? "1" : "0"}" title="${escapeHtml(ev.title)}">${escapeHtml(ev.title)}</div>`;
-      }).join("");
-      html += `
-        <div class="${classes}" data-date="${ci.dateStr}">
-          <div class="cal-day-row">
-            <span class="cal-day">${ci.day}</span>
-          </div>
-          ${ci.holiday ? `<div class="cal-holiday-label">${escapeHtml(ci.holiday)}</div>` : ""}
-          <div class="cal-dots">${dotsHtml}</div>
-        </div>
-      `;
-    }
-    html += "</div>";
-
-    // (2) 막대 overlay (셀 위로 absolute)
-    html += '<div class="cal-bars-overlay">';
-    for (const s of segs) {
-      const c = s.campaign;
-      const color = sellerColor(c.seller_name);
-      const rd = [];
-      if (s.isCampStart) rd.push("bar-rd-left");
-      if (s.isCampEnd) rd.push("bar-rd-right");
-      const label = `[${c.brand || ""}] ${c.seller_name} ${c.round}차 공구`;
-      html += `<div class="cal-bar st-${escapeHtml(c.status || "예정")} ${rd.join(" ")}"
-        style="grid-column: ${s.startCol + 1} / ${s.endCol + 2}; grid-row: ${s.row + 1}; background: ${color};"
-        data-campaign-id="${escapeHtml(c.id)}"
-        title="${escapeHtml(label)} (${c.live_start} ~ ${c.live_end})">${escapeHtml(label)}</div>`;
-    }
-    html += "</div>";
-
-    html += "</div>"; // .cal-week
+      return `<span class="cal-dot k-live" data-campaign-id="${escapeHtml(d.camp.id)}" title="${escapeHtml(d.title)}"></span>`;
+    }).join("");
+    html += `
+      <div class="${classes}" data-date="${ci.dateStr}">
+        <span class="cal-day">${ci.day}</span>
+        ${ci.holiday ? `<span class="cal-holiday-label">${escapeHtml(ci.holiday)}</span>` : ""}
+        <div class="cal-dots">${dots}</div>
+      </div>`;
   }
+  html += "</div>";
 
   root.innerHTML = html;
 }
@@ -1641,6 +1579,12 @@ document.addEventListener("click", async (e) => {
   const dotEl = e.target.closest(".cal-dot");
   if (dotEl) {
     e.stopPropagation();
+    // 캠페인 라이브 점 → 캠페인 다이얼로그
+    if (dotEl.dataset.campaignId) {
+      const c = state.campaigns.find(x => x.id === dotEl.dataset.campaignId);
+      if (c) showCampaignDialog(c);
+      return;
+    }
     const isAuto = dotEl.dataset.auto === "1";
     const refKind = dotEl.dataset.refKind;
     const refId = dotEl.dataset.refId;
@@ -1656,6 +1600,12 @@ document.addEventListener("click", async (e) => {
       const event = state.calEvents.find(x => x.id === dotEl.dataset.eventId);
       if (event) showEventDialog({ event });
     }
+    return;
+  }
+
+  // 상단 [+ 새 이벤트] 버튼
+  if (e.target.closest("#btnAddEventTop")) {
+    showEventDialog({ date: ymdLocal(new Date()) });
     return;
   }
 
