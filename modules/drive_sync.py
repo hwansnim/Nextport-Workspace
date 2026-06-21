@@ -140,6 +140,54 @@ def upload(path: Path) -> bool:
         return False
 
 
+_uploads_folder_id_cache: Optional[str] = None
+
+
+def _uploads_folder_id(svc) -> str:
+    """데이터 폴더 안의 'uploads' 하위폴더 id (없으면 생성). 릴스 영상 등 바이너리 저장용."""
+    global _uploads_folder_id_cache
+    if _uploads_folder_id_cache:
+        return _uploads_folder_id_cache
+    parent = _folder_id()
+    q = f"name='uploads' and '{parent}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    res = svc.files().list(q=q, fields="files(id)", pageSize=1).execute().get("files", [])
+    if res:
+        fid = res[0]["id"]
+    else:
+        fid = svc.files().create(body={"name": "uploads", "mimeType": "application/vnd.google-apps.folder", "parents": [parent]}, fields="id").execute()["id"]
+    _uploads_folder_id_cache = fid
+    return fid
+
+
+def upload_blob(filename: str, data: bytes, mime: str) -> Optional[dict]:
+    """바이너리 파일을 드라이브 uploads 폴더에 업로드. {id, name, mime} 반환."""
+    svc = _get_service()
+    if not svc:
+        return None
+    from googleapiclient.http import MediaInMemoryUpload
+    media = MediaInMemoryUpload(data, mimetype=mime or "application/octet-stream", resumable=False)
+    created = svc.files().create(
+        body={"name": filename, "parents": [_uploads_folder_id(svc)]},
+        media_body=media, fields="id, name, mimeType",
+    ).execute()
+    return {"id": created["id"], "name": created.get("name", filename), "mime": created.get("mimeType", mime)}
+
+
+def get_file_bytes(file_id: str):
+    """드라이브 파일을 바이트로 받아옴. (bytes, mime, name) 또는 None."""
+    svc = _get_service()
+    if not svc:
+        return None
+    meta = svc.files().get(fileId=file_id, fields="name, mimeType").execute()
+    buf = io.BytesIO()
+    from googleapiclient.http import MediaIoBaseDownload
+    dl = MediaIoBaseDownload(buf, svc.files().get_media(fileId=file_id))
+    done = False
+    while not done:
+        _, done = dl.next_chunk()
+    return buf.getvalue(), meta.get("mimeType", "application/octet-stream"), meta.get("name", file_id)
+
+
 _watch_thread: Optional[threading.Thread] = None
 
 

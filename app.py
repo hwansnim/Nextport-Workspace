@@ -1398,6 +1398,41 @@ def api_products_delete(pid: str):
     return jsonify({"ok": True})
 
 
+# ─── 파일 업로드 (릴스 영상 등) → 드라이브 uploads 폴더 + 프록시 스트림 ───
+@app.route("/api/upload", methods=["POST"])
+def api_upload():
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "file 없음"}), 400
+    data = f.read()
+    if len(data) > 200 * 1024 * 1024:
+        return jsonify({"error": "200MB 초과"}), 413
+    try:
+        from modules import drive_sync
+        r = drive_sync.upload_blob(f.filename or "file", data, f.mimetype)
+        if not r:
+            return jsonify({"error": "드라이브 미연결 (token 없음)"}), 503
+        return jsonify({"ok": True, "file_id": r["id"], "name": r["name"], "url": f"/api/file/{r['id']}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/file/<file_id>", methods=["GET"])
+def api_file(file_id):
+    try:
+        from modules import drive_sync
+        got = drive_sync.get_file_bytes(file_id)
+        if not got:
+            return jsonify({"error": "드라이브 미연결"}), 503
+        data, mime, _name = got
+        resp = make_response(data)
+        resp.headers["Content-Type"] = mime
+        resp.headers["Cache-Control"] = "public, max-age=86400"
+        return resp
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404
+
+
 # ─── SCHEDULE GENERATOR ───────────────────────────────────
 @app.route("/api/schedule/generate", methods=["POST"])
 def api_schedule_generate():

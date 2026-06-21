@@ -576,8 +576,18 @@
         </div>`;
     }).join("");
 
-    // 릴스
+    // 릴스 — 기획안 + 영상 직접 업로드(초안/최종)
     const reels = ad.reels || [];
+    const reelVid = (i, kind, fid, url) => {
+      const isFinal = kind === "final";
+      const player = fid ? `<video src="/api/file/${esc(fid)}" controls preload="metadata"></video>`
+        : (url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="reel-link">▶ 링크 영상</a>` : `<div class="reel-vid-empty">영상 없음</div>`);
+      return `<div class="reel-vid" data-idx="${i}" data-kind="${kind}">
+        <div class="reel-vid-label ${isFinal ? "reel-final" : ""}">${isFinal ? "✓ 최종 영상" : "초안 영상"}</div>
+        <div class="reel-vid-body">${player}</div>
+        <button type="button" class="btn-text" data-v2="reel-upload" data-idx="${i}" data-kind="${kind}">📤 ${fid || url ? "교체" : "업로드"} (클릭·드래그)</button>
+      </div>`;
+    };
     $("#adReelsList").innerHTML = reels.length
       ? reels.map((r, i) => `
           <div class="ad-reel-card">
@@ -588,9 +598,11 @@
               </select>
               <button class="btn-text" data-v2="ad-reel-del" data-idx="${i}">🗑</button>
             </div>
-            <textarea placeholder="기획안" data-v2="ad-reel-field" data-idx="${i}" data-field="plan" rows="2">${esc(r.plan || "")}</textarea>
-            <input type="url" placeholder="영상 URL" data-v2="ad-reel-field" data-idx="${i}" data-field="video_url" value="${esc(r.video_url || "")}" />
-            ${r.video_url ? `<a href="${esc(r.video_url)}" target="_blank" rel="noopener" class="btn-text">▶️ 영상 보기</a>` : ""}
+            <textarea placeholder="기획안 (구성/멘트/레퍼런스)" data-v2="ad-reel-field" data-idx="${i}" data-field="plan" rows="3">${esc(r.plan || "")}</textarea>
+            <div class="reel-vids">
+              ${reelVid(i, "draft", r.video_file_id, r.video_url)}
+              ${reelVid(i, "final", r.final_file_id, r.final_url)}
+            </div>
           </div>`).join("")
       : `<div class="hint">릴스 없음. [+ 릴스 추가] 클릭</div>`;
 
@@ -1432,6 +1444,11 @@
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
       return patchAd({ reels: [...(ad.reels || []), { plan: "", video_url: "", status: "기획중" }] });
     }
+    if (what === "reel-upload") {
+      s.reelUploadTarget = { idx: parseInt(trg.dataset.idx), kind: trg.dataset.kind };
+      $("#reelVideoFile")?.click();
+      return;
+    }
     if (what === "ad-reel-del") {
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
@@ -1530,6 +1547,37 @@
       const kind = grid?.dataset.kind || "ref";
       addBannerImages(e.dataTransfer.files, key, kind);
     }
+  });
+
+  // ─── 릴스 영상 업로드 (드라이브 저장 + 프록시 재생) ───
+  async function uploadReelVideo(file, idx, kind) {
+    if (!file || !file.type.startsWith("video/") || !s.activeMarketId) return;
+    window.showToast?.({ icon: "⏳", title: "영상 업로드 중…", body: file.name + " (잠시만)" });
+    const fdv = new FormData(); fdv.append("file", file);
+    try {
+      const r = await fetch("/api/upload", { method: "POST", body: fdv }).then(x => x.json());
+      if (r.error) { alert("업로드 실패: " + r.error); return; }
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+      const reels = JSON.parse(JSON.stringify(ad.reels || []));
+      if (reels[idx]) {
+        reels[idx][kind === "final" ? "final_file_id" : "video_file_id"] = r.file_id;
+        await patchAd({ reels });
+        window.showToast?.({ icon: "✅", title: "영상 업로드 완료", accent: true });
+      }
+    } catch (e) { alert("업로드 실패: " + e.message); }
+  }
+  document.addEventListener("change", (e) => {
+    if (e.target.id === "reelVideoFile" && s.reelUploadTarget) {
+      uploadReelVideo(e.target.files[0], s.reelUploadTarget.idx, s.reelUploadTarget.kind);
+      e.target.value = "";
+    }
+  });
+  document.addEventListener("dragover", (e) => { if (e.target.closest(".reel-vid")) { e.preventDefault(); e.target.closest(".reel-vid").classList.add("reel-drag"); } });
+  document.addEventListener("dragleave", (e) => { const v = e.target.closest(".reel-vid"); if (v) v.classList.remove("reel-drag"); });
+  document.addEventListener("drop", (e) => {
+    const v = e.target.closest(".reel-vid");
+    if (v) { e.preventDefault(); v.classList.remove("reel-drag"); uploadReelVideo(e.dataTransfer.files[0], parseInt(v.dataset.idx), v.dataset.kind); }
   });
 
   // 셀러 미리보기 — 좌우 스와이프(터치/마우스 드래그)로 날짜 이동
