@@ -162,6 +162,8 @@ body {
 .side-item.active .ico { opacity: 1; }
 /* 이모지 아이콘(미교체분) 크기 보정 */
 .side-item .ico:not(:has(svg)) { font-size: 15px; }
+.side-item .side-badge { margin-left: auto; }
+.side-gap { height: 18px; }
 
 .side-status {
   padding: 12px;
