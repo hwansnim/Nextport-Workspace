@@ -1273,25 +1273,27 @@ function renderMeetings() {
   }
   // 최신순
   const sorted = [...state.meetings].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const MIC = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#86868b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>';
+  const STATUS_LABEL = { none: "녹취 미업로드", uploaded: "분석 대기", analyzing: "분석 중…", done: "분석 완료", error: "분석 에러" };
   root.innerHTML = sorted.map(m => {
     const camp = state.campaigns.find(c => c.id === m.campaign_id);
     const status = m.analysis_status || "none";
-    const STATUS_LABEL = { none: "녹취 미업로드", uploaded: "분석 대기", analyzing: "분석 중…", done: "분석 완료", error: "분석 에러" };
-    const when = m.date ? `${m.date}${m.time ? " " + m.time : ""}` : "<i style='color:#aaa'>날짜 미정</i>";
-    const attendees = Array.isArray(m.attendees) ? m.attendees.join(", ") : (m.attendees || "");
+    const when = m.date ? `${m.date}${m.time ? " " + m.time : ""}` : "날짜 미정";
+    const round = camp ? `${camp.round}차 미팅` : "";
+    const note = m.summary || m.agenda || (Array.isArray(m.attendees) ? m.attendees.join(", ") : (m.attendees || ""));
     return `
       <div class="meeting-card" data-action="open-meeting" data-id="${escapeHtml(m.id)}">
-        <div class="mc-icon">🎤</div>
+        <div class="mc-icon">${MIC}</div>
         <div class="mc-body">
-          <div class="mc-title">${escapeHtml(m.title)}</div>
-          <div class="mc-meta">
-            <span>${when}</span>
-            ${camp ? `<span>· ${escapeHtml(camp.seller_name)} ${camp.round}차</span>` : ""}
-            ${attendees ? `<span>· ${escapeHtml(attendees)}</span>` : ""}
+          <div class="mc-head">
+            <span class="mc-title">${escapeHtml(m.title)}</span>
+            ${round ? `<span class="mc-round">${escapeHtml(round)}</span>` : ""}
             <span class="analysis-pill ${status}">${STATUS_LABEL[status] || status}</span>
           </div>
-          ${m.summary ? `<div class="mc-summary">${escapeHtml(m.summary)}</div>` : ""}
+          ${note ? `<div class="mc-note">${escapeHtml(note)}</div>` : ""}
+          <div class="mc-date">${escapeHtml(when)}</div>
         </div>
+        <button class="btn-outline mc-upload" data-action="open-meeting" data-id="${escapeHtml(m.id)}">🎙 녹취 업로드</button>
       </div>
     `;
   }).join("");

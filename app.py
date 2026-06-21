@@ -4452,8 +4452,69 @@ def api_dashboard_v2():
 
     total_rev = sum(c["revenue"] for c in by_campaign)
     total_cost = sum(c["cost"] for c in by_campaign)
+
+    # ── 날짜 범위 선택 (start ~ end) → 막대 series + 기간 합계 window ──
+    cur_month_key = now.strftime("%Y-%m")
+
+    def _parse(s, default):
+        try:
+            return datetime.strptime(s[:10], "%Y-%m-%d") if s else default
+        except Exception:
+            return default
+
+    end_dt = _parse(request.args.get("end"), now)
+    start_dt = _parse(request.args.get("start"), datetime(now.year, now.month, 1) - timedelta(days=334))
+    if start_dt > end_dt:
+        start_dt, end_dt = end_dt, start_dt
+    span_days = (end_dt - start_dt).days
+    gran = request.args.get("gran")
+    if gran not in ("day", "month"):
+        gran = "day" if span_days <= 62 else "month"
+
+    s_str, e_str = start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d")
+
+    series = []
+    if gran == "day":
+        d = start_dt
+        while d <= end_dt:
+            key = d.strftime("%Y-%m-%d")
+            v = by_day.get(key, {})
+            series.append({"label": d.strftime("%m.%d"), "value": v.get("revenue", 0),
+                           "is_current": key == today_str})
+            d += timedelta(days=1)
+    else:
+        yy, mm = start_dt.year, start_dt.month
+        while (yy < end_dt.year) or (yy == end_dt.year and mm <= end_dt.month):
+            key = f"{yy:04d}-{mm:02d}"
+            v = by_month.get(key, {})
+            series.append({"label": f"{mm}월", "value": v.get("revenue", 0),
+                           "is_current": key == cur_month_key})
+            mm += 1
+            if mm > 12:
+                mm = 1; yy += 1
+
+    def _window_sum(lo, hi):
+        rev = cost = mk = 0
+        lo_s, hi_s = lo.strftime("%Y-%m-%d"), hi.strftime("%Y-%m-%d")
+        for cam in campaigns:
+            for stx in cam.get("sets", []):
+                for ad in stx.get("ads", []):
+                    sd = (ad.get("scheduling") or {}).get("start_date")
+                    if sd and len(sd) >= 10 and lo_s <= sd[:10] <= hi_s:
+                        rev += ad.get("revenue") or 0
+                        cost += ad.get("cost") or 0
+                        mk += 1
+        return rev, cost, mk
+
+    w_rev, w_cost, w_mk = _window_sum(start_dt, end_dt)
+    # 직전 동일 길이 기간
+    prev_end = start_dt - timedelta(days=1)
+    prev_start = prev_end - timedelta(days=span_days)
+    p_rev, p_cost, p_mk = _window_sum(prev_start, prev_end)
+
     return jsonify({
         "today": today_str,
+        "range": {"start": s_str, "end": e_str, "gran": gran},
         "totals": {
             "revenue": total_rev,
             "cost": total_cost,
@@ -4462,6 +4523,13 @@ def api_dashboard_v2():
             "campaign_count": len(by_campaign),
             "market_count": sum(c["market_count"] for c in by_campaign),
         },
+        "window": {
+            "revenue": w_rev, "cost": w_cost, "profit": w_rev - w_cost,
+            "margin_pct": round((w_rev - w_cost) / w_rev * 100, 1) if w_rev > 0 else None,
+            "market_count": w_mk,
+        },
+        "prev_window": {"revenue": p_rev, "cost": p_cost, "market_count": p_mk},
+        "series": series,
         "months": months_list,
         "days": days_list,
         "campaigns": by_campaign,

@@ -17,7 +17,10 @@
 
   const st = {
     data: null,
-    range: "month",       // month | day
+    range: "month",       // month | day | custom
+    start: null,          // YYYY-MM-DD (날짜 범위 시작)
+    end: null,            // YYYY-MM-DD (날짜 범위 종료)
+    gran: null,           // day | month | null(자동)
     activeCell: null,     // {row, col}
     selection: null,      // {r1, c1, r2, c2}
     undoStack: [],
@@ -25,10 +28,32 @@
     editing: false,
   };
 
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+  // 기본 범위 = 최근 12개월
+  function defaultRange() {
+    const now = new Date();
+    const end = ymd(now);
+    const s = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    return { start: ymd(s), end, gran: "month" };
+  }
+
   async function load() {
     try {
-      const r = await api("/api/dashboard_v2");
+      if (!st.start || !st.end) {
+        const d = defaultRange();
+        st.start = d.start; st.end = d.end; st.gran = d.gran;
+      }
+      const q = new URLSearchParams({ start: st.start, end: st.end });
+      if (st.gran) q.set("gran", st.gran);
+      const r = await api("/api/dashboard_v2?" + q.toString());
       st.data = r;
+      // 날짜 입력 동기화
+      const si = $("#dvStart"), ei = $("#dvEnd");
+      if (si && !si.value) si.value = st.start;
+      if (ei && !ei.value) ei.value = st.end;
+      const lab = $("#dvPeriodLabel");
+      if (lab) lab.textContent = `정산 · 매출 · ${st.start} ~ ${st.end}`;
       renderStats();
       renderChart();
       renderSheet();
@@ -38,77 +63,62 @@
   // ─── 1. 상단 카드 (카페24 풍) ───────────────────────────
   function renderStats() {
     if (!st.data) return;
+    // 선택 기간(window) 기준 — 없으면 전체 totals
+    const w = st.data.window || st.data.totals || {};
     const t = st.data.totals || {};
-    $("#dvStatRevenue").textContent = fmtKRW(t.revenue);
-    $("#dvStatCost").textContent = fmtKRW(t.cost);
-    $("#dvStatProfit").textContent = fmtKRW(t.profit);
+    $("#dvStatRevenue").textContent = fmtKRW(w.revenue);
+    $("#dvStatCost").textContent = fmtKRW(w.cost);
+    $("#dvStatProfit").textContent = fmtKRW(w.profit);
     $("#dvStatCampaigns").textContent = t.campaign_count || 0;
 
-    // 이번 달 / 최근 7일 sub
-    const monthThis = (st.data.months || []).slice(-1)[0];
-    const daySum7 = (st.data.days || []).reduce((a, d) => a + d.revenue, 0);
-    $("#dvStatRevSub").textContent = `이번 달 ${fmtKRWshort(monthThis?.revenue || 0)} · 최근 7일 ${fmtKRWshort(daySum7)}`;
-    $("#dvStatCostSub").textContent = `마진율 ${t.margin_pct != null ? t.margin_pct.toFixed(1) + "%" : "—"}`;
-    $("#dvStatProfitSub").textContent = `누적 마켓 ${t.market_count || 0}건`;
-    $("#dvStatCampaignsSub").textContent = `마켓 ${t.market_count || 0}건 진행`;
-
-    // 트렌드 배지 (목업) — 전월 대비 매출 증감 / 마진율 / 캠페인
-    const months = st.data.months || [];
-    const cur = months.slice(-1)[0]?.revenue || 0;
-    const prev = months.slice(-2)[0]?.revenue || 0;
     const setBadge = (id, text, cls) => {
       const el = $("#" + id); if (!el) return;
       if (text == null) { el.hidden = true; return; }
       el.textContent = text; el.hidden = false;
       el.className = "dv-badge " + cls;
     };
-    if (prev > 0) {
-      const pct = Math.round((cur - prev) / prev * 1000) / 10;
+
+    // 직전 동일 길이 기간 대비 (백엔드 prev_window)
+    const pw = st.data.prev_window || {};
+    const diffRev = (w.revenue || 0) - (pw.revenue || 0);
+    $("#dvStatRevSub").textContent = `지난 기간 대비 ${diffRev >= 0 ? "+" : "−"}${fmtKRWshort(Math.abs(diffRev))}`;
+    if (pw.revenue > 0) {
+      const pct = Math.round(diffRev / pw.revenue * 1000) / 10;
       setBadge("dvBadgeRevenue", `${pct >= 0 ? "↑" : "↓"} ${Math.abs(pct)}%`, pct >= 0 ? "pos" : "neg");
-    } else setBadge("dvBadgeRevenue", null);
-    setBadge("dvBadgeProfit", t.margin_pct != null ? `${t.margin_pct.toFixed(1)}%` : null, "accent");
-    setBadge("dvBadgeCost", null);
-    setBadge("dvBadgeCampaigns", t.campaign_count ? `${t.campaign_count}건` : null, "neu");
+    } else setBadge("dvBadgeRevenue", w.revenue ? "신규" : null, "pos");
+
+    $("#dvStatCostSub").textContent = "광고비 + 발송비 합산";
+    const diffCost = (w.cost || 0) - (pw.cost || 0);
+    if (pw.cost > 0) {
+      const pct = Math.round(diffCost / pw.cost * 1000) / 10;
+      setBadge("dvBadgeCost", `${pct >= 0 ? "↑" : "↓"} ${Math.abs(pct)}%`, "neu");
+    } else setBadge("dvBadgeCost", null);
+
+    $("#dvStatProfitSub").textContent = `평균 공헌율 ${w.margin_pct != null ? w.margin_pct.toFixed(1) + "%" : "—"}`;
+    setBadge("dvBadgeProfit", w.margin_pct != null ? `${w.margin_pct.toFixed(1)}%` : null, "accent");
+
+    const newCount = w.market_count || 0;
+    $("#dvStatCampaignsSub").textContent = `이번 기간 ${newCount}건 신규`;
+    setBadge("dvBadgeCampaigns", newCount ? `+${newCount}` : null, "pos");
   }
 
-  // ─── 2. SVG 막대 그래프 ────────────────────────────────
+  // ─── 2. 막대 그래프 (목업: HTML 막대) ──────────────────
   function renderChart() {
-    const svg = $("#dvChartSvg");
-    if (!svg || !st.data) return;
-    const data = st.range === "month" ? (st.data.months || []) : (st.data.days || []);
-    if (!data.length) { svg.innerHTML = ""; return; }
-    const W = 1100, H = 280;
-    const padL = 60, padR = 20, padT = 30, padB = 40;
-    const innerW = W - padL - padR, innerH = H - padT - padB;
-    const max = Math.max(...data.map(d => d.revenue), 100);
-    const niceMax = Math.ceil(max / 100000) * 100000 || max;
-    const barW = innerW / data.length * 0.72;
-    const slot = innerW / data.length;
-
-    let html = "";
-    // 가로 격자 (4단)
-    for (let i = 0; i <= 4; i++) {
-      const y = padT + innerH * (i / 4);
-      const v = niceMax * (1 - i / 4);
-      html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eee" />`;
-      html += `<text x="${padL - 10}" y="${y + 4}" text-anchor="end" font-size="10" fill="#999">${fmtKRWshort(v)}</text>`;
-    }
-    // 막대 + 라벨
-    data.forEach((d, i) => {
-      const x = padL + slot * i + (slot - barW) / 2;
-      const h = niceMax > 0 ? (d.revenue / niceMax) * innerH : 0;
-      const y = padT + innerH - h;
-      const isToday = d.is_today;
-      const fill = isToday ? "#3182F6" : (d.revenue > 0 ? "#69a6ff" : "#e8e3da");
-      html += `<rect class="dv-bar" data-idx="${i}" x="${x}" y="${y}" width="${barW}" height="${h}" fill="${fill}" rx="3" />`;
-      // 값 라벨 (막대 위)
-      if (d.revenue > 0) {
-        html += `<text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="10" fill="#3182F6" font-weight="700">${fmtKRWshort(d.revenue)}</text>`;
-      }
-      // x축 라벨
-      html += `<text x="${x + barW / 2}" y="${H - padB + 16}" text-anchor="middle" font-size="10" fill="${isToday ? '#3182F6' : '#666'}" font-weight="${isToday ? 700 : 400}">${esc(d.label)}</text>`;
-    });
-    svg.innerHTML = html;
+    const wrap = $("#dvChart");
+    if (!wrap || !st.data) return;
+    const data = st.data.series || [];
+    if (!data.length) { wrap.innerHTML = '<div class="dv-bars-empty">표시할 매출 데이터가 없습니다</div>'; return; }
+    const max = Math.max(...data.map(d => d.value || 0), 1);
+    wrap.innerHTML = data.map((d, i) => {
+      const pct = Math.max(2, Math.round((d.value || 0) / max * 100));
+      const cur = d.is_current;
+      const color = cur ? "var(--accent)" : ((d.value || 0) > 0 ? "#c7d8ee" : "#e8e8ed");
+      return `
+        <div class="dv-bar-col" title="${esc(d.label)} · ${fmtKRWshort(d.value || 0)}">
+          <div class="dv-bar" data-idx="${i}" style="height:${pct}%;background:${color}"></div>
+          <div class="dv-bar-label${cur ? " cur" : ""}">${esc(d.label)}</div>
+        </div>`;
+    }).join("");
   }
 
   // ─── 3. 엑셀스럽 시트 ──────────────────────────────────
@@ -424,7 +434,19 @@
     if (what === "dv-range") {
       st.range = trg.dataset.range;
       $$(".dv-range-btn").forEach(b => b.classList.toggle("active", b === trg));
-      renderChart();
+      // 프리셋 = 날짜 범위 단축 (12개월 / 7일)
+      const now = new Date();
+      if (st.range === "day") {
+        const s = new Date(now); s.setDate(now.getDate() - 6);
+        st.start = ymd(s); st.end = ymd(now); st.gran = "day";
+      } else {
+        const s = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+        st.start = ymd(s); st.end = ymd(now); st.gran = "month";
+      }
+      const si = $("#dvStart"), ei = $("#dvEnd");
+      if (si) si.value = st.start;
+      if (ei) ei.value = st.end;
+      load();
       return;
     }
     if (what === "dv-goto-cam") {
@@ -439,6 +461,28 @@
       return;
     }
     if (what === "dv-export-csv") return exportCsv();
+  });
+
+  // 날짜 범위 직접 선택 (언제~언제)
+  document.addEventListener("change", (e) => {
+    if (e.target.id === "dvStart" || e.target.id === "dvEnd") {
+      const si = $("#dvStart"), ei = $("#dvEnd");
+      if (si?.value) st.start = si.value;
+      if (ei?.value) st.end = ei.value;
+      if (st.start && st.end && st.start > st.end) { const t = st.start; st.start = st.end; st.end = t; si.value = st.start; ei.value = st.end; }
+      st.gran = null;            // 자동 (기간 길이에 따라 일/월)
+      st.range = "custom";
+      $$(".dv-range-btn").forEach(b => b.classList.remove("active"));
+      load();
+    }
+  });
+
+  // 상단 CSV 내보내기 / 정산 마감
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#dvExportTop")) { exportCsv(); return; }
+    if (e.target.closest("#dvCloseSettle")) {
+      window.showToast?.({ icon: "✓", title: "정산 마감", body: `${st.start} ~ ${st.end} 기간 정산을 마감했습니다` });
+    }
   });
 
   // 행 클릭 시 캠페인으로 이동

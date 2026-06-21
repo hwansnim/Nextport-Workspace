@@ -414,8 +414,20 @@
       <section class="tab-pane" id="tab-dashboard">
         <div class="page-head">
           <div>
-            <h1>대시보드 (정산 / 매출)</h1>
-            <p class="page-sub">월별 매출 그래프 + 캠페인별 정산. 셀 = 엑셀처럼 편집 (Ctrl+C/V/Z/Y, =SUM, =AVG). 행 클릭 → 캠페인 이동.</p>
+            <h1>대시보드</h1>
+            <p class="page-sub" id="dvPeriodLabel">정산 · 매출</p>
+          </div>
+          <div class="dash-head-actions">
+            <div class="date-range">
+              <input type="date" id="dvStart" class="dr-input" />
+              <span class="dr-sep">~</span>
+              <input type="date" id="dvEnd" class="dr-input" />
+            </div>
+            <button class="btn-outline" id="dvExportTop">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+              CSV 내보내기
+            </button>
+            <button class="btn-primary" id="dvCloseSettle">정산 마감</button>
           </div>
         </div>
 
@@ -441,28 +453,31 @@
           </div>
         </section>
 
-        <!-- 2) 월별 매출 막대 그래프 (카페24 스타일) -->
+        <!-- 2) 월별 매출 막대 그래프 (목업) -->
         <section class="panel">
           <div class="panel-head">
-            <h2>월별 매출 추이</h2>
-            <div class="head-actions">
-              <button class="dv-range-btn active" data-v2="dv-range" data-range="month">최근 12개월</button>
-              <button class="dv-range-btn" data-v2="dv-range" data-range="day">최근 7일</button>
+            <div>
+              <h2>월별 매출 추이</h2>
+              <p class="panel-sub" id="dvChartSub">단위 백만원 · 이번 달 강조</p>
+            </div>
+            <div class="seg">
+              <button class="seg-btn active dv-range-btn" data-v2="dv-range" data-range="month">최근 12개월</button>
+              <button class="seg-btn dv-range-btn" data-v2="dv-range" data-range="day">최근 7일</button>
             </div>
           </div>
-          <div class="dv-chart-wrap">
-            <svg id="dvChartSvg" viewBox="0 0 1100 280" preserveAspectRatio="xMidYMid meet"></svg>
-          </div>
+          <div class="dv-bars" id="dvChart"></div>
         </section>
 
         <!-- 3) 캠페인별 표 (엑셀 인터랙션) -->
         <section class="panel">
           <div class="panel-head">
-            <h2>캠페인별 정산</h2>
-            <div class="head-actions">
-              <span class="hint">셀 클릭 = 편집 · Ctrl+C/V/Z/Y · =SUM(A1:A3) · 행 클릭 → 캠페인</span>
-              <button class="btn-text" data-v2="dv-export-csv">CSV</button>
+            <div>
+              <h2>캠페인별 정산</h2>
+              <p class="panel-sub">행 클릭 → 캠페인 이동 · 셀 클릭 = 편집</p>
             </div>
+            <button class="btn-outline btn-outline-sm" data-v2="dv-export-csv">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>CSV
+            </button>
           </div>
           <div class="dv-sheet-wrap">
             <table class="dv-sheet" id="dvSheet">
@@ -473,7 +488,7 @@
                   <th class="dv-hdr-cell">브랜드 / 제품</th>
                   <th class="dv-hdr-cell">타입</th>
                   <th class="dv-hdr-cell">상태</th>
-                  <th class="dv-hdr-cell">마켓수</th>
+                  <th class="dv-hdr-cell dv-num">마켓</th>
                   <th class="dv-hdr-cell dv-num">매출</th>
                   <th class="dv-hdr-cell dv-num">비용</th>
                   <th class="dv-hdr-cell dv-num">공헌 이익</th>
@@ -497,19 +512,16 @@
       <!-- TAB: MEETINGS -->
       <section class="tab-pane" id="tab-meetings">
         <div class="page-head">
-          <h1>미팅 / 녹취록</h1>
-          <p class="page-sub">미팅 추가 → 녹음 파일 업로드 → Gemini가 자동으로 트랜스크립션 + 요약 + 액션아이템 추출. 수동 수정 가능.</p>
+          <div>
+            <h1>미팅 · 녹취록</h1>
+            <p class="page-sub">녹음 업로드 → Gemini 자동 트랜스크립션 + 요약 + 액션아이템</p>
+          </div>
+          <button id="btnAddMeeting" class="btn-primary">+ 미팅 추가</button>
         </div>
 
-        <section class="panel">
-          <div class="panel-head">
-            <h2>미팅 목록</h2>
-            <button id="btnAddMeeting" class="btn-secondary">+ 미팅 추가</button>
-          </div>
-          <div id="meetingList" class="meeting-list">
-            <div class="empty">미팅 없음. [+ 미팅 추가]로 시작하세요.</div>
-          </div>
-        </section>
+        <div id="meetingList" class="meeting-list">
+          <div class="empty">미팅 없음. [+ 미팅 추가]로 시작하세요.</div>
+        </div>
       </section>
 
       <!-- ▶️ TAB: DM 발송 (실시간) -->
