@@ -562,17 +562,68 @@
   }
 
   // 셀러 노출 미리보기 — 모바일 프레임에 실제 셀러뷰 iframe
-  async function renderSellerMobilePreview(set, ad) {
-    const iframe = $("#adSellerIframe");
-    if (!iframe) return;
-    try {
-      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}/share`);
-      const url = r.path + "?preview=1";
-      if (iframe.dataset.src !== url) {
-        iframe.dataset.src = url;
-        iframe.src = url;
-      }
-    } catch (e) { /* noop */ }
+  function _todayStr() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  }
+  function _curAd() {
+    const c = s.cachedCampaign; if (!c) return null;
+    const set = (c.sets || []).find(x => x.id === s.activeSetId);
+    return set?.ads.find(x => x.id === s.activeMarketId) || null;
+  }
+
+  // 셀러 노출 미리보기 = 데일리 스와이프 (content_days 직결)
+  function renderSellerMobilePreview(set, ad) {
+    const days = ad.content_days || [];
+    // 마켓 바뀌면 오늘 날짜로 초기화
+    if (s.previewMarketId !== ad.id) {
+      s.previewMarketId = ad.id;
+      const ti = days.findIndex(d => d.date === _todayStr());
+      s.previewDayIdx = ti >= 0 ? ti : 0;
+    }
+    renderSwipeDay(ad);
+  }
+
+  function renderSwipeDay(ad) {
+    const screen = $("#adSellerSwipe"); const label = $("#spDayLabel");
+    if (!screen) return;
+    if (!ad) ad = _curAd();
+    const days = (ad && ad.content_days) || [];
+    if (!days.length) {
+      screen.innerHTML = `<div class="sp-empty">콘텐츠 가이드에서 [생성]하면<br>여기에 셀러 미리보기가 떠요</div>`;
+      if (label) label.textContent = "—";
+      return;
+    }
+    if (s.previewDayIdx == null || s.previewDayIdx < 0) s.previewDayIdx = 0;
+    if (s.previewDayIdx >= days.length) s.previewDayIdx = days.length - 1;
+    const di = s.previewDayIdx;
+    const d = days[di];
+    const isToday = d.date === _todayStr();
+    if (label) label.innerHTML = `${esc((d.date || "").slice(5))} (${esc(d.weekday || "")}) · ${di + 1}/${days.length}${isToday ? ' · <b style="color:var(--accent)">오늘</b>' : ""}`;
+    const slots = d.slots || [];
+    screen.innerHTML = `
+      <div class="sp-day ${isToday ? "sp-today-day" : ""}">
+        <div class="sp-day-head">
+          <span class="sp-dday">${esc(d.d_label || "")}</span>
+          ${d.phase ? `<span class="sp-phase">${esc(d.phase)}</span>` : ""}
+        </div>
+        <div class="sp-stories">
+          ${slots.length ? slots.map((sl, si) => {
+            const isFeed = si >= 5;
+            return `<div class="sp-story ${sl.posted ? "posted" : ""}">
+              <div class="sp-story-img" data-v2="cg-pick-img" data-di="${di}" data-si="${si}" title="클릭 = 이미지 변경">
+                ${sl.image_url ? `<img src="${esc(sl.image_url)}" loading="lazy"/>` : `<span class="sp-img-empty">📷</span>`}
+                <span class="sp-story-num">${isFeed ? "피드" : "STORY " + (si + 1)}</span>
+                ${sl.posted ? `<span class="sp-posted-chip">✓ 게시됨</span>` : ""}
+              </div>
+              <div class="sp-story-body">
+                <input class="sp-story-concept" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="concept" value="${esc(sl.concept || "")}" placeholder="소구점/제목" />
+                <textarea class="sp-story-caption" data-v2="cg-slot-edit" data-di="${di}" data-si="${si}" data-f="caption" rows="3" placeholder="스토리 멘트">${esc(sl.caption || "")}</textarea>
+              </div>
+            </div>`;
+          }).join("") : `<div class="sp-empty">이 날은 스토리 없음</div>`}
+        </div>
+      </div>`;
   }
 
   // 셀러 접속 트래킹
@@ -1096,10 +1147,21 @@
       return patchSettlement({ rows });
     }
     if (what === "setadd-close") { $("#setAddDialog")?.close?.(); return; }
-    if (what === "sp-reload") {
-      const iframe = $("#adSellerIframe");
-      if (iframe && iframe.dataset.src) iframe.src = iframe.dataset.src;
-      loadTracking();
+    // 셀러 미리보기 — 데일리 스와이프 날짜 이동
+    if (what === "sp-prev-day") {
+      if (s.previewDayIdx > 0) { s.previewDayIdx--; renderSwipeDay(_curAd()); }
+      return;
+    }
+    if (what === "sp-next-day") {
+      const days = _curAd()?.content_days || [];
+      if (s.previewDayIdx < days.length - 1) { s.previewDayIdx++; renderSwipeDay(_curAd()); }
+      return;
+    }
+    if (what === "sp-today") {
+      const days = _curAd()?.content_days || [];
+      const ti = days.findIndex(d => d.date === _todayStr());
+      s.previewDayIdx = ti >= 0 ? ti : 0;
+      renderSwipeDay(_curAd());
       return;
     }
 
@@ -1250,6 +1312,22 @@
     const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith("image/"));
     if (items.length) addBannerImages(items.map(it => it.getAsFile()).filter(Boolean));
   });
+
+  // 셀러 미리보기 — 좌우 스와이프(터치/마우스 드래그)로 날짜 이동
+  let _swipeX = null;
+  function _swipeStart(x, t) { if (t.closest && t.closest("#adSellerSwipe")) _swipeX = x; }
+  function _swipeEnd(x) {
+    if (_swipeX == null) return;
+    const dx = x - _swipeX; _swipeX = null;
+    if (Math.abs(dx) < 45) return;
+    const days = _curAd()?.content_days || [];
+    if (dx < 0 && s.previewDayIdx < days.length - 1) { s.previewDayIdx++; renderSwipeDay(_curAd()); }
+    else if (dx > 0 && s.previewDayIdx > 0) { s.previewDayIdx--; renderSwipeDay(_curAd()); }
+  }
+  document.addEventListener("touchstart", (e) => { const t = e.touches[0]; _swipeStart(t.clientX, e.target); }, { passive: true });
+  document.addEventListener("touchend", (e) => { _swipeEnd((e.changedTouches[0] || {}).clientX || 0); }, { passive: true });
+  document.addEventListener("mousedown", (e) => { if (e.target.closest("#adSellerSwipe") && !e.target.closest("input,textarea,button,a")) _swipeStart(e.clientX, e.target); });
+  document.addEventListener("mouseup", (e) => { if (_swipeX != null) _swipeEnd(e.clientX); });
 
   document.addEventListener("change", async (e) => {
     if (e.target.dataset.v2 === "ad-banner-toggle") {
