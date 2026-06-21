@@ -81,14 +81,14 @@
       const h = niceMax > 0 ? (d.revenue / niceMax) * innerH : 0;
       const y = padT + innerH - h;
       const isToday = d.is_today;
-      const fill = isToday ? "#FF6B35" : (d.revenue > 0 ? "#FFA572" : "#e8e3da");
+      const fill = isToday ? "#3182F6" : (d.revenue > 0 ? "#69a6ff" : "#e8e3da");
       html += `<rect class="dv-bar" data-idx="${i}" x="${x}" y="${y}" width="${barW}" height="${h}" fill="${fill}" rx="3" />`;
       // 값 라벨 (막대 위)
       if (d.revenue > 0) {
-        html += `<text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="10" fill="#FF6B35" font-weight="700">${fmtKRWshort(d.revenue)}</text>`;
+        html += `<text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="10" fill="#3182F6" font-weight="700">${fmtKRWshort(d.revenue)}</text>`;
       }
       // x축 라벨
-      html += `<text x="${x + barW / 2}" y="${H - padB + 16}" text-anchor="middle" font-size="10" fill="${isToday ? '#FF6B35' : '#666'}" font-weight="${isToday ? 700 : 400}">${esc(d.label)}</text>`;
+      html += `<text x="${x + barW / 2}" y="${H - padB + 16}" text-anchor="middle" font-size="10" fill="${isToday ? '#3182F6' : '#666'}" font-weight="${isToday ? 700 : 400}">${esc(d.label)}</text>`;
     });
     svg.innerHTML = html;
   }

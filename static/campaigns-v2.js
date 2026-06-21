@@ -860,18 +860,18 @@
     const igLink = c.instagram_url || (c.linked_influencer_handle ? `https://instagram.com/${c.linked_influencer_handle}/` : "");
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(c.seller_name || "")} 공구 스케줄</title>
       <style>
-        body{font-family:Pretendard,sans-serif;padding:30px;max-width:1400px;margin:auto;background:#fafaf6;color:#222}
-        h1{color:#FF6B35;border-bottom:3px solid #FF6B35;padding-bottom:10px}
-        h2{color:#FF6B35;margin-top:24px;font-size:16px}
-        .hdr{background:#fff5e8;padding:12px 16px;border-radius:8px;margin-bottom:18px;border-left:4px solid #FF6B35}
+        body{font-family:Pretendard,sans-serif;padding:30px;max-width:1400px;margin:auto;background:#f9fafb;color:#222}
+        h1{color:#3182F6;border-bottom:3px solid #3182F6;padding-bottom:10px}
+        h2{color:#3182F6;margin-top:24px;font-size:16px}
+        .hdr{background:#eff6ff;padding:12px 16px;border-radius:8px;margin-bottom:18px;border-left:4px solid #3182F6}
         table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.05);font-size:11px}
-        th{background:#fff5e8;padding:10px;font-size:11px;text-align:left;border:1px solid #f0ede5}
+        th{background:#eff6ff;padding:10px;font-size:11px;text-align:left;border:1px solid #f0ede5}
         td{padding:10px;border:1px solid #f0ede5;vertical-align:top}
-        .date-cell{background:#fafaf6;font-weight:700;white-space:nowrap}
-        .dday{color:#FF6B35;font-weight:700}
+        .date-cell{background:#f9fafb;font-weight:700;white-space:nowrap}
+        .dday{color:#3182F6;font-weight:700}
         .phase{font-size:10px;color:#888}
         .slot{min-width:170px}
-        .slot b{display:block;margin-bottom:4px;color:#FF6B35;font-size:11px}
+        .slot b{display:block;margin-bottom:4px;color:#3182F6;font-size:11px}
         .slot .cap{font-size:11.5px;line-height:1.5;color:#333;white-space:pre-wrap}
         .feed{background:#fffbeb}
       </style></head><body>

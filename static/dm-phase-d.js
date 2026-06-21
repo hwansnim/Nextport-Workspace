@@ -644,7 +644,7 @@
     t.className = "toast" + (accent ? " toast-accent" : "");
     t.style.cssText = `
       pointer-events:auto;cursor:${onclick ? "pointer" : "default"};
-      background:${accent ? "linear-gradient(135deg,#fff5e8 0%,#fbe9d6 100%)" : "#fff"};
+      background:${accent ? "linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%)" : "#fff"};
       border:1px solid ${accent ? "var(--accent)" : "var(--border)"};
       border-radius:10px;padding:12px 16px;min-width:280px;max-width:380px;
       box-shadow:0 6px 18px rgba(0,0,0,.12);font-size:13px;
