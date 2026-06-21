@@ -467,13 +467,7 @@
 
     renderContentGuide(ad);
 
-    const events = ad.events || [];
-    $("#adEventList").innerHTML = events.length
-      ? events.map((ev, i) => `<div class="ad-list-row">
-          <span class="ad-list-text">${esc(typeof ev === "string" ? ev : ev.text || "")}</span>
-          <button class="btn-text" data-v2="ad-event-del" data-idx="${i}">×</button>
-        </div>`).join("")
-      : `<div class="hint">이벤트 없음</div>`;
+    renderEventCosts(ad);
 
     const drives = ad.drive_links || [];
     $("#adDriveList").innerHTML = drives.length
@@ -583,6 +577,104 @@
       ` : "";
     }
   }
+
+  // ─── 이벤트 관리 · 비용표 ───────────────────────────────
+  const _n = n => (parseInt(n) || 0).toLocaleString();
+  const _evCalc = r => Math.round(((parseInt(r.unit_price) || 0) + (parseInt(r.shipping) || 0)) * (parseInt(r.qty) || 0) * (parseInt(r.headcount) || 0));
+
+  function renderEventCosts(ad) {
+    if (!$("#evBudget")) return;
+    const exp = parseInt(ad.expected_revenue) || 0;
+    const costs = ad.event_costs || [];
+    const others = ad.other_costs || [];
+    const evTotal = costs.reduce((a, r) => a + _evCalc(r), 0);
+    const otherTotal = others.reduce((a, r) => a + (parseInt(r.cost) || 0), 0);
+    const rec = Math.round(exp * 0.05);
+    $("#evBudget").innerHTML = `
+      <div class="evb-item"><span class="evb-lbl">예상 매출</span><input type="number" class="evb-input" data-v2="ev-expected" value="${exp || ""}" placeholder="예상 매출 입력" /></div>
+      <div class="evb-item"><span class="evb-lbl">권장 이벤트 예산 (매출 5%)</span><b class="evb-val" id="evbRec">₩${_n(rec)}</b></div>
+      <div class="evb-item"><span class="evb-lbl">실제 이벤트 비용</span><b class="evb-val ${exp && evTotal > rec ? "evb-over" : ""}" id="evbEvTotal">₩${_n(evTotal)}</b></div>
+      <div class="evb-item"><span class="evb-lbl">기타 비용</span><b class="evb-val" id="evbOtherTotal">₩${_n(otherTotal)}</b></div>`;
+
+    $("#evCostBody").innerHTML = costs.length ? costs.map((r, i) => `
+      <tr>
+        <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="name" value="${esc(r.name || "")}" placeholder="EVENT ${i + 1}" /></td>
+        <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="product" value="${esc(r.product || "")}" placeholder="제품/상품권" /></td>
+        <td class="num"><input type="number" data-v2="ev-cost-edit" data-idx="${i}" data-f="unit_price" value="${r.unit_price || ""}" /></td>
+        <td class="num"><input type="number" data-v2="ev-cost-edit" data-idx="${i}" data-f="shipping" value="${r.shipping || ""}" /></td>
+        <td class="num"><input type="number" data-v2="ev-cost-edit" data-idx="${i}" data-f="qty" value="${r.qty || ""}" /></td>
+        <td class="num"><input type="number" data-v2="ev-cost-edit" data-idx="${i}" data-f="headcount" value="${r.headcount || ""}" /></td>
+        <td class="num ev-auto"><b>₩${_n(_evCalc(r))}</b></td>
+        <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="note" value="${esc(r.note || "")}" /></td>
+        <td><button class="btn-text" data-v2="ev-cost-del" data-idx="${i}">×</button></td>
+      </tr>`).join("") : `<tr><td colspan="9" class="empty">이벤트 비용 없음 — [+ 이벤트 행 추가]</td></tr>`;
+    $("#evCostFoot").innerHTML = costs.length ? `<tr class="ev-total"><td colspan="6" style="text-align:right">합계</td><td class="num"><b>₩${_n(evTotal)}</b></td><td colspan="2"></td></tr>` : "";
+
+    $("#evOtherBody").innerHTML = others.length ? others.map((r, i) => `
+      <tr>
+        <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="date" value="${esc(r.date || "")}" placeholder="26-05-04" /></td>
+        <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="owner" value="${esc(r.owner || "")}" placeholder="담당자" /></td>
+        <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="purpose" value="${esc(r.purpose || "")}" placeholder="용도" /></td>
+        <td class="num"><input type="number" data-v2="ev-other-edit" data-idx="${i}" data-f="cost" value="${r.cost || ""}" /></td>
+        <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="card_last4" value="${esc(r.card_last4 || "")}" maxlength="4" placeholder="9227" /></td>
+        <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="note" value="${esc(r.note || "")}" /></td>
+        <td><button class="btn-text" data-v2="ev-other-del" data-idx="${i}">×</button></td>
+      </tr>`).join("") : `<tr><td colspan="7" class="empty">기타 비용 없음 — [+ 기타 비용 행 추가]</td></tr>`;
+    $("#evOtherFoot").innerHTML = others.length ? `<tr class="ev-total"><td colspan="3" style="text-align:right">합계</td><td class="num"><b>₩${_n(otherTotal)}</b></td><td colspan="3"></td></tr>` : "";
+  }
+
+  // 이벤트 비용 셀 수정 — 전체 재렌더 없이 이벤트 섹션만 갱신
+  async function _saveEventArr(field, mutate) {
+    const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+    const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+    if (!ad) return;
+    const arr = JSON.parse(JSON.stringify(ad[field] || []));
+    mutate(arr);
+    await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}`, { method: "PATCH", body: JSON.stringify({ [field]: arr }) });
+    const fresh = await api(`/api/campaigns_v2/${s.activeCamId}`);
+    s.cachedCampaign = fresh;
+    const ad2 = fresh.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+    if (ad2) renderEventCosts(ad2);
+  }
+
+  // 비용 합계 DOM 즉시 재계산 (재렌더 없이 — 타이핑 안 끊김)
+  function _recalcEventDom() {
+    let evTotal = 0;
+    document.querySelectorAll("#evCostBody tr").forEach(tr => {
+      const g = f => parseInt(tr.querySelector(`[data-f="${f}"]`)?.value) || 0;
+      const calc = Math.round((g("unit_price") + g("shipping")) * g("qty") * g("headcount"));
+      const cell = tr.querySelector(".ev-auto b"); if (cell) cell.textContent = "₩" + calc.toLocaleString();
+      evTotal += calc;
+    });
+    let otherTotal = 0;
+    document.querySelectorAll("#evOtherBody tr").forEach(tr => { otherTotal += parseInt(tr.querySelector('[data-f="cost"]')?.value) || 0; });
+    const cf = $("#evCostFoot b"); if (cf) cf.textContent = "₩" + evTotal.toLocaleString();
+    const ofb = $("#evOtherFoot b"); if (ofb) ofb.textContent = "₩" + otherTotal.toLocaleString();
+    const ev = $("#evbEvTotal"); if (ev) ev.textContent = "₩" + evTotal.toLocaleString();
+    const ot = $("#evbOtherTotal"); if (ot) ot.textContent = "₩" + otherTotal.toLocaleString();
+    const exp = parseInt($('[data-v2="ev-expected"]')?.value) || 0;
+    const rec = $("#evbRec"); if (rec) rec.textContent = "₩" + Math.round(exp * 0.05).toLocaleString();
+  }
+  async function _patchEventArrSilent(field, idx, f, val) {
+    const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+    const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+    if (!ad) return;
+    const arr = JSON.parse(JSON.stringify(ad[field] || []));
+    if (arr[idx]) { arr[idx][f] = val; await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}`, { method: "PATCH", body: JSON.stringify({ [field]: arr }) }); }
+  }
+  // 입력 중 = 즉시 합산 / blur = 저장
+  document.addEventListener("input", (e) => {
+    const v = e.target.dataset.v2;
+    if (v === "ev-cost-edit" || v === "ev-other-edit" || v === "ev-expected") _recalcEventDom();
+  });
+  document.addEventListener("change", async (e) => {
+    const v = e.target.dataset.v2;
+    if (v === "ev-cost-edit") _patchEventArrSilent("event_costs", parseInt(e.target.dataset.idx), e.target.dataset.f, e.target.value);
+    else if (v === "ev-other-edit") _patchEventArrSilent("other_costs", parseInt(e.target.dataset.idx), e.target.dataset.f, e.target.value);
+    else if (v === "ev-expected") {
+      try { await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}`, { method: "PATCH", body: JSON.stringify({ expected_revenue: parseInt(e.target.value) || 0 }) }); } catch {}
+    }
+  });
 
   // 셀러 노출 미리보기 — 모바일 프레임에 실제 셀러뷰 iframe
   function _todayStr() {
@@ -1232,21 +1324,11 @@
       return patchAd({ sales });
     }
 
-    if (what === "ad-event-add") {
-      const text = $("#adEventNew").value.trim();
-      if (!text) return;
-      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
-      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-      const events = [...(ad.events || []), { text, ts: new Date().toISOString() }];
-      $("#adEventNew").value = "";
-      return patchAd({ events });
-    }
-    if (what === "ad-event-del") {
-      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
-      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
-      const events = (ad.events || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
-      return patchAd({ events });
-    }
+    // 이벤트 비용표 — 행 추가/삭제
+    if (what === "ev-cost-add") return _saveEventArr("event_costs", arr => arr.push({ name: "", product: "", unit_price: "", shipping: "", qty: "", headcount: "", note: "" }));
+    if (what === "ev-cost-del") return _saveEventArr("event_costs", arr => arr.splice(parseInt(trg.dataset.idx), 1));
+    if (what === "ev-other-add") return _saveEventArr("other_costs", arr => arr.push({ date: "", owner: "", purpose: "", cost: "", card_last4: "", note: "" }));
+    if (what === "ev-other-del") return _saveEventArr("other_costs", arr => arr.splice(parseInt(trg.dataset.idx), 1));
     if (what === "ad-drive-add") {
       const label = $("#adDriveNewLabel").value.trim();
       const url = $("#adDriveNewUrl").value.trim();

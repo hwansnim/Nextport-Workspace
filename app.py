@@ -3997,13 +3997,13 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
         return jsonify({"error": "광고 없음"}), 404
 
     payload = request.get_json(force=True) or {}
-    for k in ["name", "product_sent_date", "status", "revenue", "cost"]:
+    for k in ["name", "product_sent_date", "status", "revenue", "cost", "expected_revenue"]:
         if k in payload:
             ad[k] = payload[k]
     for k in ["scheduling", "banners", "banner_cats"]:
         if k in payload and isinstance(payload[k], dict):
             ad[k] = payload[k] if k == "banner_cats" else {**ad.get(k, {}), **payload[k]}
-    for k in ["events", "drive_links", "reels", "content_days", "sales", "banner_images"]:
+    for k in ["events", "drive_links", "reels", "content_days", "sales", "banner_images", "event_costs", "other_costs"]:
         if k in payload and isinstance(payload[k], list):
             ad[k] = payload[k]
     # 날짜별 매출 입력 시 → revenue/cost 자동 합산

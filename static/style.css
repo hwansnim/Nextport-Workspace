@@ -4050,3 +4050,39 @@ input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="
 /* 캠페인 생성 폼 — 기능 체크리스트 */
 .cnf-feats { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 4px; }
 .cnf-feats .set-feat-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text); cursor: pointer; }
+
+/* ─── 이벤트 관리 · 비용표 ─── */
+.ev-budget {
+  display: flex; flex-wrap: wrap; gap: 22px; align-items: center;
+  background: var(--hover); border-radius: 12px; padding: 12px 18px; margin-bottom: 14px;
+}
+.evb-item { display: flex; flex-direction: column; gap: 3px; }
+.evb-lbl { font-size: 11px; color: var(--muted); font-weight: 600; }
+.evb-val { font-size: 16px; font-weight: 700; color: var(--text); }
+.evb-val.evb-over { color: var(--red); }
+.evb-input {
+  width: 130px; border: 1px solid var(--border-strong); border-radius: 7px;
+  padding: 4px 9px; font-size: 14px; font-weight: 600; font-family: inherit; color: var(--text);
+}
+.ev-block { margin-bottom: 16px; }
+.ev-block-head { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.ev-block-head .hint { font-weight: 400; }
+.ev-table-wrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 10px; }
+.ev-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 720px; }
+.ev-table th {
+  background: var(--hover); text-align: left; font-size: 11px; font-weight: 600; color: var(--muted);
+  padding: 8px 10px; border-bottom: 1px solid var(--hairline); white-space: nowrap;
+}
+.ev-table th.num { text-align: right; }
+.ev-table td { padding: 3px 6px; border-bottom: 1px solid var(--hairline-row); }
+.ev-table td.num { text-align: right; }
+.ev-table td.ev-auto { color: var(--accent); white-space: nowrap; padding-right: 12px; }
+.ev-table input {
+  width: 100%; border: 1px solid transparent; border-radius: 6px;
+  padding: 5px 7px; font-size: 12.5px; font-family: inherit; color: var(--text); background: transparent;
+}
+.ev-table input.num, .ev-table td.num input { text-align: right; }
+.ev-table input:focus { outline: none; border-color: var(--accent); background: #fff; }
+.ev-table input[type=number] { -moz-appearance: textfield; }
+.ev-table tr.ev-total td { background: var(--hover); padding: 8px 10px; font-size: 13px; border-bottom: none; }
+.ev-table tfoot tr.ev-total td b { color: var(--accent); }

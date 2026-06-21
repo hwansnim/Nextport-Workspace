@@ -286,14 +286,32 @@
               <!-- 기능 섹션 그리드 (세트 features 토글로 표시) -->
               <div class="ad-section-grid">
 
-                <!-- 이벤트 -->
-                <div class="ad-section" data-feat="events">
-                  <div class="ad-sec-head">이벤트 관리</div>
+                <!-- 이벤트 관리 (비용표) -->
+                <div class="ad-section ad-section-wide" data-feat="events">
+                  <div class="ad-sec-head">이벤트 관리 · 비용</div>
                   <div class="ad-sec-body">
-                    <div id="adEventList" class="ad-list-mini"></div>
-                    <div class="ad-add-row">
-                      <input type="text" id="adEventNew" placeholder="이벤트 내용 (예: 1+1, 추첨 5명 사은품)" />
-                      <button class="btn-text" data-v2="ad-event-add">+ 추가</button>
+                    <div class="ev-budget" id="evBudget"></div>
+                    <div class="ev-block">
+                      <div class="ev-block-head">이벤트 비용 <span class="hint">· 이벤트 비용 = (원가+배송비)×수량×인원 자동계산</span></div>
+                      <div class="ev-table-wrap">
+                        <table class="ev-table" id="evCostTable">
+                          <thead><tr><th>이벤트</th><th>제품/내용</th><th class="num">원가</th><th class="num">배송비</th><th class="num">수량</th><th class="num">인원</th><th class="num">이벤트 비용</th><th>비고</th><th></th></tr></thead>
+                          <tbody id="evCostBody"></tbody>
+                          <tfoot id="evCostFoot"></tfoot>
+                        </table>
+                      </div>
+                      <button class="btn-text" data-v2="ev-cost-add">+ 이벤트 행 추가</button>
+                    </div>
+                    <div class="ev-block">
+                      <div class="ev-block-head">기타 비용 <span class="hint">· 촬영/소품/교통 등</span></div>
+                      <div class="ev-table-wrap">
+                        <table class="ev-table" id="evOtherTable">
+                          <thead><tr><th>사용일자</th><th>담당자</th><th>사용 용도</th><th class="num">비용</th><th>카드뒷4</th><th>비고</th><th></th></tr></thead>
+                          <tbody id="evOtherBody"></tbody>
+                          <tfoot id="evOtherFoot"></tfoot>
+                        </table>
+                      </div>
+                      <button class="btn-text" data-v2="ev-other-add">+ 기타 비용 행 추가</button>
                     </div>
                   </div>
                 </div>
