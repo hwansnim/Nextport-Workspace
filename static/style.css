@@ -202,7 +202,8 @@ body {
   flex: 1;
   padding: 28px 32px 40px;
   overflow-x: auto;
-  max-width: 1480px;
+  max-width: none;   /* 전체 화면 폭 사용 (목업과 동일) */
+  min-width: 0;
 }
 
 .tab-pane { display: none; }
@@ -2111,18 +2112,33 @@ body.mobile-mode #toastContainer {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
-.cam-toolbar input[type="search"] {
-  min-width: 240px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
+
+/* 세그먼트 토글 (목업 스펙) */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--track);
+  padding: 2px;
+  border-radius: 9px;
+}
+.seg-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
 }
 
 .cam-grid {
@@ -2732,7 +2748,7 @@ body.mobile-mode #toastContainer {
   gap: 8px;
 }
 .cal-cell {
-  min-height: 92px;
+  min-height: 116px;
   background: #fff;
   border: 1px solid var(--hairline);
   border-radius: 10px;
@@ -2776,27 +2792,56 @@ body.mobile-mode #toastContainer {
   margin-top: 2px;
 }
 
-/* 점 이벤트 — 7px 원형 (텍스트 없음, hover로 제목) */
-.cal-dots {
+/* 일정 칩 — 글자(이벤트 이름) 표시 */
+.cal-evs {
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: 6px;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
 }
-.cal-dot {
-  width: 7px; height: 7px;
+.cal-ev {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  background: #f5f5f7;
+  cursor: pointer;
+  overflow: hidden;
+  transition: filter .12s;
+}
+.cal-ev:hover { filter: brightness(.96); }
+.cal-ev-dot {
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--muted);
-  cursor: pointer;
   flex-shrink: 0;
 }
-.cal-dot.k-meeting { background: #0071e3; }
-.cal-dot.k-shipment, .cal-dot.k-send { background: #1d8a3f; }
-.cal-dot.k-live { background: #ff3b30; }
-.cal-dot.k-deadline { background: #ff9f0a; }
-.cal-dot.k-other { background: #86868b; }
-.cal-dot:hover { transform: scale(1.4); }
+.cal-ev-txt {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-weight: 500;
+}
+/* 종류별 색 (칩 배경 옅게 + 점 진하게) */
+.cal-ev.k-meeting  { background: #eaf2fe; }
+.cal-ev.k-meeting  .cal-ev-dot { background: #0071e3; }
+.cal-ev.k-shipment, .cal-ev.k-send { background: #e9f6ed; }
+.cal-ev.k-shipment .cal-ev-dot, .cal-ev.k-send .cal-ev-dot { background: #1d8a3f; }
+.cal-ev.k-live     { background: #fdecec; }
+.cal-ev.k-live     .cal-ev-dot { background: #ff3b30; }
+.cal-ev.k-deadline { background: #fff3e3; }
+.cal-ev.k-deadline .cal-ev-dot { background: #ff9f0a; }
+.cal-ev.k-other    { background: #f5f5f7; }
+.cal-ev-more {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 4px;
+}
 
 /* 범례 */
 .cal-legend {

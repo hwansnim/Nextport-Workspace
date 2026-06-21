@@ -320,7 +320,7 @@
       $("#cgtRevenue") && ($("#cgtRevenue").textContent = fmtKRW(r.total_revenue));
       $("#cgtContrib") && ($("#cgtContrib").textContent = fmtKRW(r.total_contribution));
       $("#cgtPct") && ($("#cgtPct").textContent = r.total_contribution_pct != null ? r.total_contribution_pct + "%" : "—");
-      $("#cgtCount") && ($("#cgtCount").textContent = (r.count || 0) + "개");
+      $("#cgtCount") && ($("#cgtCount").textContent = (r.count || 0));
     } catch (e) { /* noop */ }
   }
 
@@ -1251,16 +1251,17 @@
     }
   }, true);
 
-  let searchTimer;
-  document.addEventListener("input", (e) => {
-    if (e.target.id === "camV2Search") {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => { s.q = e.target.value; renderAll(); }, 200);
-    }
-  });
-  document.addEventListener("change", (e) => {
-    if (e.target.id === "camV2TypeFilter") { s.typeFilter = e.target.value; renderAll(); }
-    if (e.target.id === "camV2StatusFilter") { s.statusFilter = e.target.value; renderAll(); }
+  // 세그먼트 토글 (전체 타입/메가/마이크로/벤더, 전체 상태/진행중/완료)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("#camV2ListView .seg-btn");
+    if (!btn) return;
+    const grp = btn.closest(".seg");
+    if (!grp) return;
+    grp.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("active", b === btn));
+    const which = grp.dataset.seg;
+    if (which === "type") s.typeFilter = btn.dataset.val;
+    else if (which === "status") s.statusFilter = btn.dataset.val;
+    renderAll();
   });
 
   document.addEventListener("click", (e) => {

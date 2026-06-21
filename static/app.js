@@ -707,7 +707,7 @@ function renderCalendar() {
 
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
-  const startDow = (first.getDay() + 6) % 7; // 0=월
+  const startDow = first.getDay(); // 0=일 (목업: 일요일 시작)
   const daysInMonth = last.getDate();
   const prevLast = new Date(year, month, 0).getDate();
   const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
@@ -737,7 +737,7 @@ function renderCalendar() {
       dateStr,
       day: cellD,
       off,
-      dowMon: i % 7,
+      dow: i % 7, // 0=일 … 6=토
       isToday: dateStr === todayStr,
       holiday: HOLIDAYS[dateStr] || "",
     });
@@ -766,19 +766,20 @@ function renderCalendar() {
     }
   }
 
-  // 헤더
-  const dows = ["월", "화", "수", "목", "금", "토", "일"];
+  // 헤더 (일요일 시작)
+  const dows = ["일", "월", "화", "수", "목", "금", "토"];
   let html = '<div class="cal-grid-head">';
   for (let i = 0; i < 7; i++) {
-    const cls = i === 5 ? "sat" : i === 6 ? "sun" : "";
+    const cls = i === 0 ? "sun" : i === 6 ? "sat" : "";
     html += `<div class="cal-dow ${cls}">${dows[i]}</div>`;
   }
   html += "</div>";
 
-  // 월 전체 단일 그리드 (점만)
+  // 월 전체 단일 그리드 — 일정은 글자(이벤트 이름) 칩으로 표시
+  const MAX_CHIPS = 3;
   html += '<div class="cal-grid">';
   for (const ci of cellInfo) {
-    const dowCls = ci.dowMon === 5 ? "sat" : ci.dowMon === 6 ? "sun" : "";
+    const dowCls = ci.dow === 0 ? "sun" : ci.dow === 6 ? "sat" : "";
     const holidayCls = ci.holiday ? (ci.off ? "holiday-soft" : "holiday") : "";
     const classes = [
       "cal-cell",
@@ -787,18 +788,22 @@ function renderCalendar() {
       dowCls,
       holidayCls,
     ].filter(Boolean).join(" ");
-    const dots = (dotByDate[ci.dateStr] || []).map(d => {
+    const evList = dotByDate[ci.dateStr] || [];
+    const chips = evList.slice(0, MAX_CHIPS).map(d => {
       if (d.type === "event") {
         const ev = d.ev;
-        return `<span class="cal-dot k-${d.kind}" data-event-id="${escapeHtml(ev.id)}" data-ref-kind="${escapeHtml(ev.ref_kind || "")}" data-ref-id="${escapeHtml(ev.ref_id || "")}" data-auto="${ev.auto ? "1" : "0"}" title="${escapeHtml(d.title)}"></span>`;
+        return `<span class="cal-ev k-${d.kind}" data-event-id="${escapeHtml(ev.id)}" data-ref-kind="${escapeHtml(ev.ref_kind || "")}" data-ref-id="${escapeHtml(ev.ref_id || "")}" data-auto="${ev.auto ? "1" : "0"}" title="${escapeHtml(d.title)}"><i class="cal-ev-dot"></i><span class="cal-ev-txt">${escapeHtml(ev.title || "일정")}</span></span>`;
       }
-      return `<span class="cal-dot k-live" data-campaign-id="${escapeHtml(d.camp.id)}" title="${escapeHtml(d.title)}"></span>`;
+      const c = d.camp;
+      const txt = `${c.seller_name || ""} ${c.round ? c.round + "차" : ""} 라이브`.trim();
+      return `<span class="cal-ev k-live" data-campaign-id="${escapeHtml(c.id)}" title="${escapeHtml(d.title)}"><i class="cal-ev-dot"></i><span class="cal-ev-txt">${escapeHtml(txt)}</span></span>`;
     }).join("");
+    const more = evList.length > MAX_CHIPS ? `<span class="cal-ev-more">+${evList.length - MAX_CHIPS}</span>` : "";
     html += `
       <div class="${classes}" data-date="${ci.dateStr}">
         <span class="cal-day">${ci.day}</span>
         ${ci.holiday ? `<span class="cal-holiday-label">${escapeHtml(ci.holiday)}</span>` : ""}
-        <div class="cal-dots">${dots}</div>
+        <div class="cal-evs">${chips}${more}</div>
       </div>`;
   }
   html += "</div>";
@@ -1575,8 +1580,8 @@ document.addEventListener("click", async (e) => {
     if (c) showCampaignDialog(c);
     return;
   }
-  // 점 이벤트 클릭
-  const dotEl = e.target.closest(".cal-dot");
+  // 일정 칩 클릭
+  const dotEl = e.target.closest(".cal-ev");
   if (dotEl) {
     e.stopPropagation();
     // 캠페인 라이브 점 → 캠페인 다이얼로그

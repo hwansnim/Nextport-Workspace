@@ -1,1 +1,6 @@
 {"ts": "2026-06-14T06:25:59", "user": "hwansnim", "action": "test_smoke", "tab": "guide", "target": "verify", "detail": {}}
+{"ts": "2026-06-22T03:03:34", "user": "hwansnim", "action": "tab_open", "tab": "campaigns", "target": "", "detail": {}}
+{"ts": "2026-06-22T03:03:43", "user": "hwansnim", "action": "tab_open", "tab": "dashboard", "target": "", "detail": {}}
+{"ts": "2026-06-22T03:03:56", "user": "hwansnim", "action": "tab_open", "tab": "dm-live", "target": "", "detail": {}}
+{"ts": "2026-06-22T03:04:05", "user": "hwansnim", "action": "tab_open", "tab": "meetings", "target": "", "detail": {}}
+{"ts": "2026-06-22T03:21:43", "user": "hwansnim", "action": "tab_open", "tab": "campaigns", "target": "", "detail": {}}

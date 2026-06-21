@@ -169,8 +169,12 @@
           <div class="page-head">
             <div>
               <h1>셀러 캠페인</h1>
-              <p class="page-sub">메타 광고관리자 카피. 캠페인 / 세트(차수) / 마켓(공동구매) 3단계 행단위.</p>
+              <p class="page-sub">캠페인 · 세트(차수) · 마켓(공동구매) 3단계</p>
             </div>
+            <button class="btn-primary" data-v2="cam-new">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              캠페인 만들기
+            </button>
           </div>
 
           <!-- 전체 캠페인 매출/공헌 합계 -->
@@ -182,22 +186,18 @@
           </div>
 
           <div class="cam-toolbar">
-            <input type="search" id="camV2Search" placeholder="🔍 셀러 / 브랜드 / 제품" />
-            <select id="camV2TypeFilter" class="filter-sel">
-              <option value="">전체 타입</option>
-              <option value="메가">메가</option>
-              <option value="마이크로">마이크로</option>
-              <option value="벤더">벤더</option>
-            </select>
-            <select id="camV2StatusFilter" class="filter-sel">
-              <option value="">전체 상태</option>
-              <option value="준비중">준비중</option>
-              <option value="진행중">진행중</option>
-              <option value="완료">완료</option>
-              <option value="중단">중단</option>
-            </select>
+            <div class="seg" data-seg="type">
+              <button class="seg-btn active" data-val="">전체 타입</button>
+              <button class="seg-btn" data-val="메가">메가</button>
+              <button class="seg-btn" data-val="마이크로">마이크로</button>
+              <button class="seg-btn" data-val="벤더">벤더</button>
+            </div>
+            <div class="seg" data-seg="status">
+              <button class="seg-btn active" data-val="">전체 상태</button>
+              <button class="seg-btn" data-val="진행중">진행중</button>
+              <button class="seg-btn" data-val="완료">완료</button>
+            </div>
             <span class="hint" id="camV2Stat" style="margin-left:auto">로딩…</span>
-            <button class="btn-primary" data-v2="cam-new">+ 캠페인 만들기</button>
           </div>
 
           <!-- 단일 펼침 계층 테이블 (캠페인 ▸ 세트 ▸ 마켓) -->
