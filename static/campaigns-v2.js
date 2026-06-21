@@ -292,7 +292,71 @@
           PG반반 <select data-v2="stl-default" data-k="pg_split"><option value="">-</option>${["Y","N"].map(o=>`<option ${o===st.pg_split?'selected':''}>${o}</option>`).join("")}</select>
         </span>`;
     }
+    renderTierSettle(c);
   }
+
+  // 건수 정산 — 제품 수량티어별 [건수 → 매출 자동]
+  function renderTierSettle(c) {
+    const box = $("#tierSettle");
+    if (!box) return;
+    const prod = (s.productList || []).find(p => p.id === c.product_id);
+    const tiers = prod?.tiers || [];
+    if (!tiers.length) {
+      box.innerHTML = `<div class="ts-empty">제품(<b>${esc(c.product || "미연결")}</b>)에 수량별 가격이 없어요. <b>제품 정보</b>에서 수량/공구가를 넣으면 여기서 <b>건수 → 매출 자동</b> 계산돼요. (또는 아래 일자별 표에 수동 입력)</div>`;
+      return;
+    }
+    const counts = c.tier_counts || {};
+    let tRev = 0, tCost = 0, tQty = 0;
+    const rows = tiers.map(t => {
+      const cnt = parseInt(counts[t.qty]) || 0;
+      const rev = cnt * (parseInt(t.group_price) || 0);
+      const cost = cnt * (parseInt(t.cost) || 0);
+      tRev += rev; tCost += cost; tQty += cnt;
+      return `<tr>
+        <td class="num">${t.qty}개</td>
+        <td class="num">${fmtKRW(t.group_price)}</td>
+        <td class="num"><input type="number" class="ts-cnt" data-v2="tier-count" data-qty="${t.qty}" data-gp="${t.group_price || 0}" data-cost="${t.cost || 0}" value="${cnt || ""}" placeholder="0" /></td>
+        <td class="num ts-rev"><b>${fmtKRW(rev)}</b></td>
+        <td class="num ts-cost" style="color:#888">${fmtKRW(cost)}</td>
+      </tr>`;
+    }).join("");
+    box.innerHTML = `
+      <div class="ts-head">건수 정산 <span class="hint">· 수량별 판매 건수 입력 → 매출 자동 (${esc(prod.name)})</span></div>
+      <div class="ev-table-wrap"><table class="ev-table">
+        <thead><tr><th class="num">수량</th><th class="num">공구판매가</th><th class="num">판매 건수</th><th class="num">매출</th><th class="num">원가</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr class="ev-total"><td class="num">합계</td><td></td><td class="num" id="tsQty"><b>${tQty}</b></td><td class="num" id="tsRev"><b>${fmtKRW(tRev)}</b></td><td class="num" id="tsCost"><b>${fmtKRW(tCost)}</b></td></tr>
+          <tr><td colspan="5" class="num" style="text-align:right;font-size:11.5px;color:var(--accent)">공헌이익 <b id="tsContrib">${fmtKRW(tRev - tCost)}</b></td></tr>
+        </tfoot>
+      </table></div>`;
+  }
+
+  function _recalcTierDom() {
+    let tRev = 0, tCost = 0, tQty = 0;
+    document.querySelectorAll("#tierSettle tbody tr").forEach(tr => {
+      const inp = tr.querySelector('[data-v2="tier-count"]');
+      if (!inp) return;
+      const cnt = parseInt(inp.value) || 0;
+      const rev = cnt * (parseInt(inp.dataset.gp) || 0);
+      const cost = cnt * (parseInt(inp.dataset.cost) || 0);
+      const rc = tr.querySelector(".ts-rev b"); if (rc) rc.textContent = "₩" + rev.toLocaleString();
+      const cc = tr.querySelector(".ts-cost"); if (cc) cc.textContent = "₩" + cost.toLocaleString();
+      tRev += rev; tCost += cost; tQty += cnt;
+    });
+    const q = $("#tsQty"); if (q) q.innerHTML = "<b>" + tQty + "</b>";
+    const r = $("#tsRev"); if (r) r.innerHTML = "<b>₩" + tRev.toLocaleString() + "</b>";
+    const c2 = $("#tsCost"); if (c2) c2.innerHTML = "<b>₩" + tCost.toLocaleString() + "</b>";
+    const ct = $("#tsContrib"); if (ct) ct.textContent = "₩" + (tRev - tCost).toLocaleString();
+  }
+  // 건수 입력 = 즉시계산 / blur = 캠페인에 저장
+  document.addEventListener("input", (e) => { if (e.target.dataset.v2 === "tier-count") _recalcTierDom(); });
+  document.addEventListener("change", async (e) => {
+    if (e.target.dataset.v2 !== "tier-count") return;
+    const counts = {};
+    document.querySelectorAll('#tierSettle [data-v2="tier-count"]').forEach(el => { if (el.value) counts[el.dataset.qty] = parseInt(el.value) || 0; });
+    try { await api(`/api/campaigns_v2/${s.activeCamId}`, { method: "PATCH", body: JSON.stringify({ tier_counts: counts }) }); } catch {}
+  });
 
   function toggleColPop() {
     const pop = $("#stlColPop");
@@ -331,6 +395,7 @@
   async function openCampaign(camId) {
     try {
       const c = await api(`/api/campaigns_v2/${camId}`);
+      if (!s.productList) { try { s.productList = (await api("/api/products")).products || []; } catch { s.productList = []; } }
       s.activeCamId = camId;
       s.activeSetId = null;
       s.activeMarketId = null;
@@ -487,24 +552,27 @@
     // 구버전(flat banner_images) → open 으로 1회 이관
     const cats = ad.banner_cats || {};
     if (!ad.banner_cats && (ad.banner_images || []).length) cats.open = { note: "", imgs: ad.banner_images };
+    const bnGallery = (key, kind, arr) => `
+      <div class="bn-cat-grid" data-kind="${kind}">
+        ${arr.map((im, i) => `
+          <div class="bn-tile">
+            <img src="${esc(im.url)}" loading="lazy" />
+            <button class="bn-del" data-v2="ad-banner-img-del" data-cat="${key}" data-kind="${kind}" data-idx="${i}" title="삭제">×</button>
+          </div>`).join("")}
+        <button type="button" class="bn-add" data-v2="ad-banner-pick" data-cat="${key}" data-kind="${kind}">
+          <span class="bn-add-plus">+</span><span class="bn-add-txt">${kind === "final" ? "최종본" : "레퍼런스"}<br><small>클릭·드래그</small></span>
+        </button>
+      </div>`;
     $("#adBannerGrid").innerHTML = BANNER_CATS.map(c => {
       const cv = cats[c.key] || {};
-      const imgs = cv.imgs || [];
       return `
         <div class="bn-cat">
           <div class="bn-cat-head">${esc(c.label)}</div>
           <textarea class="bn-cat-note" data-v2="ad-banner-cat-note" data-cat="${c.key}" rows="2" placeholder="배너 내용/지시사항 (예: 가격, 구성, 강조 문구)">${esc(cv.note || "")}</textarea>
-          <div class="bn-cat-grid">
-            ${imgs.map((im, i) => `
-              <div class="bn-tile">
-                <img src="${esc(im.url)}" alt="${esc(c.label)}" loading="lazy" />
-                <button class="bn-del" data-v2="ad-banner-img-del" data-cat="${c.key}" data-idx="${i}" title="삭제">×</button>
-              </div>`).join("")}
-            <button type="button" class="bn-add" data-v2="ad-banner-pick" data-cat="${c.key}">
-              <span class="bn-add-plus">+</span>
-              <span class="bn-add-txt">이미지<br><small>클릭·드래그</small></span>
-            </button>
-          </div>
+          <div class="bn-sub">레퍼런스</div>
+          ${bnGallery(c.key, "ref", cv.imgs || [])}
+          <div class="bn-sub bn-sub-final">✓ 최종 배너</div>
+          ${bnGallery(c.key, "final", cv.finals || [])}
         </div>`;
     }).join("");
 
@@ -1372,6 +1440,7 @@
     // 배너/레퍼런스 이미지 — 추가(파일선택 트리거) / 삭제
     if (what === "ad-banner-pick") {
       s.bannerPickCat = trg.dataset.cat || "open";
+      s.bannerPickKind = trg.dataset.kind || "ref";
       $("#adBannerFile")?.click();
       return;
     }
@@ -1379,8 +1448,8 @@
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
       const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
-      const k = trg.dataset.cat;
-      if (cats[k]) cats[k].imgs = (cats[k].imgs || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
+      const k = trg.dataset.cat, field = trg.dataset.kind === "final" ? "finals" : "imgs";
+      if (cats[k]) cats[k][field] = (cats[k][field] || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
       return patchAd({ banner_cats: cats });
     }
   });
@@ -1407,18 +1476,19 @@
     });
   }
 
-  async function addBannerImages(fileList, catKey) {
+  async function addBannerImages(fileList, catKey, kind) {
     const cat = catKey || s.bannerPickCat || "open";
+    const field = (kind || s.bannerPickKind) === "final" ? "finals" : "imgs";
     const files = [...fileList].filter(f => f.type.startsWith("image/"));
     if (!files.length || !s.activeMarketId) return;
     const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
     const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
     const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
-    cats[cat] = cats[cat] || { note: "", imgs: [] };
-    cats[cat].imgs = cats[cat].imgs || [];
+    cats[cat] = cats[cat] || { note: "", imgs: [], finals: [] };
+    cats[cat][field] = cats[cat][field] || [];
     for (const f of files) {
       const url = await resizeImage(f);
-      if (url) cats[cat].imgs.push({ url });
+      if (url) cats[cat][field].push({ url });
     }
     await patchAd({ banner_cats: cats });
   }
@@ -1456,7 +1526,9 @@
     if (cat) {
       e.preventDefault(); cat.classList.remove("bn-drag");
       const key = cat.querySelector("[data-cat]")?.dataset.cat || "open";
-      addBannerImages(e.dataTransfer.files, key);
+      const grid = e.target.closest(".bn-cat-grid");
+      const kind = grid?.dataset.kind || "ref";
+      addBannerImages(e.dataTransfer.files, key, kind);
     }
   });
 

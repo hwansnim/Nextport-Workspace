@@ -3759,6 +3759,14 @@ def api_campaigns_v2_one(cam_id):
     # 제품 발송 (캠페인 레벨)
     if "product_shipping" in payload and isinstance(payload["product_shipping"], dict):
         cam.setdefault("product_shipping", {}).update(payload["product_shipping"])
+    # 건수 정산 (제품 티어별 판매 건수)
+    if "tier_counts" in payload and isinstance(payload["tier_counts"], dict):
+        cam["tier_counts"] = payload["tier_counts"]
+    # 제품 연결 변경
+    if "product_id" in payload:
+        cam["product_id"] = payload["product_id"]
+    if "product" in payload:
+        cam["product"] = payload["product"]
     _save_campaigns_v2(items)
 
     # 마켓 일정 → 캘린더 sync
