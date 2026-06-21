@@ -3708,6 +3708,49 @@ input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="
 .side-badge { background: var(--badge-red); }
 .side-badge.live { background: var(--dot-ok); }
 
+/* ═══ Phase Q: 나머지 화면 목업 마감 ═══ */
+
+/* DM 발송 실시간 — 다크 콘솔 (목업: SF Mono, line-height 2) */
+.dm-live-log {
+  background: #1d1d1f !important;
+  color: #f5f5f7 !important;
+  border-radius: 14px;
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace !important;
+  font-size: 12.5px !important;
+  line-height: 2 !important;
+  padding: 14px 20px !important;
+}
+.live-log-row { border-bottom: none !important; }
+.ll-ts { color: #6e6e73 !important; }
+.live-log-row.start .ll-ico { color: #0a84ff !important; }
+.live-log-row.ok .ll-ico, .live-log-row.ok .ll-acc { color: #30d158 !important; }
+.live-log-row.fail .ll-ico, .live-log-row.fail .ll-msg { color: #ff453a !important; }
+.ll-acc { color: #f5f5f7 !important; }
+.ll-tgt { color: #c7c7cc !important; }
+.ll-msg { color: #98989d !important; }
+
+/* 셀러 아카이브 / 제품 카드 — 목업 (2열, 18px 카드) */
+.ref-card, .se-card, .product-card {
+  border-radius: 18px !important; border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-sm) !important; background: #fff;
+}
+
+/* 설정 토글 — 목업 (46x28, 흰 노브) */
+.settings-toggle-track { width: 46px; height: 28px; background: #e8e8ed; }
+.settings-toggle input:checked + .settings-toggle-track { background: var(--accent); }
+
+/* 인박스 말풍선 — Apple */
+.thread-msg.them .tm-bubble { background: var(--track); color: var(--text); }
+.thread-msg.us .tm-bubble { background: var(--accent); color: #fff; }
+.tm-bubble { border-radius: 18px; padding: 9px 14px; font-size: 14px; }
+
+/* 헤더 액션 영역 — 버튼 정렬 일관 */
+.page-head .head-actions { gap: 8px; }
+.panel-head .head-actions { gap: 8px; align-items: center; }
+
+/* 빈 컨테이너 패딩 통일 */
+.empty { padding: 30px; text-align: center; }
+
 /* ── 캠페인 단일 계층 테이블 (캠페인 ▸ 세트 ▸ 마켓) ── */
 .cam-hier {
   background: #fff; border: 1px solid var(--border); border-radius: 18px;
