@@ -51,6 +51,24 @@
     $("#dvStatCostSub").textContent = `마진율 ${t.margin_pct != null ? t.margin_pct.toFixed(1) + "%" : "—"}`;
     $("#dvStatProfitSub").textContent = `누적 마켓 ${t.market_count || 0}건`;
     $("#dvStatCampaignsSub").textContent = `마켓 ${t.market_count || 0}건 진행`;
+
+    // 트렌드 배지 (목업) — 전월 대비 매출 증감 / 마진율 / 캠페인
+    const months = st.data.months || [];
+    const cur = months.slice(-1)[0]?.revenue || 0;
+    const prev = months.slice(-2)[0]?.revenue || 0;
+    const setBadge = (id, text, cls) => {
+      const el = $("#" + id); if (!el) return;
+      if (text == null) { el.hidden = true; return; }
+      el.textContent = text; el.hidden = false;
+      el.className = "dv-badge " + cls;
+    };
+    if (prev > 0) {
+      const pct = Math.round((cur - prev) / prev * 1000) / 10;
+      setBadge("dvBadgeRevenue", `${pct >= 0 ? "↑" : "↓"} ${Math.abs(pct)}%`, pct >= 0 ? "pos" : "neg");
+    } else setBadge("dvBadgeRevenue", null);
+    setBadge("dvBadgeProfit", t.margin_pct != null ? `${t.margin_pct.toFixed(1)}%` : null, "accent");
+    setBadge("dvBadgeCost", null);
+    setBadge("dvBadgeCampaigns", t.campaign_count ? `${t.campaign_count}건` : null, "neu");
   }
 
   // ─── 2. SVG 막대 그래프 ────────────────────────────────

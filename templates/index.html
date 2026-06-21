@@ -198,96 +198,18 @@
             <button class="btn-primary" data-v2="cam-new">+ 캠페인 만들기</button>
           </div>
 
-          <!-- 3탭 헤더 (메타 광고관리자 스타일) -->
-          <div class="meta-tabs">
-            <button class="meta-tab active" data-meta-tab="campaigns">
-              <span class="mt-ico">📣</span>
-              <span class="mt-label">캠페인</span>
-              <span class="mt-count" id="metaCntCampaigns">0</span>
-            </button>
-            <button class="meta-tab" data-meta-tab="sets">
-              <span class="mt-ico">🎬</span>
-              <span class="mt-label">세트 (차수)</span>
-              <span class="mt-count" id="metaCntSets">0</span>
-            </button>
-            <button class="meta-tab" data-meta-tab="markets">
-              <span class="mt-ico">🛒</span>
-              <span class="mt-label">마켓 (공동구매)</span>
-              <span class="mt-count" id="metaCntMarkets">0</span>
-            </button>
-          </div>
-
-          <!-- 캠페인 탭 -->
-          <div class="meta-pane active" id="metaPaneCampaigns">
-            <div class="meta-table-wrap">
-              <table class="meta-table">
-                <thead>
-                  <tr>
-                    <th style="width:36px"><input type="checkbox" /></th>
-                    <th style="width:46px">설정</th>
-                    <th>캠페인</th>
-                    <th style="width:90px">타입</th>
-                    <th style="width:100px">게재</th>
-                    <th style="width:90px">차수</th>
-                    <th style="width:90px">마켓</th>
-                    <th style="width:120px">총 매출</th>
-                    <th style="width:120px">총 비용</th>
-                    <th style="width:80px">마진율</th>
-                    <th style="width:110px">마켓일정</th>
-                    <th style="width:80px"></th>
-                  </tr>
-                </thead>
-                <tbody id="metaCampaignsBody"><tr><td colspan="12" class="empty">로딩…</td></tr></tbody>
-              </table>
+          <!-- 단일 펼침 계층 테이블 (캠페인 ▸ 세트 ▸ 마켓) -->
+          <div class="cam-hier">
+            <div class="cam-hier-head">
+              <span class="ch-name">캠페인 · 세트 · 마켓</span>
+              <span class="ch-type">타입</span>
+              <span class="ch-status">상태</span>
+              <span class="ch-num">매출</span>
+              <span class="ch-num">비용</span>
+              <span class="ch-margin">마진율</span>
+              <span class="ch-date">마켓일</span>
             </div>
-          </div>
-
-          <!-- 세트 탭 -->
-          <div class="meta-pane" id="metaPaneSets" hidden>
-            <div class="meta-table-wrap">
-              <table class="meta-table">
-                <thead>
-                  <tr>
-                    <th style="width:36px"><input type="checkbox" /></th>
-                    <th style="width:46px">설정</th>
-                    <th>세트 (차수)</th>
-                    <th>캠페인</th>
-                    <th style="width:100px">게재</th>
-                    <th style="width:80px">마켓</th>
-                    <th style="width:120px">매출</th>
-                    <th style="width:120px">비용</th>
-                    <th style="width:80px">마진율</th>
-                    <th style="width:80px"></th>
-                  </tr>
-                </thead>
-                <tbody id="metaSetsBody"><tr><td colspan="10" class="empty">로딩…</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 마켓 탭 -->
-          <div class="meta-pane" id="metaPaneMarkets" hidden>
-            <div class="meta-table-wrap">
-              <table class="meta-table">
-                <thead>
-                  <tr>
-                    <th style="width:36px"><input type="checkbox" /></th>
-                    <th style="width:46px">설정</th>
-                    <th>마켓 (공동구매)</th>
-                    <th>세트</th>
-                    <th>캠페인</th>
-                    <th style="width:100px">게재</th>
-                    <th style="width:100px">시작일</th>
-                    <th style="width:100px">종료일</th>
-                    <th style="width:120px">매출</th>
-                    <th style="width:120px">비용</th>
-                    <th style="width:80px">마진율</th>
-                    <th style="width:80px"></th>
-                  </tr>
-                </thead>
-                <tbody id="metaMarketsBody"><tr><td colspan="12" class="empty">로딩…</td></tr></tbody>
-              </table>
-            </div>
+            <div id="camHierBody"><div class="empty" style="padding:30px;text-align:center">로딩…</div></div>
           </div>
         </div>
 
@@ -496,28 +418,24 @@
           </div>
         </div>
 
-        <!-- 1) 카페24 풍: 오늘의 할일 + 매출 요약 -->
-        <section class="panel dash-v2-summary">
+        <!-- 지표 카드 4개 (목업: 레이블+배지 / 숫자 / 서브) -->
+        <section class="dash-v2-summary">
           <div class="dv-stat-grid">
-            <div class="dv-stat-card dv-stat-accent">
-              <div class="dv-stat-label">총 매출</div>
-              <div class="dv-stat-value" id="dvStatRevenue">—</div>
-              <div class="dv-stat-sub" id="dvStatRevSub">—</div>
+            <div class="dv-stat-card">
+              <div class="dv-stat-top"><span class="dv-stat-label">총 매출</span><span class="dv-badge pos" id="dvBadgeRevenue" hidden></span></div>
+              <div><div class="dv-stat-value" id="dvStatRevenue">—</div><div class="dv-stat-sub" id="dvStatRevSub">—</div></div>
             </div>
             <div class="dv-stat-card">
-              <div class="dv-stat-label">총 비용</div>
-              <div class="dv-stat-value" id="dvStatCost">—</div>
-              <div class="dv-stat-sub" id="dvStatCostSub">—</div>
-            </div>
-            <div class="dv-stat-card dv-stat-profit">
-              <div class="dv-stat-label">공헌 이익</div>
-              <div class="dv-stat-value" id="dvStatProfit">—</div>
-              <div class="dv-stat-sub" id="dvStatProfitSub">—</div>
+              <div class="dv-stat-top"><span class="dv-stat-label">총 비용</span><span class="dv-badge neu" id="dvBadgeCost" hidden></span></div>
+              <div><div class="dv-stat-value" id="dvStatCost">—</div><div class="dv-stat-sub" id="dvStatCostSub">—</div></div>
             </div>
             <div class="dv-stat-card">
-              <div class="dv-stat-label">진행 캠페인</div>
-              <div class="dv-stat-value" id="dvStatCampaigns">—</div>
-              <div class="dv-stat-sub" id="dvStatCampaignsSub">—</div>
+              <div class="dv-stat-top"><span class="dv-stat-label">공헌 이익</span><span class="dv-badge accent" id="dvBadgeProfit" hidden></span></div>
+              <div><div class="dv-stat-value" id="dvStatProfit">—</div><div class="dv-stat-sub" id="dvStatProfitSub">—</div></div>
+            </div>
+            <div class="dv-stat-card">
+              <div class="dv-stat-top"><span class="dv-stat-label">진행 캠페인</span><span class="dv-badge pos" id="dvBadgeCampaigns" hidden></span></div>
+              <div><div class="dv-stat-value" id="dvStatCampaigns">—</div><div class="dv-stat-sub" id="dvStatCampaignsSub">—</div></div>
             </div>
           </div>
         </section>

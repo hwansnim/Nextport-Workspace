@@ -91,123 +91,90 @@
   }
 
   // ─── RENDER ALL ─────────────────────────────────────────
+  // 펼침 상태 (캠페인id / 세트id Set)
+  s.expanded = s.expanded || new Set();
+
   function renderAll() {
     const items = filtered();
     $("#camV2Stat").textContent = `${items.length} / ${s.campaigns.length}`;
-
-    // 카운트
-    let setCount = 0, marketCount = 0;
-    items.forEach(c => {
-      (c.sets || []).forEach(st => {
-        setCount++;
-        marketCount += (st.ads || []).length;
-      });
-    });
-    $("#metaCntCampaigns").textContent = items.length;
-    $("#metaCntSets").textContent = setCount;
-    $("#metaCntMarkets").textContent = marketCount;
-
-    renderCampaignsTab(items);
-    renderSetsTab(items);
-    renderMarketsTab(items);
+    renderHierarchy(items);
   }
 
-  // ─── 캠페인 탭 ──────────────────────────────────────────
-  function renderCampaignsTab(items) {
-    const body = $("#metaCampaignsBody");
+  // ─── 단일 계층 테이블 (캠페인 ▸ 세트 ▸ 마켓) ───────────
+  function chevron(open) {
+    return `<svg class="ch-chev ${open ? "open" : ""}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#86868b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
+  }
+  function marginCell(m) {
+    const cls = m != null && m > 0 ? "meta-good" : (m != null && m < 0 ? "meta-bad" : "");
+    return `<span class="ch-margin ${cls}">${fmtPct(m)}</span>`;
+  }
+  function renderHierarchy(items) {
+    const body = $("#camHierBody");
     if (!body) return;
     if (!items.length) {
-      body.innerHTML = `<tr><td colspan="12" class="empty">캠페인 없음 — [+ 캠페인 만들기] 또는 [진행 예정 셀러]에서 📣 박기</td></tr>`;
+      body.innerHTML = `<div class="empty" style="padding:40px;text-align:center">캠페인 없음 — [+ 캠페인 만들기] 또는 [진행 예정 셀러]에서 추가</div>`;
       return;
     }
-    body.innerHTML = items.map(c => {
+    let html = "";
+    items.forEach(c => {
       const t = campaignTotals(c);
-      const margin = marginPct(t.revenue, t.cost);
-      const setCount = (c.sets || []).length;
-      const adCount = (c.sets || []).reduce((sum, st) => sum + (st.ads || []).length, 0);
-      return `
-        <tr class="meta-row" data-v2="cam-open" data-id="${esc(c.id)}">
-          <td onclick="event.stopPropagation()"><input type="checkbox" /></td>
-          <td onclick="event.stopPropagation()"><label class="meta-toggle"><input type="checkbox" ${c.status === "진행중" ? "checked" : ""} data-v2="cam-toggle-status" data-id="${esc(c.id)}" /><span></span></label></td>
-          <td><div class="meta-name"><b>${esc(c.seller_name || "셀러 미정")}</b><span class="hint">${esc(c.brand || "-")} · ${esc(c.product || "-")}</span></div></td>
-          <td><span class="cam-type cam-type-${esc(c.type || "")}">${esc(c.type || "?")}</span></td>
-          <td><span class="meta-status s-${esc(c.status || "준비중")}">${statusDot(c.status)} ${esc(c.status || "준비중")}</span></td>
-          <td style="text-align:center">${setCount}</td>
-          <td style="text-align:center">${adCount}</td>
-          <td style="text-align:right"><b>${fmtKRW(t.revenue)}</b></td>
-          <td style="text-align:right;color:#888">${fmtKRW(t.cost)}</td>
-          <td style="text-align:center" class="${margin != null && margin > 0 ? 'meta-good' : (margin != null && margin < 0 ? 'meta-bad' : '')}">${fmtPct(margin)}</td>
-          <td style="font-size:11px;color:#888">${esc(c.market_schedule || "-")}</td>
-          <td onclick="event.stopPropagation()"><button class="btn-text" data-v2="cam-detail" data-id="${esc(c.id)}">→</button></td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  // ─── 세트 탭 ────────────────────────────────────────────
-  function renderSetsTab(items) {
-    const body = $("#metaSetsBody");
-    if (!body) return;
-    const rows = [];
-    items.forEach(c => {
-      (c.sets || []).forEach(st => {
-        const t = setTotals(st);
-        const margin = marginPct(t.revenue, t.cost);
-        const adCount = (st.ads || []).length;
-        // 세트 상태 = 자식 마켓의 가장 진행된 상태
-        const statuses = (st.ads || []).map(a => a.status || "준비중");
-        const stStatus = statuses.includes("진행중") ? "진행중" :
-                         statuses.includes("완료") ? "완료" :
-                         statuses.includes("중단") ? "중단" : "준비중";
-        rows.push(`
-          <tr class="meta-row" data-v2="set-open" data-cam="${esc(c.id)}" data-id="${esc(st.id)}">
-            <td onclick="event.stopPropagation()"><input type="checkbox" /></td>
-            <td onclick="event.stopPropagation()"><label class="meta-toggle"><input type="checkbox" ${stStatus === "진행중" ? "checked" : ""} /><span></span></label></td>
-            <td><div class="meta-name"><b>${esc(st.label || st.round + "차")}</b><span class="hint">세트 ID ${esc(st.id)}</span></div></td>
-            <td>${esc(c.seller_name || "?")} <span class="hint">${esc(c.brand || "")}</span></td>
-            <td><span class="meta-status s-${esc(stStatus)}">${statusDot(stStatus)} ${esc(stStatus)}</span></td>
-            <td style="text-align:center">${adCount}</td>
-            <td style="text-align:right"><b>${fmtKRW(t.revenue)}</b></td>
-            <td style="text-align:right;color:#888">${fmtKRW(t.cost)}</td>
-            <td style="text-align:center" class="${margin != null && margin > 0 ? 'meta-good' : (margin != null && margin < 0 ? 'meta-bad' : '')}">${fmtPct(margin)}</td>
-            <td onclick="event.stopPropagation()"><button class="btn-text" data-v2="set-detail" data-cam="${esc(c.id)}" data-id="${esc(st.id)}">→</button></td>
-          </tr>
-        `);
-      });
-    });
-    body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="10" class="empty">세트 없음 — 캠페인 진입 후 [+ 다음 차수 추가]</td></tr>`;
-  }
-
-  // ─── 마켓 탭 ────────────────────────────────────────────
-  function renderMarketsTab(items) {
-    const body = $("#metaMarketsBody");
-    if (!body) return;
-    const rows = [];
-    items.forEach(c => {
-      (c.sets || []).forEach(st => {
-        (st.ads || []).forEach(ad => {
-          const t = marketTotals(ad);
-          const margin = marginPct(t.revenue, t.cost);
-          rows.push(`
-            <tr class="meta-row" data-v2="market-open" data-cam="${esc(c.id)}" data-set="${esc(st.id)}" data-id="${esc(ad.id)}">
-              <td onclick="event.stopPropagation()"><input type="checkbox" /></td>
-              <td onclick="event.stopPropagation()"><label class="meta-toggle"><input type="checkbox" ${ad.status === "진행중" ? "checked" : ""} /><span></span></label></td>
-              <td><div class="meta-name"><b>${esc(ad.name || "공동구매")}</b><span class="hint">${esc(c.seller_name || "")} · ${esc(st.label || st.round + "차")}</span></div></td>
-              <td>${esc(st.label || st.round + "차")}</td>
-              <td>${esc(c.seller_name || "?")}</td>
-              <td><span class="meta-status s-${esc(ad.status || "준비중")}">${statusDot(ad.status)} ${esc(ad.status || "준비중")}</span></td>
-              <td style="font-size:11px">${esc(ad.scheduling?.start_date || "-")}</td>
-              <td style="font-size:11px">${esc(ad.scheduling?.end_date || "-")}</td>
-              <td style="text-align:right"><b>${fmtKRW(t.revenue)}</b></td>
-              <td style="text-align:right;color:#888">${fmtKRW(t.cost)}</td>
-              <td style="text-align:center" class="${margin != null && margin > 0 ? 'meta-good' : (margin != null && margin < 0 ? 'meta-bad' : '')}">${fmtPct(margin)}</td>
-              <td onclick="event.stopPropagation()"><button class="btn-text" data-v2="market-detail" data-cam="${esc(c.id)}" data-set="${esc(st.id)}" data-id="${esc(ad.id)}">→</button></td>
-            </tr>
-          `);
+      const cOpen = s.expanded.has(c.id);
+      html += `
+        <div class="ch-row ch-camp" data-v2="ch-toggle-camp" data-id="${esc(c.id)}">
+          <span class="ch-name">
+            ${chevron(cOpen)}
+            <span class="ch-name-text"><b>${esc(c.seller_name || "셀러 미정")}</b><span class="hint">${esc(c.brand || "-")} · ${esc(c.product || "-")}</span></span>
+          </span>
+          <span class="ch-type"><span class="cam-type cam-type-${esc(c.type || "")}">${esc(c.type || "?")}</span></span>
+          <span class="ch-status"><span class="meta-status s-${esc(c.status || "준비중")}">${statusDot(c.status)} ${esc(c.status || "준비중")}</span></span>
+          <span class="ch-num"><b>${fmtKRW(t.revenue)}</b></span>
+          <span class="ch-num ch-muted">${fmtKRW(t.cost)}</span>
+          ${marginCell(marginPct(t.revenue, t.cost))}
+          <span class="ch-date">${esc((c.market_schedule || "-").slice(5))}</span>
+        </div>`;
+      if (cOpen) {
+        (c.sets || []).forEach(st => {
+          const stt = setTotals(st);
+          const setKey = c.id + "/" + st.id;
+          const sOpen = s.expanded.has(setKey);
+          const statuses = (st.ads || []).map(a => a.status || "준비중");
+          const stStatus = statuses.includes("진행중") ? "진행중" : statuses.includes("완료") ? "완료" : statuses.includes("중단") ? "중단" : "준비중";
+          html += `
+            <div class="ch-row ch-set" data-v2="ch-toggle-set" data-cam="${esc(c.id)}" data-id="${esc(st.id)}">
+              <span class="ch-name" style="padding-left:34px">
+                ${chevron(sOpen)}
+                <span class="ch-name-text"><b>${esc(st.label || st.round + "차")}</b><span class="hint">세트</span></span>
+              </span>
+              <span class="ch-type"></span>
+              <span class="ch-status"><span class="meta-status s-${esc(stStatus)}">${esc(stStatus)}</span></span>
+              <span class="ch-num">${fmtKRW(stt.revenue)}</span>
+              <span class="ch-num ch-muted">${fmtKRW(stt.cost)}</span>
+              ${marginCell(marginPct(stt.revenue, stt.cost))}
+              <span class="ch-date"></span>
+            </div>`;
+          if (sOpen) {
+            (st.ads || []).forEach(ad => {
+              const at = marketTotals(ad);
+              html += `
+                <div class="ch-row ch-market" data-v2="market-open" data-cam="${esc(c.id)}" data-set="${esc(st.id)}" data-id="${esc(ad.id)}">
+                  <span class="ch-name" style="padding-left:62px">
+                    <span class="ch-name-text"><b style="font-weight:500">${esc(ad.name || "공동구매")}</b></span>
+                  </span>
+                  <span class="ch-type"></span>
+                  <span class="ch-status"><span class="meta-status s-${esc(ad.status || "준비중")}">${esc(ad.status || "준비중")}</span></span>
+                  <span class="ch-num">${fmtKRW(at.revenue)}</span>
+                  <span class="ch-num ch-muted">${fmtKRW(at.cost)}</span>
+                  ${marginCell(marginPct(at.revenue, at.cost))}
+                  <span class="ch-date">${esc((ad.scheduling?.start_date || "-").slice(5))}</span>
+                </div>`;
+            });
+            if (!(st.ads || []).length) html += `<div class="ch-row ch-empty">마켓 없음</div>`;
+          }
         });
-      });
+        if (!(c.sets || []).length) html += `<div class="ch-row ch-empty">세트 없음 — 캠페인 진입 후 [+ 다음 차수 추가]</div>`;
+      }
     });
-    body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="12" class="empty">마켓 없음 — 캠페인+세트 만든 후 자동 생성</td></tr>`;
+    body.innerHTML = html;
   }
 
   function statusDot(s) {
@@ -1005,22 +972,23 @@
 
   // ─── EVENT HANDLERS ─────────────────────────────────────
   document.addEventListener("click", async (e) => {
-    // 메타 탭 전환
-    const mt = e.target.closest(".meta-tab");
-    if (mt) {
-      const tab = mt.dataset.metaTab;
-      s.activeMetaTab = tab;
-      $$(".meta-tab").forEach(t => t.classList.toggle("active", t === mt));
-      ["campaigns","sets","markets"].forEach(t => {
-        const p = $(`#metaPane${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        if (p) p.hidden = (t !== tab);
-      });
-      return;
-    }
-
     const trg = e.target.closest("[data-v2]");
     if (!trg) return;
     const what = trg.dataset.v2;
+
+    // 계층 펼침/접힘
+    if (what === "ch-toggle-camp") {
+      const id = trg.dataset.id;
+      if (s.expanded.has(id)) s.expanded.delete(id); else s.expanded.add(id);
+      renderAll();
+      return;
+    }
+    if (what === "ch-toggle-set") {
+      const key = trg.dataset.cam + "/" + trg.dataset.id;
+      if (s.expanded.has(key)) s.expanded.delete(key); else s.expanded.add(key);
+      renderAll();
+      return;
+    }
 
     if (what === "cam-new") return newCampaign();
     if (what === "cnf-close") { $("#campNewDialog")?.close?.(); return; }
