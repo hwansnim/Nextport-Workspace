@@ -203,6 +203,7 @@
           <!-- 단일 펼침 계층 테이블 (캠페인 ▸ 세트 ▸ 마켓) -->
           <div class="cam-hier">
             <div class="cam-hier-head">
+              <span class="ch-toggle">진행</span>
               <span class="ch-name">캠페인 · 세트 · 마켓</span>
               <span class="ch-type">타입</span>
               <span class="ch-status">상태</span>
@@ -225,8 +226,19 @@
             <span class="cam-bc-current" id="camBcSet" hidden></span>
           </div>
 
-          <!-- 캠페인 메타 정보 + 셀러 특징 -->
-          <section class="panel" id="camMetaPanel">
+          <!-- 1) 세트(공구 차수) — 맨 위, 체크리스트 -->
+          <section class="panel acc" id="camSetsPanel">
+            <div class="panel-head">
+              <h2>세트 (공구 차수)</h2>
+              <div class="head-actions">
+                <button class="btn-secondary" data-v2="cam-add-set">+ 다음 차수 추가</button>
+              </div>
+            </div>
+            <div class="cam-sets" id="camSetsBody"></div>
+          </section>
+
+          <!-- 2) 셀러 정보 + 캠페인 -->
+          <section class="panel acc collapsed" id="camMetaPanel">
             <div class="panel-head">
               <h2>셀러 정보 + 캠페인</h2>
               <div class="head-actions">
@@ -235,49 +247,6 @@
               </div>
             </div>
             <div class="cam-meta-grid" id="camMetaBody"></div>
-          </section>
-
-          <!-- 제품 발송 (캠페인 레벨 — 한 셀러 한 번만) -->
-          <section class="panel" id="camShippingPanel">
-            <div class="panel-head">
-              <h2>제품 발송 (셀러 1회)</h2>
-              <span class="hint">차수마다 따로 보내는 게 아니라 셀러한테 1번만</span>
-            </div>
-            <div class="cam-ship-grid" id="camShippingBody"></div>
-          </section>
-
-          <!-- 💰 캠페인 정산 (일자별 가로 스크롤 + 열 토글) -->
-          <section class="panel" id="camSettlePanel">
-            <div class="panel-head">
-              <h2>정산 (일자별)</h2>
-              <div class="head-actions">
-                <span class="hint" id="camSettleSummary">—</span>
-                <button class="btn-secondary" data-v2="stl-settings">열 설정</button>
-                <button class="btn-secondary" data-v2="stl-add-row">+ 일자 추가</button>
-              </div>
-            </div>
-            <!-- 열 토글 팝오버 -->
-            <div class="stl-colpop" id="stlColPop" hidden></div>
-            <!-- 캠페인 정산 기본값 -->
-            <div class="stl-defaults" id="stlDefaults"></div>
-            <div class="stl-table-wrap">
-              <table class="stl-table" id="stlTable">
-                <thead id="stlHead"></thead>
-                <tbody id="stlBody"></tbody>
-                <tfoot id="stlFoot"></tfoot>
-              </table>
-            </div>
-          </section>
-
-          <!-- 세트(차수) 리스트 -->
-          <section class="panel">
-            <div class="panel-head">
-              <h2>세트 (공구 차수)</h2>
-              <div class="head-actions">
-                <button class="btn-secondary" data-v2="cam-add-set">+ 다음 차수 추가</button>
-              </div>
-            </div>
-            <div class="cam-sets" id="camSetsBody"></div>
           </section>
 
           <!-- 광고(공동구매) 디테일 — 세트 선택 시 표시 -->
@@ -407,6 +376,28 @@
               </div>
             </section>
           </div>
+
+          <!-- 6) 정산 (맨 아래) — 정산 완료 체크 → 대시보드 표시 -->
+          <section class="panel acc collapsed" id="camSettlePanel">
+            <div class="panel-head">
+              <h2>정산 (일자별)</h2>
+              <div class="head-actions">
+                <label class="settle-done-toggle"><input type="checkbox" id="camSettleDone" data-v2="cam-settle-done" /> 정산 완료</label>
+                <span class="hint" id="camSettleSummary">—</span>
+                <button class="btn-secondary" data-v2="stl-settings">열 설정</button>
+                <button class="btn-secondary" data-v2="stl-add-row">+ 일자 추가</button>
+              </div>
+            </div>
+            <div class="stl-colpop" id="stlColPop" hidden></div>
+            <div class="stl-defaults" id="stlDefaults"></div>
+            <div class="stl-table-wrap">
+              <table class="stl-table" id="stlTable">
+                <thead id="stlHead"></thead>
+                <tbody id="stlBody"></tbody>
+                <tfoot id="stlFoot"></tfoot>
+              </table>
+            </div>
+          </section>
         </div>
       </section>
 

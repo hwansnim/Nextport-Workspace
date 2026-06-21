@@ -146,7 +146,7 @@
           <td class="dv-cell" data-r="${i}" data-c="1" data-type="text">${esc(c.seller_name || "")}</td>
           <td class="dv-cell" data-r="${i}" data-c="2" data-type="text">${esc(c.brand || "")} · ${esc(c.product || "")}</td>
           <td class="dv-cell" data-r="${i}" data-c="3" data-type="text">${esc(c.type || "")}</td>
-          <td class="dv-cell" data-r="${i}" data-c="4" data-type="text">${esc(c.status || "")}</td>
+          <td class="dv-cell" data-r="${i}" data-c="4" data-type="text">${esc(c.status || "")}${c.settlement_done ? ' <span class="settle-chip">✓정산완료</span>' : ""}</td>
           <td class="dv-cell dv-num" data-r="${i}" data-c="5" data-type="num">${c.market_count || 0}</td>
           <td class="dv-cell dv-num dv-editable" data-r="${i}" data-c="6" data-type="num" data-val="${c.revenue || 0}">${fmtKRW(c.revenue)}</td>
           <td class="dv-cell dv-num dv-editable" data-r="${i}" data-c="7" data-type="num" data-val="${c.cost || 0}">${fmtKRW(c.cost)}</td>

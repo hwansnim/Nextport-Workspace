@@ -121,6 +121,7 @@
       const cOpen = s.expanded.has(c.id);
       html += `
         <div class="ch-row ch-camp" data-v2="ch-toggle-camp" data-id="${esc(c.id)}">
+          <span class="ch-toggle"><button class="status-toggle ${c.status === "진행중" ? "on" : ""}" data-v2="cam-toggle-active" data-id="${esc(c.id)}" title="진행중 / 미진행"></button></span>
           <span class="ch-name">
             ${chevron(cOpen)}
             <span class="ch-name-text"><b>${esc(c.seller_name || "셀러 미정")}</b><span class="hint">${esc(c.brand || "-")} · ${esc(c.product || "-")}</span></span>
@@ -141,6 +142,7 @@
           const stStatus = statuses.includes("진행중") ? "진행중" : statuses.includes("완료") ? "완료" : statuses.includes("중단") ? "중단" : "준비중";
           html += `
             <div class="ch-row ch-set" data-v2="ch-toggle-set" data-cam="${esc(c.id)}" data-id="${esc(st.id)}">
+              <span class="ch-toggle"></span>
               <span class="ch-name" style="padding-left:34px">
                 ${chevron(sOpen)}
                 <span class="ch-name-text"><b>${esc(st.label || st.round + "차")}</b><span class="hint">세트</span></span>
@@ -157,6 +159,7 @@
               const at = marketTotals(ad);
               html += `
                 <div class="ch-row ch-market" data-v2="market-open" data-cam="${esc(c.id)}" data-set="${esc(st.id)}" data-id="${esc(ad.id)}">
+                  <span class="ch-toggle"></span>
                   <span class="ch-name" style="padding-left:62px">
                     <span class="ch-name-text"><b style="font-weight:500">${esc(ad.name || "공동구매")}</b></span>
                   </span>
@@ -380,6 +383,8 @@
 
     // 정산 (일자별)
     renderSettlement(c);
+    const settleDoneEl = $("#camSettleDone");
+    if (settleDoneEl) settleDoneEl.checked = !!c.settlement_done;
 
     // 제품 발송 (캠페인 레벨)
     const ps = c.product_shipping || {};
@@ -418,6 +423,7 @@
               </div>
             </div>
             <input class="cam-set-memo" placeholder="세트 메모 (이번 차수 키 포인트)" data-v2="set-memo" data-id="${esc(st.id)}" value="${esc(st.memo || "")}" />
+            <label class="cam-set-ship">📦 마지막 제품 발송일 <input type="date" data-v2="set-ship" data-id="${esc(st.id)}" value="${esc(st.last_ship_date || "")}" /></label>
             <div class="cam-set-ads">
               ${(st.ads || []).map(a => `
                 <div class="cam-ad-chip ${a.id === s.activeMarketId ? "active" : ""}" data-v2="ad-open" data-set="${esc(st.id)}" data-id="${esc(a.id)}">
@@ -972,9 +978,30 @@
 
   // ─── EVENT HANDLERS ─────────────────────────────────────
   document.addEventListener("click", async (e) => {
+    // 디테일 섹션 접기/펴기 (아코디언) — 헤더 클릭 시. 버튼/입력은 무시.
+    const head = e.target.closest("#camV2DetailView .acc > .panel-head, .ad-section > .ad-sec-head");
+    if (head && !e.target.closest("button, input, select, textarea, a, label")) {
+      head.parentElement.classList.toggle("collapsed");
+      return;
+    }
+
     const trg = e.target.closest("[data-v2]");
     if (!trg) return;
     const what = trg.dataset.v2;
+
+    // 리스트: 진행/미진행 토글 (맨 좌측)
+    if (what === "cam-toggle-active") {
+      e.stopPropagation();
+      const id = trg.dataset.id;
+      const cam = (s.campaigns || []).find(x => x.id === id);
+      const next = cam && cam.status === "진행중" ? "준비중" : "진행중";
+      try {
+        await api(`/api/campaigns_v2/${id}`, { method: "PATCH", body: JSON.stringify({ status: next }) });
+        if (cam) cam.status = next;
+        renderAll();
+      } catch (err) { alert("실패: " + err.message); }
+      return;
+    }
 
     // 계층 펼침/접힘
     if (what === "ch-toggle-camp") {
@@ -1200,11 +1227,24 @@
     } catch (err) { alert("실패: " + err.message); }
   }
 
-  document.addEventListener("change", (e) => {
+  document.addEventListener("change", async (e) => {
     if (e.target.dataset.v2 === "cam-edit-status") patchCampaign({ status: e.target.value });
     if (e.target.dataset.v2 === "cam-ship") {
       const f = e.target.dataset.f;
       patchCampaign({ product_shipping: { [f]: e.target.value } });
+    }
+    // 세트: 마지막 제품 발송일 (발송란 흡수)
+    if (e.target.dataset.v2 === "set-ship") {
+      try {
+        await api(`/api/campaigns_v2/${s.activeCamId}/sets/${e.target.dataset.id}`, {
+          method: "PATCH", body: JSON.stringify({ last_ship_date: e.target.value }),
+        });
+        window.showToast?.({ icon: "📦", title: "발송일 저장됨", body: e.target.value || "비움" });
+      } catch (err) { alert("실패: " + err.message); }
+    }
+    // 정산 완료 체크 → 대시보드 표시용 플래그
+    if (e.target.dataset.v2 === "cam-settle-done") {
+      patchCampaign({ settlement_done: e.target.checked });
     }
   });
 

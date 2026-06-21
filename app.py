@@ -3733,7 +3733,8 @@ def api_campaigns_v2_one(cam_id):
         return jsonify({"ok": True})
     payload = request.get_json(force=True) or {}
     for k in ["seller_name", "brand", "product", "type", "market_schedule", "status",
-              "linked_influencer_id", "instagram_url", "seller_traits", "notes"]:
+              "linked_influencer_id", "instagram_url", "seller_traits", "notes",
+              "settlement_done"]:
         if k in payload:
             cam[k] = payload[k]
     # 제품 발송 (캠페인 레벨)
@@ -3957,7 +3958,7 @@ def api_campaigns_v2_patch_set(cam_id, set_id):
     if not st:
         return jsonify({"error": "세트 없음"}), 404
     payload = request.get_json(force=True) or {}
-    for k in ["label", "memo"]:
+    for k in ["label", "memo", "last_ship_date"]:
         if k in payload:
             st[k] = payload[k]
     if "features" in payload and isinstance(payload["features"], dict):
@@ -4414,6 +4415,7 @@ def api_dashboard_v2():
             "market_count": cam_markets,
             "latest_market_date": latest_start,
             "market_schedule": cam.get("market_schedule"),
+            "settlement_done": bool(cam.get("settlement_done")),
         })
 
     # 정렬 — 매출 큰 순서
