@@ -36,3 +36,4 @@ Thumbs.db
 data/imports/*
 !data/imports/templates/
 !data/imports/templates/*.xlsx
+design_ref/
