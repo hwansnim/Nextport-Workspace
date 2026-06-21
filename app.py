@@ -1365,6 +1365,8 @@ def api_products_add():
         "detail": payload.get("detail", "").strip(),
         "price": payload.get("price", "").strip(),
         "avoid": payload.get("avoid", "").strip(),
+        "mall_url": (payload.get("mall_url") or "").strip(),
+        "tiers": payload.get("tiers") if isinstance(payload.get("tiers"), list) else [],
     }
     if not new["name"]:
         return jsonify({"error": "name 필수"}), 400
@@ -1380,9 +1382,11 @@ def api_products_patch(pid: str):
     p = next((x for x in products if x["id"] == pid), None)
     if not p:
         return jsonify({"error": "not found"}), 404
-    for k in ("name", "usp", "detail", "price", "avoid"):
+    for k in ("name", "usp", "detail", "price", "avoid", "mall_url"):
         if k in payload:
             p[k] = (payload[k] or "").strip()
+    if "tiers" in payload and isinstance(payload["tiers"], list):
+        p["tiers"] = payload["tiers"]
     save_products(products)
     return jsonify({"product": p})
 
@@ -3681,6 +3685,7 @@ def api_campaigns_v2_list():
             "seller_name": (payload.get("seller_name") or "").strip(),
             "brand": (payload.get("brand") or "").strip(),
             "product": (payload.get("product") or "").strip(),
+            "product_id": (payload.get("product_id") or "").strip(),
             "type": payload.get("type") or "마이크로",
             "market_schedule": start_date,
             "instagram_url": payload.get("instagram_url") or "",

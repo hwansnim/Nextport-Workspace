@@ -506,12 +506,21 @@ function renderProducts() {
     root.innerHTML = '<div class="empty">저장된 제품 없음. [+ 제품 추가] 누르세요.</div>';
     return;
   }
-  root.innerHTML = state.products.map(p => `
+  root.innerHTML = state.products.map(p => {
+    const tiers = p.tiers || [];
+    let priceLine = "";
+    if (tiers.length) {
+      const gp = tiers.map(t => t.group_price).filter(Boolean);
+      const lo = Math.min(...gp), hi = Math.max(...gp);
+      priceLine = `<div class="product-price">💰 ${tiers.length}개 수량 · 공구가 ${lo.toLocaleString()}${hi !== lo ? "~" + hi.toLocaleString() : ""}원</div>`;
+    }
+    return `
     <div class="product-card" data-action="edit-product" data-id="${escapeHtml(p.id)}">
       <div class="product-name">${escapeHtml(p.name)}</div>
       <div class="product-usp">${escapeHtml(p.usp || p.detail || "")}</div>
-    </div>
-  `).join("");
+      ${priceLine}
+    </div>`;
+  }).join("");
 }
 
 function showProductDialog(product) {
@@ -522,8 +531,29 @@ function showProductDialog(product) {
   f.elements.detail.value = product?.detail || "";
   f.elements.price.value = product?.price || "";
   f.elements.avoid.value = product?.avoid || "";
+  if (f.elements.mall_url) f.elements.mall_url.value = product?.mall_url || "";
+  state.prodTiers = JSON.parse(JSON.stringify(product?.tiers || []));
+  renderProdTiers();
   $("#productDialogTitle").textContent = product ? "제품 수정" : "제품 추가";
   $("#productDialog").showModal();
+}
+
+// 제품 수량별 가격표 (정상가/공구가/할인auto/원가)
+function renderProdTiers() {
+  const body = $("#prodTierBody");
+  if (!body) return;
+  const tiers = state.prodTiers || [];
+  body.innerHTML = tiers.length ? tiers.map((t, i) => {
+    const disc = (t.normal_price && t.group_price) ? Math.round((1 - t.group_price / t.normal_price) * 100) : "";
+    return `<tr>
+      <td class="num"><input type="number" data-ptier="${i}" data-f="qty" value="${t.qty ?? ""}" placeholder="1" /></td>
+      <td class="num"><input type="number" data-ptier="${i}" data-f="normal_price" value="${t.normal_price ?? ""}" /></td>
+      <td class="num"><input type="number" data-ptier="${i}" data-f="group_price" value="${t.group_price ?? ""}" /></td>
+      <td class="num ev-auto"><b class="ptier-disc">${disc !== "" ? disc + "%" : "—"}</b></td>
+      <td class="num"><input type="number" data-ptier="${i}" data-f="cost" value="${t.cost ?? ""}" /></td>
+      <td><button type="button" class="btn-text" data-ptier-del="${i}">×</button></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="6" class="empty">수량 행 없음 — [+ 수량 행 추가]</td></tr>`;
 }
 
 async function loadProductIntoSchedule() {
@@ -632,12 +662,44 @@ $("#productForm")?.addEventListener("submit", async (e) => {
   const fd = new FormData(e.target);
   const payload = Object.fromEntries(fd.entries());
   const id = payload.id; delete payload.id;
+  // 수량별 가격표 — 빈 행 제외하고 숫자화
+  payload.tiers = (state.prodTiers || [])
+    .filter(t => t.qty || t.normal_price || t.group_price || t.cost)
+    .map(t => ({
+      qty: parseInt(t.qty) || 0,
+      normal_price: parseInt(t.normal_price) || 0,
+      group_price: parseInt(t.group_price) || 0,
+      cost: parseInt(t.cost) || 0,
+    }));
   try {
     if (id) await api(`/api/products/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
     else await api("/api/products", { method: "POST", body: JSON.stringify(payload) });
     forceCloseDialog("productDialog");
     await loadProducts();
   } catch (err) { alert("저장 실패: " + err.message); }
+});
+
+// 제품 수량별 가격표 — 행 추가/삭제/편집
+$("#prodTierAdd")?.addEventListener("click", () => {
+  state.prodTiers = state.prodTiers || [];
+  state.prodTiers.push({ qty: "", normal_price: "", group_price: "", cost: "" });
+  renderProdTiers();
+});
+document.addEventListener("click", (e) => {
+  const del = e.target.closest("[data-ptier-del]");
+  if (del) { state.prodTiers.splice(parseInt(del.dataset.ptierDel), 1); renderProdTiers(); }
+});
+document.addEventListener("input", (e) => {
+  const inp = e.target.closest("[data-ptier]");
+  if (!inp) return;
+  const i = parseInt(inp.dataset.ptier), f = inp.dataset.f;
+  if (!state.prodTiers[i]) return;
+  state.prodTiers[i][f] = inp.value;
+  // 할인% 즉시 재계산 (재렌더 없이)
+  const t = state.prodTiers[i];
+  const disc = (t.normal_price && t.group_price) ? Math.round((1 - t.group_price / t.normal_price) * 100) : "";
+  const cell = inp.closest("tr")?.querySelector(".ptier-disc");
+  if (cell) cell.textContent = disc !== "" ? disc + "%" : "—";
 });
 
 // ─── IG LOGIN ───

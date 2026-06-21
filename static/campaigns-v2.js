@@ -1044,11 +1044,20 @@
     } catch (e) { alert("실패: " + e.message); }
   }
 
-  function newCampaign() {
+  async function newCampaign() {
     const dlg = $("#campNewDialog");
     if (!dlg) return;
     const form = $("#campNewForm");
     if (form) form.reset();
+    // 제품 드롭다운 채우기 ('제품 정보'에 등록된 것만)
+    try {
+      const r = await api("/api/products");
+      s.productList = r.products || [];
+      const sel = $("#cnfProduct");
+      if (sel) sel.innerHTML = `<option value="">제품 선택…</option>` +
+        s.productList.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") +
+        `<option value="__none">(목록에 없음 — 제품 정보에서 먼저 추가)</option>`;
+    } catch (e) { /* noop */ }
     if (typeof dlg.showModal === "function") dlg.showModal();
     else dlg.setAttribute("open", "");
   }
@@ -1076,10 +1085,14 @@
     ["schedule", "events", "drive", "banners", "reels"].forEach(f => feats[f] = false);
     fd.getAll("feat").forEach(f => feats[f] = true);
 
+    const pid = (fd.get("product_id") || "").toString();
+    const prod = (s.productList || []).find(p => p.id === pid);
+
     const payload = {
       seller_name: seller,
       brand: (fd.get("brand") || "").toString().trim(),
-      product: (fd.get("product") || "").toString().trim(),
+      product: prod ? prod.name : "",
+      product_id: prod ? prod.id : "",
       type: fd.get("type") || "마이크로",
       status: fd.get("status") || "준비중",
       start_date: fd.get("start_date") || "",

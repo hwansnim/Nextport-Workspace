@@ -1546,8 +1546,8 @@
             <input name="brand" placeholder="예: thefashion" />
           </label>
           <label class="cnf-field">
-            <span>제품</span>
-            <input name="product" placeholder="예: 자켓" />
+            <span>제품 <span class="hint" style="font-weight:400">('제품 정보'에 등록된 것만 선택)</span></span>
+            <select name="product_id" id="cnfProduct"><option value="">제품 선택…</option></select>
           </label>
           <label class="cnf-field">
             <span>타입 <em>*</em></span>
@@ -1761,8 +1761,19 @@
       <label>제품명<input name="name" required placeholder="예: 하루픽스 오메가369 밸런스" /></label>
       <label>핵심 USP<input name="usp" placeholder="한 줄 요약" /></label>
       <label>상세 정보<textarea name="detail" rows="4"></textarea></label>
-      <label>가격/혜택<input name="price" /></label>
+      <label>가격/혜택 (요약)<input name="price" /></label>
       <label>금지 멘트<input name="avoid" /></label>
+      <label>자사몰 링크<input name="mall_url" placeholder="https://..." /></label>
+      <div class="prod-tiers">
+        <div class="prod-tiers-head">수량별 가격 <span class="hint">· 정산 때 [건수 → 매출] 자동계산에 사용</span></div>
+        <div class="ev-table-wrap">
+          <table class="ev-table" id="prodTierTable">
+            <thead><tr><th class="num">수량</th><th class="num">정상가</th><th class="num">공구판매가</th><th class="num">할인%</th><th class="num">원가</th><th></th></tr></thead>
+            <tbody id="prodTierBody"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn-text" id="prodTierAdd">+ 수량 행 추가</button>
+      </div>
       <div class="dialog-actions">
         <button type="button" class="btn-text" data-action="delete-product">삭제</button>
         <span class="spacer"></span>
