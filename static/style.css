@@ -3566,3 +3566,118 @@ dialog select {
   border: 1px solid var(--border); border-radius: 6px;
   resize: vertical;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Phase P — 목업 정확 매칭 (모든 화면 공통 컴포넌트 통일)
+   핸드오프 디자인 토큰을 모든 기존 클래스에 강제 적용
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 지표(stat) 카드 — 전 화면 통일 (32px 숫자 + 헤어라인 카드) ── */
+.dv-stat-card, .cgt-card, .daily-stats .stat-card {
+  background: #fff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 22px !important;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.dv-stat-label, .cgt-label, .daily-stats .stat-label {
+  font-size: 11px !important; font-weight: 600 !important;
+  text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted) !important; margin: 0 !important;
+}
+.dv-stat-value, .cgt-value, .daily-stats .stat-value {
+  font-size: 32px !important; font-weight: 500 !important;
+  letter-spacing: -.02em; line-height: 1; white-space: nowrap;
+  color: var(--text) !important;
+}
+.cgt-profit .cgt-value, .dv-stat-profit .dv-stat-value { color: var(--green) !important; }
+.dv-stat-sub { font-size: 12px !important; color: var(--muted) !important; margin-top: 0 !important; }
+.daily-stats { gap: 16px; }
+
+/* ── 표 — 전 화면 헤어라인 Apple 통일 ── */
+.dm-table, .meta-table, .dv-sheet, .stl-table, .cg-table,
+.dash-table, .replies-table, .ad-sales-table, #pipelineTable, #repliesTable {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.dm-table thead th, .meta-table thead th, .dv-sheet thead th, .stl-table thead th,
+.cg-table thead th, .dash-table thead th, .ad-sales-table thead th,
+#pipelineTable thead th, #repliesTable thead th, .replies-table thead th {
+  background: #fff !important;
+  border: none !important;
+  border-top: 1px solid var(--hairline) !important;
+  border-bottom: 1px solid var(--hairline) !important;
+  text-transform: uppercase; font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: .03em; color: var(--muted) !important;
+  padding: 9px 12px !important; text-align: left; white-space: nowrap;
+}
+.dm-table tbody td, .meta-table tbody td, .stl-table tbody td, .cg-table tbody td,
+.dash-table tbody td, .ad-sales-table tbody td,
+#pipelineTable tbody td, #repliesTable tbody td, .replies-table tbody td {
+  border: none !important;
+  border-bottom: 1px solid var(--hairline-row) !important;
+  padding: 12px !important; font-size: 13px; color: var(--text);
+}
+.dm-table tbody tr:hover, .meta-table tbody tr:hover, .stl-table tbody tr:hover,
+.dash-table tbody tr:hover, #pipelineTable tbody tr:hover, #repliesTable tbody tr:hover {
+  background: var(--row-hover) !important;
+}
+.dm-table .num, .meta-table .num, .dv-sheet .dv-num, .stl-table .num,
+.dash-table .num, td.num, th.num { text-align: right; }
+/* 그룹 헤더(기기별 등) */
+.dm-group-row td { background: var(--hover) !important; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--hairline) !important; }
+
+/* 엑셀 시트는 모노톤 유지하되 헤더 흰색 */
+.dv-sheet thead th, .stl-table thead th { position: sticky; top: 0; z-index: 2; }
+
+/* ── 세그먼트 토글 (대시보드 12개월/7일 등) ── */
+.dv-range-btn {
+  border: none !important; background: transparent !important;
+  color: var(--muted) !important; padding: 6px 14px !important;
+  border-radius: 7px !important; font-size: 12.5px !important; font-weight: 500 !important;
+}
+.dv-range-btn.active {
+  background: #fff !important; color: var(--text) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.1) !important;
+}
+.head-actions:has(.dv-range-btn) {
+  background: var(--track); padding: 2px; border-radius: 9px; gap: 2px;
+}
+
+/* ── 캠페인 메타 탭(3탭) — Apple 세그먼트 느낌 ── */
+.meta-tabs { border: none; background: var(--track); padding: 3px; border-radius: 10px; gap: 2px; margin-bottom: 16px; display: inline-flex; }
+.meta-tab { border: none !important; border-radius: 8px; padding: 7px 16px; color: var(--muted); font-weight: 500; }
+.meta-tab.active { background: #fff !important; color: var(--text) !important; box-shadow: 0 1px 2px rgba(0,0,0,.1); border: none !important; }
+.meta-tab .mt-count { background: var(--track); }
+.meta-tab.active .mt-count { background: var(--accent-soft); color: var(--accent); }
+
+/* ── 필터 셀렉트 / 검색 입력 — Apple ── */
+.filter-sel, select.filter-sel {
+  border: 1px solid var(--border-strong) !important; border-radius: 8px !important;
+  padding: 6px 12px !important; font-size: 13px; background: #fff; color: var(--text);
+}
+input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="search"] {
+  border-radius: 8px;
+}
+
+/* ── 페이지 헤더 액션 버튼 영역 정렬 ── */
+.page-head { align-items: flex-start; }
+.page-head .head-actions { align-items: center; }
+
+/* ── 빈 상태 ── */
+.empty { color: var(--muted); font-size: 13px; }
+
+/* ── 칩/배지 일반 ── */
+.dm-chip, .meta-status, .cam-status, .cam-type { border-radius: 7px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; }
+
+/* ── 인박스 — Apple 말풍선 ── */
+.inbox-thread .thread-msg.us .tm-bubble,
+.thread-msg.us .tm-bubble { background: var(--accent); }
+.tm-bubble { border-radius: 16px; }
+
+/* ── 셀러 아카이브 카드 / 제품 카드 ── */
+.ref-card, .se-card, .product-card { border-radius: 18px; box-shadow: var(--shadow-sm); }
+
+/* ── 사이드바 배지(미읽음/라이브) — Apple 빨강 ── */
+.side-badge { background: var(--badge-red); }
+.side-badge.live { background: var(--dot-ok); }

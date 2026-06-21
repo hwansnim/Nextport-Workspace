@@ -166,7 +166,7 @@
         <div id="camV2ListView">
           <div class="page-head">
             <div>
-              <h1>📣 셀러 캠페인</h1>
+              <h1>셀러 캠페인</h1>
               <p class="page-sub">메타 광고관리자 카피. 캠페인 / 세트(차수) / 마켓(공동구매) 3단계 행단위.</p>
             </div>
           </div>
@@ -304,7 +304,7 @@
           <!-- 캠페인 메타 정보 + 셀러 특징 -->
           <section class="panel" id="camMetaPanel">
             <div class="panel-head">
-              <h2>📌 셀러 정보 + 캠페인</h2>
+              <h2>셀러 정보 + 캠페인</h2>
               <div class="head-actions">
                 <span class="hint" id="camRevenueLive">실시간 매출 —</span>
                 <button class="btn-text" data-v2="cam-edit-meta">✎ 편집</button>
@@ -316,7 +316,7 @@
           <!-- 제품 발송 (캠페인 레벨 — 한 셀러 한 번만) -->
           <section class="panel" id="camShippingPanel">
             <div class="panel-head">
-              <h2>📦 제품 발송 (셀러 1회)</h2>
+              <h2>제품 발송 (셀러 1회)</h2>
               <span class="hint">차수마다 따로 보내는 게 아니라 셀러한테 1번만</span>
             </div>
             <div class="cam-ship-grid" id="camShippingBody"></div>
@@ -325,7 +325,7 @@
           <!-- 💰 캠페인 정산 (일자별 가로 스크롤 + 열 토글) -->
           <section class="panel" id="camSettlePanel">
             <div class="panel-head">
-              <h2>💰 정산 (일자별)</h2>
+              <h2>정산 (일자별)</h2>
               <div class="head-actions">
                 <span class="hint" id="camSettleSummary">—</span>
                 <button class="btn-secondary" data-v2="stl-settings">⚙️ 열 설정</button>
@@ -348,7 +348,7 @@
           <!-- 세트(차수) 리스트 -->
           <section class="panel">
             <div class="panel-head">
-              <h2>🎬 세트 (공구 차수)</h2>
+              <h2>세트 (공구 차수)</h2>
               <div class="head-actions">
                 <button class="btn-secondary" data-v2="cam-add-set">+ 다음 차수 추가</button>
               </div>
@@ -360,7 +360,7 @@
           <div id="camAdDetailWrap" hidden>
             <section class="panel cam-ad-detail">
               <div class="panel-head">
-                <h2>🛒 공동구매 디테일</h2>
+                <h2>공동구매 디테일</h2>
                 <div class="head-actions">
                   <span class="hint" id="camAdStatusLabel"></span>
                   <select id="camAdStatusSel" class="filter-sel">
@@ -375,7 +375,7 @@
               <!-- 콘텐츠 가이드 (셀러 톤 매칭 생성) = 스케줄링 -->
               <section class="panel content-guide-panel" data-feat="schedule">
                 <div class="panel-head">
-                  <h2>📅 콘텐츠 가이드 (셀러한테 보낼 일자별 스토리)</h2>
+                  <h2>콘텐츠 가이드 (셀러한테 보낼 일자별 스토리)</h2>
                   <div class="head-actions">
                     <span class="hint" id="contentGuideStat">—</span>
                     <button class="btn-primary" data-v2="cg-open-gen">✨ 생성 / 재생성</button>
@@ -525,7 +525,7 @@
         <!-- 2) 월별 매출 막대 그래프 (카페24 스타일) -->
         <section class="panel">
           <div class="panel-head">
-            <h2>📊 월별 매출 추이</h2>
+            <h2>월별 매출 추이</h2>
             <div class="head-actions">
               <button class="dv-range-btn active" data-v2="dv-range" data-range="month">최근 12개월</button>
               <button class="dv-range-btn" data-v2="dv-range" data-range="day">최근 7일</button>
@@ -539,7 +539,7 @@
         <!-- 3) 캠페인별 표 (엑셀 인터랙션) -->
         <section class="panel">
           <div class="panel-head">
-            <h2>🧮 캠페인별 정산</h2>
+            <h2>캠페인별 정산</h2>
             <div class="head-actions">
               <span class="hint">셀 클릭 = 편집 · Ctrl+C/V/Z/Y · =SUM(A1:A3) · 행 클릭 → 캠페인</span>
               <button class="btn-text" data-v2="dv-export-csv">⤓ CSV</button>
@@ -596,13 +596,13 @@
       <!-- ▶️ TAB: DM 발송 (실시간) -->
       <section class="tab-pane" id="tab-dm-live">
         <div class="page-head">
-          <h1>▶️ DM 발송 (실시간)</h1>
+          <h1>▶ DM 발송 (실시간)</h1>
           <p class="page-sub">지금 어떤 계정으로 누구에게 컨택 중인지 실시간 로그.</p>
         </div>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>🟢 현재 상태</h2>
+            <h2>현재 상태</h2>
             <div class="head-actions">
               <span class="hint" id="dmLiveStat">대기 중</span>
               <button class="btn-secondary" data-v2="live-pause" hidden>⏸ 일시정지</button>
@@ -619,7 +619,7 @@
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📜 발송 로그 (실시간 스트림)</h2>
+            <h2>발송 로그 (실시간 스트림)</h2>
             <div class="head-actions">
               <span class="hint" id="dmLiveLogStat">0건</span>
               <button class="btn-text" data-v2="live-clear">🗑 비우기</button>
@@ -635,7 +635,7 @@
       <!-- 💬 TAB: DM (수신) — 통합 인박스 -->
       <section class="tab-pane" id="tab-dm-inbox">
         <div class="page-head">
-          <h1>💬 DM (수신)</h1>
+          <h1>DM (수신)</h1>
           <p class="page-sub">100+ 인스타 계정으로 들어온 모든 답장. 셀러별로 자동 묶임.</p>
         </div>
 
@@ -665,13 +665,13 @@
       <!-- 👤 TAB: 전체 인플루언서 관리 -->
       <section class="tab-pane" id="tab-influencers">
         <div class="page-head">
-          <h1>👤 전체 인플루언서 관리</h1>
+          <h1>전체 인플루언서 관리</h1>
           <p class="page-sub">5,000명 인플루언서 마스터. 엑셀 임포트로 일괄 추가/수정.</p>
         </div>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📥 엑셀 임포트</h2>
+            <h2>엑셀 임포트</h2>
             <span class="hint" id="dmImportsDirHint"></span>
           </div>
           <div class="dm-import-toolbar">
@@ -691,7 +691,7 @@
 
         <section class="panel">
           <div class="panel-head">
-            <h2>👤 인플루언서 마스터</h2>
+            <h2>인플루언서 마스터</h2>
             <div class="head-actions">
               <span class="hint" id="dmInfStat">로딩…</span>
               <input type="text" id="dmInfSearch" placeholder="🔍 인스타ID / 셀러명" style="font-size:12px;padding:5px 9px;width:220px" />
@@ -730,13 +730,13 @@
       <!-- 💻 TAB: 기기 및 계정 관리 -->
       <section class="tab-pane" id="tab-accounts">
         <div class="page-head">
-          <h1>💻 기기 및 계정 관리</h1>
+          <h1>기기 및 계정 관리</h1>
           <p class="page-sub">100+ 인스타 계정 마스터. 기기별 그룹 표시.</p>
         </div>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📥 엑셀 임포트</h2>
+            <h2>엑셀 임포트</h2>
           </div>
           <div class="dm-import-toolbar">
             <a class="btn-secondary" href="/api/dm/import/template/accounts" download>📥 양식 다운로드</a>
@@ -753,7 +753,7 @@
 
         <section class="panel">
           <div class="panel-head">
-            <h2>💻 우리 계정 마스터 (기기별)</h2>
+            <h2>우리 계정 마스터 (기기별)</h2>
             <div class="head-actions">
               <span class="hint" id="dmAccStat">로딩…</span>
             </div>
@@ -784,13 +784,13 @@
       <!-- 📤 TAB: 데일리 DM 관리 -->
       <section class="tab-pane" id="tab-daily-dm">
         <div class="page-head">
-          <h1>📤 데일리 DM 관리</h1>
+          <h1>데일리 DM 관리</h1>
           <p class="page-sub">오늘 보낼 큐 자동 산출 — 차수 ≤10 / 7일 간격 / 매번 다른 계정.</p>
         </div>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📊 오늘 통계</h2>
+            <h2>오늘 통계</h2>
           </div>
           <div class="daily-stats" id="dailyStats">
             <div class="stat-card"><div class="stat-label">발송 후보</div><div class="stat-value" id="statCandidates">—</div></div>
@@ -803,7 +803,7 @@
         <!-- 📝 발송 멘트 / 양식별 회신율 -->
         <section class="panel">
           <div class="panel-head">
-            <h2>📝 발송 멘트 + 양식 회신율</h2>
+            <h2>발송 멘트 + 양식 회신율</h2>
           </div>
           <div class="dm-msg-zone">
             <div class="dm-msg-left">
@@ -822,7 +822,7 @@
 
         <section class="panel" id="dmQueuePanel">
           <div class="panel-head">
-            <h2>🚀 오늘 보낼 큐</h2>
+            <h2>오늘 보낼 큐</h2>
             <div class="head-actions">
               <span class="hint" id="dmQueueStat">계산 전</span>
               <button class="btn-secondary" data-v2="queue-rebuild">🔄 큐 재계산</button>
@@ -856,13 +856,13 @@
       <!-- 📬 TAB: 회신 인플루언서 현황 -->
       <section class="tab-pane" id="tab-replies">
         <div class="page-head">
-          <h1>📬 회신 인플루언서 현황</h1>
+          <h1>회신 인플루언서 현황</h1>
           <p class="page-sub">답장 받은 인플루언서 전체 정보. 행 클릭 = 인라인 편집 · 인스타ID 클릭 = 프로필 · [💬] = 대화로 이동.</p>
         </div>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📋 답장 받은 인플루언서</h2>
+            <h2>답장 받은 인플루언서</h2>
             <div class="head-actions">
               <span class="hint" id="repliesStat">로딩…</span>
               <select id="repliesStatusFilter" class="filter-sel">
@@ -906,13 +906,13 @@
       <!-- 🎯 TAB: 진행 예정 셀러 -->
       <section class="tab-pane" id="tab-pipeline">
         <div class="page-head">
-          <h1>🎯 진행 예정 셀러</h1>
+          <h1>진행 예정 셀러</h1>
           <p class="page-sub">회신에서 진행 가능성 있는 셀러만 모음. 미팅 차수 관리 + 마켓 열 거 같으면 → 캠페인 추가.</p>
         </div>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📊 단계별 통계</h2>
+            <h2>단계별 통계</h2>
           </div>
           <div class="daily-stats">
             <div class="stat-card"><div class="stat-label">진행 예정</div><div class="stat-value" id="pipeStatPlan">—</div></div>
@@ -924,7 +924,7 @@
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📋 진행 예정 명단</h2>
+            <h2>진행 예정 명단</h2>
             <div class="head-actions">
               <span class="hint" id="pipelineStat">로딩…</span>
               <select id="pipelineStageFilter" class="filter-sel">
@@ -965,7 +965,7 @@
       <!-- 📖 TAB: 공동구매 가이드 -->
       <section class="tab-pane" id="tab-guide">
         <div class="page-head">
-          <h1>📖 공동구매 가이드</h1>
+          <h1>공동구매 가이드</h1>
           <p class="page-sub">넥스트포트 워크스페이스 전 기능 사용법. 신규 팀원 온보딩용.</p>
         </div>
 
@@ -994,7 +994,7 @@
           <article class="guide-content">
 
             <section id="g-overview" class="guide-section">
-              <h2>🏁 전체 개요</h2>
+              <h2>전체 개요</h2>
               <p>이 워크스페이스는 인스타 DM 영업부터 공동구매 진행까지 <b>한 곳</b>에서 처리합니다.</p>
               <ul>
                 <li><b>인플루언서 5,000명 DB</b> — 엑셀로 일괄 임포트</li>
@@ -1011,7 +1011,7 @@
             </section>
 
             <section id="g-flow" class="guide-section">
-              <h2>🔄 업무 흐름 (한눈에)</h2>
+              <h2>업무 흐름 (한눈에)</h2>
               <div class="guide-flow">
                 <div class="gflow-step"><b>1</b> 인플루언서 엑셀 임포트<br><span class="hint">전체 인플루언서 DB</span></div>
                 <div class="gflow-arrow">→</div>
@@ -1032,7 +1032,7 @@
             </section>
 
             <section id="g-dm-daily" class="guide-section">
-              <h2>📤 데일리 DM 관리</h2>
+              <h2>데일리 DM 관리</h2>
               <h3>1. 통계 카드</h3>
               <ul>
                 <li><b>발송 후보</b> — 오늘 보낼 수 있는 인플루언서 수 (규칙 통과한 수)</li>
@@ -1056,7 +1056,7 @@
             </section>
 
             <section id="g-dm-live" class="guide-section">
-              <h2>▶️ DM 발송 (실시간)</h2>
+              <h2>▶ DM 발송 (실시간)</h2>
               <ul>
                 <li><b>🟢 현재 상태</b>: 발송 중인 작업 카드 (계정 → 셀러 + 차수 + 경과시간)</li>
                 <li><b>📜 발송 로그</b>: 콘솔 스타일 실시간 스트림 (start / done / fail)</li>
@@ -1070,7 +1070,7 @@
             </section>
 
             <section id="g-dm-inbox" class="guide-section">
-              <h2>💬 DM (수신) — 통합 인박스</h2>
+              <h2>DM (수신) — 통합 인박스</h2>
               <ul>
                 <li><b>좌측</b>: 셀러별 대화 리스트 (안 읽은 건 빨간 배지)</li>
                 <li><b>우측</b>: 메시지 thread (인스타식 말풍선)</li>
@@ -1081,7 +1081,7 @@
             </section>
 
             <section id="g-influencers" class="guide-section">
-              <h2>👤 전체 인플루언서 DB</h2>
+              <h2>전체 인플루언서 DB</h2>
               <h3>1. 엑셀 임포트</h3>
               <ul>
                 <li><b>📥 양식 다운로드</b>: 17컬럼 헤더 + 예시</li>
@@ -1097,7 +1097,7 @@
             </section>
 
             <section id="g-accounts" class="guide-section">
-              <h2>💻 기기 및 계정 관리</h2>
+              <h2>기기 및 계정 관리</h2>
               <ul>
                 <li><b>기기별 그룹</b> 자동 정렬 (예: 갤럭시1 / 아이폰3 ...)</li>
                 <li><b>회신율 컬럼</b> — 발송 대비 답장률 (녹색=10%+, 주황=3%+, 회색=3%-)</li>
@@ -1108,7 +1108,7 @@
             </section>
 
             <section id="g-replies" class="guide-section">
-              <h2>📬 회신 인플루언서 현황</h2>
+              <h2>회신 인플루언서 현황</h2>
               <h3>인라인 편집</h3>
               <p>대부분 컬럼은 자동 채워지지만, <b>수동 입력 필드</b>가 있습니다 — 셀 클릭하면 노란색 → 다른 곳 클릭하면 자동 저장.</p>
               <ul>
@@ -1130,7 +1130,7 @@
             </section>
 
             <section id="g-pipeline" class="guide-section">
-              <h2>🎯 진행 예정 셀러</h2>
+              <h2>진행 예정 셀러</h2>
               <h3>단계 (Pipeline Stage)</h3>
               <ol>
                 <li><b>진행 예정</b> — 답장 받은 직후</li>
@@ -1158,7 +1158,7 @@
             </section>
 
             <section id="g-campaign" class="guide-section">
-              <h2>📣 셀러 캠페인 — 메타 광고관리자 스타일</h2>
+              <h2>셀러 캠페인 — 메타 광고관리자 스타일</h2>
               <h3>계층 구조</h3>
               <p><b>캠페인 → 세트(차수) → 공동구매(광고)</b></p>
               <ul>
@@ -1176,7 +1176,7 @@
                 <li>🎬 <b>릴스</b>: 기획안 + 영상 URL + 상태 (기획중/제작중/검수중/완료)</li>
               </ul>
 
-              <h3>📅 콘텐츠 가이드 (스토리 자동 생성)</h3>
+              <h3>콘텐츠 가이드 (스토리 자동 생성)</h3>
               <p>광고(마켓) 디테일 안 <b>콘텐츠 가이드</b> = 셀러한테 보낼 일자별 스토리 제안.</p>
               <ul>
                 <li><b>✨ 생성/재생성</b>: 제품 정보 + 🎯 소구점(한 줄에 하나) + 글 길이 입력 → 생성. <b>자동 X</b>, 반드시 입력 후 생성.</li>
@@ -1187,7 +1187,7 @@
                 <li><b>👁 미리보기</b> / <b>📋 복사</b>: 셀러 시트 새 탭 / 텍스트 복사.</li>
               </ul>
 
-              <h3>📱 셀러 모바일 뷰 (공유 링크)</h3>
+              <h3>셀러 모바일 뷰 (공유 링크)</h3>
               <p>셀러가 <b>🔗 셀러 링크</b>를 폰에서 열면:</p>
               <ul>
                 <li>날짜 카드 리스트 → 탭하면 풀스크린 스토리 뷰어</li>
@@ -1205,7 +1205,7 @@
             </section>
 
             <section id="g-calendar" class="guide-section">
-              <h2>🏠 캘린더 (홈)</h2>
+              <h2>캘린더 (홈)</h2>
               <p>모든 데이터의 시간축 통합. 캘린더에 자동으로 들어오는 항목:</p>
               <ul>
                 <li><b>미팅</b> — 회신 현황/진행 예정에서 박은 미팅</li>
@@ -1218,7 +1218,7 @@
             </section>
 
             <section id="g-rules" class="guide-section">
-              <h2>⚠️ 자동 적용 규칙</h2>
+              <h2>자동 적용 규칙</h2>
               <table class="guide-rule-table">
                 <tr><th>규칙</th><th>값</th><th>의미</th></tr>
                 <tr><td>최대 발송 차수</td><td><b>10차</b></td><td>한 인플루언서에 최대 10번까지만</td></tr>
@@ -1231,7 +1231,7 @@
             </section>
 
             <section id="g-data-flow" class="guide-section">
-              <h2>🔗 시트별 자동 연동</h2>
+              <h2>시트별 자동 연동</h2>
               <pre class="guide-flow-code">
 [DM 발송]
   → 인플루언서 (차수+1, 최종발송일, 마지막사용계정 갱신)
@@ -1261,7 +1261,7 @@
             </section>
 
             <section id="g-dashboard" class="guide-section">
-              <h2>📊 대시보드 + 엑셀 인터랙션</h2>
+              <h2>대시보드 + 엑셀 인터랙션</h2>
               <h3>구조 (카페24 스타일)</h3>
               <ol>
                 <li><b>상단 카드 4개</b> — 총 매출 / 총 비용 / 공헌 이익 / 진행 캠페인</li>
@@ -1301,7 +1301,7 @@
             </section>
 
             <section id="g-recording" class="guide-section">
-              <h2>🎙 미팅 녹음 (실시간)</h2>
+              <h2>미팅 녹음 (실시간)</h2>
               <p>진행 예정 셀러 → 셀러명 클릭 → 모달 → 미팅 카드의 <b>🎙</b> 버튼.</p>
               <ol>
                 <li><b>🎙 클릭</b> → "확인 = 녹음 시작 / 취소 = 파일 업로드" 선택</li>
@@ -1318,7 +1318,7 @@
             </section>
 
             <section id="g-mobile" class="guide-section">
-              <h2>📱 모바일 보기</h2>
+              <h2>모바일 보기</h2>
               <p>설정 → 📱 화면 모드 → <b>모바일 보기</b> 토글 ON.</p>
               <ul>
                 <li><b>자동 적용</b>: 화면 너비 760px 미만이면 토글 OFF여도 자동</li>
@@ -1330,7 +1330,7 @@
             </section>
 
             <section id="g-faq" class="guide-section">
-              <h2>❓ 자주 묻는 질문</h2>
+              <h2>자주 묻는 질문</h2>
 
               <details>
                 <summary>발송이 안 되는데요?</summary>
@@ -1532,7 +1532,7 @@
 
         <section class="panel">
           <div class="panel-head">
-            <h2>📱 화면 모드</h2>
+            <h2>화면 모드</h2>
           </div>
           <div style="padding:14px 16px">
             <label class="settings-toggle">
@@ -1551,7 +1551,7 @@
 
         <section class="panel">
           <div class="panel-head">
-            <h2>☁️ Google Drive sync</h2>
+            <h2>Google Drive sync</h2>
             <div class="head-actions">
               <button class="btn-secondary" onclick="triggerDriveSync(true)">지금 sync</button>
             </div>
@@ -1587,7 +1587,7 @@
   <dialog id="campNewDialog" class="cam-new-dialog">
     <form method="dialog" class="cam-new-form" id="campNewForm">
       <header class="cnf-head">
-        <h2>📣 새 캠페인 만들기</h2>
+        <h2>새 캠페인 만들기</h2>
         <button type="button" class="btn-text cnf-close" data-v2="cnf-close" style="font-size:24px">×</button>
       </header>
 
@@ -1659,7 +1659,7 @@
   <dialog id="contentGenDialog" class="cam-new-dialog">
     <form method="dialog" class="cam-new-form" id="contentGenForm">
       <header class="cnf-head">
-        <h2>✨ 콘텐츠 스케줄 생성</h2>
+        <h2>콘텐츠 스케줄 생성</h2>
         <button type="button" class="btn-text" data-v2="cg-gen-close" style="font-size:24px">×</button>
       </header>
       <div class="cnf-body">
@@ -1721,7 +1721,7 @@
   <dialog id="setAddDialog" class="cam-new-dialog" style="max-width:480px">
     <form method="dialog" class="cam-new-form" id="setAddForm">
       <header class="cnf-head">
-        <h2>🎬 새 차수(세트) 추가</h2>
+        <h2>새 차수(세트) 추가</h2>
         <button type="button" class="btn-text" data-v2="setadd-close" style="font-size:24px">×</button>
       </header>
       <div class="cnf-body">
@@ -1750,7 +1750,7 @@
   <dialog id="imgPickerDialog" class="cam-new-dialog" style="max-width:880px">
     <div class="cam-new-form">
       <header class="cnf-head">
-        <h2>🖼 레퍼런스 이미지 선택</h2>
+        <h2>레퍼런스 이미지 선택</h2>
         <button type="button" class="btn-text" data-v2="imgpick-close" style="font-size:24px">×</button>
       </header>
       <div class="cnf-body">
@@ -1903,7 +1903,7 @@
   <!-- 모바일 미리보기 다이얼로그 -->
   <dialog id="mobilePreviewDialog" class="mobile-preview-dialog">
     <div class="mp-head">
-      <h3 id="mpTitle">📱 모바일 미리보기</h3>
+      <h3 id="mpTitle">모바일 미리보기</h3>
       <button type="button" class="btn-text" data-action="close-mobile-preview">닫기</button>
     </div>
     <div class="mp-frame-wrap">
@@ -1914,7 +1914,7 @@
   <!-- 스케줄 편집 다이얼로그 -->
   <dialog id="scheduleEditDialog" class="schedule-edit-dialog">
     <div class="se-head">
-      <h3 id="seTitle">📅 일일 스케줄 편집</h3>
+      <h3 id="seTitle">일일 스케줄 편집</h3>
       <button type="button" class="btn-text" data-action="close-schedule-edit">닫기</button>
     </div>
     <div class="se-auto">
@@ -1966,7 +1966,7 @@
   <!-- FAQ 편집 다이얼로그 -->
   <dialog id="faqEditDialog" class="schedule-edit-dialog">
     <div class="se-head">
-      <h3>💬 무물 (Q&A) 편집</h3>
+      <h3>무물 (Q&A) 편집</h3>
       <button type="button" class="btn-text" data-action="close-faq-edit">닫기</button>
     </div>
     <div class="se-toolbar">
