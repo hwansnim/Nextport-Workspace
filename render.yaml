@@ -14,7 +14,11 @@ services:
         value: "8080"
       - key: GEMINI_API_KEY
         sync: false  # Render Dashboard 에서 직접 박기 (보안)
-    disk:
-      name: nextport-data
-      mountPath: /app/data
-      sizeGB: 1
+      # ─── 구글 드라이브 영속 저장 (무료 플랜 휘발성 디스크 대체) ───
+      - key: DRIVE_SYNC
+        value: "1"
+      - key: DRIVE_DATA_FOLDER_ID
+        value: "1ovjCalrOI26ICfuTQ7wLCVs6hQdn2hON"  # 넥스트포트_워크스페이스_데이터
+      - key: GOOGLE_TOKEN_JSON
+        sync: false  # token.json 내용 통째로 Render Dashboard 에서 붙여넣기 (보안)
+    # disk 블록 제거: 무료 플랜은 영구 디스크 미지원 → 드라이브 동기화로 대체

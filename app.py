@@ -33,6 +33,19 @@ CONFIG_EXAMPLE = ROOT / "config.example.json"
 DATA_DIR.mkdir(exist_ok=True)
 LOGS_DIR.mkdir(exist_ok=True)
 
+# ─── 구글 드라이브 동기화 부트스트랩 ───────────────────────────
+# Render 무료(휘발성 디스크) 대비: 시작 시 드라이브에서 data/ 받아오고,
+# 변경분은 워처가 드라이브로 업로드. token.json(로컬) 또는 GOOGLE_TOKEN_JSON(클라우드) 필요.
+if os.environ.get("DRIVE_SYNC", "1") != "0":
+    try:
+        from modules import drive_sync as _drive_sync
+        if _drive_sync.enabled():
+            _drive_sync.download_all(DATA_DIR)
+            _drive_sync.start_watcher(DATA_DIR)
+            logging.getLogger("app").info("[app] 구글 드라이브 동기화 ON")
+    except Exception as _e:
+        logging.getLogger("app").warning(f"[app] 드라이브 동기화 비활성 (무시): {_e}")
+
 # Logging
 logging.basicConfig(
     level=logging.INFO,

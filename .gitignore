@@ -37,3 +37,7 @@ data/imports/*
 !data/imports/templates/
 !data/imports/templates/*.xlsx
 design_ref/
+
+# OAuth 비밀 (절대 커밋 금지)
+credentials.json
+token.json
