@@ -4002,7 +4002,7 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
     for k in ["scheduling", "banners"]:
         if k in payload and isinstance(payload[k], dict):
             ad.setdefault(k, {}).update(payload[k])
-    for k in ["events", "drive_links", "reels", "content_days", "sales"]:
+    for k in ["events", "drive_links", "reels", "content_days", "sales", "banner_images"]:
         if k in payload and isinstance(payload[k], list):
             ad[k] = payload[k]
     # 날짜별 매출 입력 시 → revenue/cost 자동 합산

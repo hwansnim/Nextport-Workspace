@@ -477,28 +477,19 @@
         </div>`).join("")
       : `<div class="hint">드라이브 링크 없음</div>`;
 
-    // 배너
-    const bn = ad.banners || {};
-    const bannerTypes = [
-      { key: "openfeed", label: "오픈피드 배너" },
-      { key: "price", label: "가격 배너" },
-      { key: "event", label: "이벤트 배너" },
-    ];
-    $("#adBannerGrid").innerHTML = bannerTypes.map(b => {
-      const bv = bn[b.key] || {};
-      return `
-        <div class="ad-banner-card">
-          <div class="ad-banner-head">
-            <label><input type="checkbox" data-v2="ad-banner-toggle" data-key="${b.key}" ${bv.checked ? "checked" : ""} /> <b>${b.label}</b></label>
-            <span class="hint">${bv.checked ? "✓ 전달됨" : "미전달"}</span>
-          </div>
-          <input type="url" placeholder="기획안 URL" data-v2="ad-banner-field" data-key="${b.key}" data-field="draft_url" value="${esc(bv.draft_url || "")}" />
-          <input type="url" placeholder="최종 이미지 URL" data-v2="ad-banner-field" data-key="${b.key}" data-field="final_url" value="${esc(bv.final_url || "")}" />
-          <input type="text" placeholder="메모" data-v2="ad-banner-field" data-key="${b.key}" data-field="note" value="${esc(bv.note || "")}" />
-          ${bv.final_url ? `<a href="${esc(bv.final_url)}" target="_blank" rel="noopener" class="btn-text">🖼 미리보기</a>` : ""}
-        </div>
-      `;
-    }).join("");
+    // 배너 / 레퍼런스 — 노션식 이미지 갤러리 + 업로드
+    const imgs = ad.banner_images || [];
+    $("#adBannerGrid").innerHTML =
+      imgs.map((im, i) => `
+        <div class="bn-tile">
+          <img src="${esc(im.url)}" alt="레퍼런스" loading="lazy" />
+          <button class="bn-del" data-v2="ad-banner-img-del" data-idx="${i}" title="삭제">×</button>
+          <input class="bn-cap" placeholder="메모 (선택)" data-v2="ad-banner-img-note" data-idx="${i}" value="${esc(im.note || "")}" />
+        </div>`).join("")
+      + `<button type="button" class="bn-add" data-v2="ad-banner-pick">
+           <span class="bn-add-plus">+</span>
+           <span class="bn-add-txt">이미지 추가<br><small>클릭 · 드래그 · 붙여넣기</small></span>
+         </button>`;
 
     // 릴스
     const reels = ad.reels || [];
@@ -1178,6 +1169,86 @@
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
       return patchAd({ reels: (ad.reels || []).filter((_, i) => i !== parseInt(trg.dataset.idx)) });
     }
+    // 배너/레퍼런스 이미지 — 추가(파일선택 트리거) / 삭제
+    if (what === "ad-banner-pick") {
+      $("#adBannerFile")?.click();
+      return;
+    }
+    if (what === "ad-banner-img-del") {
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+      return patchAd({ banner_images: (ad.banner_images || []).filter((_, i) => i !== parseInt(trg.dataset.idx)) });
+    }
+  });
+
+  // ─── 배너/레퍼런스 이미지 업로드 (리사이즈 후 base64로 저장) ───
+  function resizeImage(file, maxPx = 1280, quality = 0.82) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        if (w > maxPx || h > maxPx) {
+          const r = Math.min(maxPx / w, maxPx / h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        cv.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(cv.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(null);
+      const fr = new FileReader();
+      fr.onload = () => { img.src = fr.result; };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function addBannerImages(fileList) {
+    const files = [...fileList].filter(f => f.type.startsWith("image/"));
+    if (!files.length || !s.activeMarketId) return;
+    const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+    const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+    const imgs = [...(ad.banner_images || [])];
+    for (const f of files) {
+      const url = await resizeImage(f);
+      if (url) imgs.push({ url, note: "" });
+    }
+    await patchAd({ banner_images: imgs });
+  }
+
+  // 파일 선택
+  document.addEventListener("change", (e) => {
+    if (e.target.id === "adBannerFile") {
+      addBannerImages(e.target.files);
+      e.target.value = "";
+    }
+  });
+  // 캡션(메모) 수정
+  document.addEventListener("blur", async (e) => {
+    if (e.target.dataset.v2 === "ad-banner-img-note") {
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+      const imgs = [...(ad.banner_images || [])];
+      const i = parseInt(e.target.dataset.idx);
+      if (imgs[i]) { imgs[i] = { ...imgs[i], note: e.target.value }; patchAd({ banner_images: imgs }); }
+    }
+  }, true);
+  // 드래그&드롭
+  document.addEventListener("dragover", (e) => {
+    if (e.target.closest("#adBannerGrid")) { e.preventDefault(); e.target.closest("#adBannerGrid").classList.add("bn-drag"); }
+  });
+  document.addEventListener("dragleave", (e) => {
+    if (e.target.closest("#adBannerGrid")) e.target.closest("#adBannerGrid").classList.remove("bn-drag");
+  });
+  document.addEventListener("drop", (e) => {
+    const g = e.target.closest("#adBannerGrid");
+    if (g) { e.preventDefault(); g.classList.remove("bn-drag"); addBannerImages(e.dataTransfer.files); }
+  });
+  // 붙여넣기 (캠페인 디테일 열려있을 때)
+  document.addEventListener("paste", (e) => {
+    if ($("#camAdDetailWrap")?.hidden) return;
+    const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith("image/"));
+    if (items.length) addBannerImages(items.map(it => it.getAsFile()).filter(Boolean));
   });
 
   document.addEventListener("change", async (e) => {

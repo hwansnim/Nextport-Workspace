@@ -11,6 +11,17 @@
       "color": "",
       "notes": "",
       "created_at": "2026-05-20T11:48:56"
+    },
+    {
+      "id": "adcal_cDEV_sDEV_aDEV_live",
+      "title": "[개발테스트] 1차 라이브",
+      "date": "2026-06-25",
+      "end_date": "2026-06-28",
+      "type": "campaign_live",
+      "linked_campaign_id": "cDEV",
+      "linked_set_id": "sDEV",
+      "linked_ad_id": "aDEV",
+      "brand": "테스트"
     }
   ]
 }
