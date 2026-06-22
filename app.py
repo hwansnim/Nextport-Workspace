@@ -5282,6 +5282,126 @@ def api_dm_job_stop(jid: str):
     return jsonify({"ok": True})
 
 
+# ═══════════════════════════════════════════════════════════
+# 📨 엑셀 기반 DM 자동발송 (회사 DM_Sender_GUI v2.2.2 양식 그대로)
+#   입력 6열: 발신ID / 발신PW / 발신자이름[name] / 타겟ID / 타겟이름[targetname] / 내용
+#   결과 +2열: 발송상태(성공/실패) / 실패사유
+#   ⚠ 로컬 PC 전용 (인스타가 클라우드 IP 차단 + Playwright 브라우저 필요)
+# ═══════════════════════════════════════════════════════════
+DM_EXCEL_COLS = ["sender_id", "sender_pw", "sender_name", "target_id", "target_name", "message"]
+DM_EXCEL_HEADERS = ["발신계정아이디", "발신계정비밀번호", "발신자 이름[=name]",
+                    "DM받을사람 계정", "DM받을사람 이름[=targetname]", "DM내용"]
+DM_EXCEL_ROWS: dict[str, list[dict]] = {}  # job_id → rows (비밀번호 포함 → 상태응답엔 안 실림)
+
+
+def _parse_dm_excel(file_storage) -> list[dict]:
+    import io
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(file_storage.read()), read_only=True, data_only=True)
+    ws = wb.active
+    rows: list[dict] = []
+    for i, vals in enumerate(ws.iter_rows(values_only=True)):
+        if i == 0:
+            continue  # 헤더
+        v = list(vals or []) + [None] * 6
+        if all(v[j] is None or str(v[j]).strip() == "" for j in range(6)):
+            continue
+        row = {DM_EXCEL_COLS[j]: ("" if v[j] is None else str(v[j])) for j in range(6)}
+        if not row["sender_id"].strip() or not row["target_id"].strip():
+            continue
+        row["target_id"] = row["target_id"].strip().lstrip("@")
+        rows.append(row)
+    return rows
+
+
+@app.route("/api/dm/excel/run", methods=["POST"])
+def api_dm_excel_run():
+    """엑셀 업로드 → 자동 DM 발송 시작 (로컬 전용)."""
+    if (load_config() or {}).get("env_mode") == "cloud":
+        return jsonify({"error": "DM 발송은 로컬 PC에서만 됩니다. PC에서 워크스페이스를 켜고 실행하세요."}), 400
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "엑셀 파일을 올려주세요."}), 400
+    auto_follow = request.form.get("auto_follow") in ("1", "true", "True", "on")
+    try:
+        rows = _parse_dm_excel(f)
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"error": f"엑셀 읽기 실패: {e}"}), 400
+    if not rows:
+        return jsonify({"error": "발송할 행이 없습니다. (1행=헤더, 2행부터 데이터 / 발신ID·타겟ID 필수)"}), 400
+
+    job_id = uuid.uuid4().hex[:12]
+    DM_EXCEL_ROWS[job_id] = rows
+    DM_JOBS_STATE[job_id] = {
+        "id": job_id, "kind": "excel", "status": "running",
+        "total": len(rows), "sent": 0, "failed": 0, "current": None, "log": [],
+        "accounts": len({r["sender_id"] for r in rows}), "auto_follow": auto_follow,
+        "started_at": datetime.now().isoformat(timespec="seconds"), "finished_at": None,
+    }
+
+    def run():
+        try:
+            from dm_sender import DMSender  # type: ignore
+            sender = DMSender(state=DM_JOBS_STATE[job_id], log_callback=_log_callback(job_id))
+            sender.run_excel_rows(rows, auto_follow=auto_follow)
+            DM_JOBS_STATE[job_id]["status"] = "done"
+        except Exception as e:  # noqa: BLE001
+            log.exception("DM excel job failed")
+            DM_JOBS_STATE[job_id]["status"] = "error"
+            DM_JOBS_STATE[job_id]["log"].append(f"❌ 에러: {e}")
+        finally:
+            DM_JOBS_STATE[job_id]["finished_at"] = datetime.now().isoformat(timespec="seconds")
+
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(rows),
+                    "accounts": DM_JOBS_STATE[job_id]["accounts"]})
+
+
+@app.route("/api/dm/excel/result/<jid>", methods=["GET"])
+def api_dm_excel_result(jid):
+    """결과 엑셀 다운로드 (입력 6열 + 발송상태/실패사유)."""
+    import io
+    import openpyxl
+    from flask import send_file
+    rows = DM_EXCEL_ROWS.get(jid)
+    if rows is None:
+        return jsonify({"error": "결과 없음 (작업 ID 확인)"}), 404
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(DM_EXCEL_HEADERS + ["발송상태", "실패사유"])
+    for r in rows:
+        ws.append([r.get("sender_id", ""), r.get("sender_pw", ""), r.get("sender_name", ""),
+                   r.get("target_id", ""), r.get("target_name", ""), r.get("message", ""),
+                   r.get("status", ""), r.get("reason", "")])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = f"DMresult_{datetime.now().strftime('%y%m%d_%H%M')}.xlsx"
+    return send_file(buf, as_attachment=True, download_name=fname,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@app.route("/api/dm/excel/sample", methods=["GET"])
+def api_dm_excel_sample():
+    """입력 샘플 엑셀 다운로드."""
+    import io
+    import openpyxl
+    from flask import send_file
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(DM_EXCEL_HEADERS)
+    ws.append(["sampleID", "samplePW", "하루픽스", "받는사람_인스타ID", "받는분이름",
+               "안녕하세요 [targetname]님! 하루픽스 [name]입니다 :)\n"
+               "공구 제안 드리고 싶어 연락드렸어요. 잠깐 얘기 나눠볼 수 있을까요?"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name="DM발송_샘플양식.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
 def main():
     cfg = load_config()
     host = cfg.get("server", {}).get("host", "127.0.0.1")

@@ -2578,6 +2578,35 @@ body.mobile-mode #toastContainer {
   font-size: 12px; line-height: 22px; text-align: center; cursor: pointer;
 }
 .bn-dl:hover { background: var(--accent); }
+
+/* ─── 엑셀 자동 DM 발송 ─── */
+#dmExcelPanel .dmx-warn {
+  background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+  border-radius: var(--radius-sm); padding: 10px 13px; font-size: 12px; line-height: 1.55; margin-bottom: 14px;
+}
+.dmx-drop {
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm);
+  padding: 26px 18px; text-align: center; cursor: pointer; transition: all .15s; background: var(--bg);
+}
+.dmx-drop:hover, .dmx-drop.dmx-drag { border-color: var(--accent); background: var(--accent-soft); }
+.dmx-drop-ico { font-size: 30px; margin-bottom: 8px; }
+.dmx-drop #dmxDropText { font-size: 13.5px; margin-bottom: 5px; }
+.dmx-controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+.dmx-check { font-size: 13px; display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.dmx-btns { display: flex; gap: 8px; align-items: center; }
+.dmx-progress { margin-top: 16px; }
+.dmx-stats { display: flex; gap: 16px; align-items: center; font-size: 13px; margin-bottom: 7px; flex-wrap: wrap; }
+.dmx-stats b { font-variant-numeric: tabular-nums; }
+.dmx-ok b { color: #1f9d3f; }
+.dmx-fail b { color: #e0245e; }
+.dmx-bar { height: 8px; background: #eef0f3; border-radius: 980px; overflow: hidden; }
+.dmx-bar > span { display: block; height: 100%; background: var(--accent); border-radius: 980px; transition: width .3s; }
+.dmx-log {
+  margin-top: 14px; background: #0b0b0c; color: #d6d6d6; border-radius: var(--radius-sm);
+  padding: 12px 14px; max-height: 260px; overflow-y: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; line-height: 1.7;
+}
+.dmx-log-line { white-space: pre-wrap; word-break: break-all; }
 .bn-cap {
   border: none; border-top: 1px solid var(--hairline);
   padding: 6px 9px; font-size: 11.5px; font-family: inherit; color: var(--text);

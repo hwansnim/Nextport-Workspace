@@ -560,8 +560,47 @@
       <section class="tab-pane" id="tab-dm-live">
         <div class="page-head">
           <h1>DM 발송 (실시간)</h1>
-          <p class="page-sub">지금 어떤 계정으로 누구에게 컨택 중인지 실시간 로그.</p>
+          <p class="page-sub">엑셀 한 장으로 인스타 DM 자동 발송. 지금 누구에게 보내는지 실시간 로그.</p>
         </div>
+
+        <!-- 📨 엑셀 자동 DM 발송 (회사 DM_Sender 양식 그대로) -->
+        <section class="panel" id="dmExcelPanel">
+          <div class="panel-head">
+            <h2>엑셀 자동 DM 발송</h2>
+            <div class="head-actions">
+              <a class="btn-text" href="/api/dm/excel/sample">⬇ 샘플 엑셀 받기</a>
+            </div>
+          </div>
+          <div class="dmx-warn">⚠️ 인스타 정책상 <b>이 PC에서만</b> 작동합니다(발송 시 크롬이 자동으로 열림). 과하게 보내면 계정이 막혀요 — <b>계정당 하루 50개·한 번에 10개 이내</b> 권장.</div>
+
+          <div class="dmx-drop" id="dmxDrop">
+            <input type="file" id="dmxFile" accept=".xlsx" hidden />
+            <div class="dmx-drop-ico">📄</div>
+            <div id="dmxDropText">엑셀 파일을 끌어다 놓거나 <b>클릭해서 선택</b></div>
+            <div class="hint">6열: 발신ID · 발신PW · 발신자이름[name] · 받는사람ID · 받는사람이름[targetname] · 내용</div>
+          </div>
+
+          <div class="dmx-controls">
+            <label class="dmx-check"><input type="checkbox" id="dmxAutoFollow" /> 자동 팔로우 <span class="hint">(DM이 '알 수도 있는 사람'에 떠서 확인율↑)</span></label>
+            <div class="dmx-btns">
+              <button class="btn-primary" id="dmxStart" disabled>▶ 발송 시작</button>
+              <button class="btn-secondary" id="dmxStop" hidden>⏹ 중지</button>
+              <a class="btn-secondary" id="dmxResult" hidden download>⬇ 결과 엑셀</a>
+            </div>
+          </div>
+
+          <div class="dmx-progress" id="dmxProgress" hidden>
+            <div class="dmx-stats">
+              <span>진행 <b id="dmxDone">0</b> / <b id="dmxTotal">0</b></span>
+              <span class="dmx-ok">성공 <b id="dmxSent">0</b></span>
+              <span class="dmx-fail">실패 <b id="dmxFailed">0</b></span>
+              <span class="hint" id="dmxCur"></span>
+            </div>
+            <div class="dmx-bar"><span id="dmxBar" style="width:0%"></span></div>
+          </div>
+
+          <div class="dmx-log" id="dmxLog" hidden></div>
+        </section>
 
         <section class="panel">
           <div class="panel-head">
@@ -2137,6 +2176,7 @@ username2	password2	sender_name2"></textarea>
   <script src="/static/dm-widget.js?v={{ ver }}"></script>
   <script src="/static/dm-v2-widget.js?v={{ ver }}"></script>
   <script src="/static/dm-queue-inbox.js?v={{ ver }}"></script>
+  <script src="/static/dm-excel.js?v={{ ver }}"></script>
   <script src="/static/dm-phase-d.js?v={{ ver }}"></script>
   <script src="/static/campaigns-v2.js?v={{ ver }}"></script>
   <script src="/static/activity-tracker.js?v={{ ver }}"></script>

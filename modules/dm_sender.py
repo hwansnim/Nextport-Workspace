@@ -34,7 +34,17 @@ SELECTORS = {
     "login_submit": [
         'form[id="login_form"] button[type="submit"]:not([disabled])',
         'form[id="login_form"] button[type="submit"]',
+        'form[id="login_form"] input[type="submit"]',
         'button[type="submit"]',
+        'input[type="submit"]',
+        'div[role="button"]:has-text("로그인")',
+        'div[role="button"]:has-text("Log in")',
+    ],
+    "follow_button": [
+        'header button:has-text("팔로우")',
+        'header button:has-text("Follow")',
+        'div[role="button"]:has-text("팔로우")',
+        'button:has-text("Follow")',
     ],
     "dm_input": [
         'div[contenteditable="true"][role="textbox"]',
@@ -63,6 +73,19 @@ SELECTORS = {
         'div[role="dialog"] button:has-text("닫기")',
     ],
 }
+
+
+# 봇탐지/계정차단/인증 화면 감지 — 여기 걸리면 그 계정은 건너뛰고 로그에 표시
+CHECKPOINT_URL_HINTS = [
+    "challenge", "two_factor", "auth_platform/codeentry", "accounts/suspended",
+    "accounts/disabled", "/accounts/onetap", "checkpoint",
+]
+CHECKPOINT_TEXT_HINTS = [
+    "인증", "두 단계", "사람인지", "본인 확인", "확인 코드", "보안 코드",
+    "잠시 후 다시", "나중에 다시", "Try Again Later", "suspicious",
+    "unusual activity", "계정이 일시", "계정을 보호", "도움이 필요",
+    "Help us confirm", "Enter the code", "We Detected",
+]
 
 
 # 인간 행동 패턴 - 랜덤 sleep 범위
@@ -143,6 +166,28 @@ class DMSender:
             except Exception:
                 break
 
+    def _is_checkpoint(self, page) -> bool:
+        """봇탐지/인증/차단 화면인지 — 걸리면 그 계정 사용 중단."""
+        try:
+            url = (page.url or "").lower()
+            if any(h in url for h in CHECKPOINT_URL_HINTS):
+                return True
+            body = page.content() or ""
+            return any(t in body for t in CHECKPOINT_TEXT_HINTS)
+        except Exception:
+            return False
+
+    def _try_follow(self, page) -> None:
+        """프로필에서 팔로우 (DM 요청이 '알 수도 있는 사람'에 뜨도록)."""
+        try:
+            btn = _try_selectors(page, SELECTORS["follow_button"], timeout_ms=2500)
+            if btn:
+                btn.click()
+                _human_sleep("after_nav")
+                self._log("    👤 자동 팔로우")
+        except Exception:
+            pass
+
     def login(self, page, account: dict) -> bool:
         """인스타 로그인. 세션 있으면 그대로 사용."""
         self._log(f"🔐 로그인 시도: @{account['username']}")
@@ -193,7 +238,7 @@ class DMSender:
         self._log(f"✓ 로그인 성공")
         return True
 
-    def send_dm(self, page, target: dict, message: str) -> tuple[bool, str]:
+    def send_dm(self, page, target: dict, message: str, auto_follow: bool = False) -> tuple[bool, str]:
         """한 명에게 DM 발송. 반환: (성공, 메시지)."""
         username = target["username"]
         try:
@@ -203,6 +248,10 @@ class DMSender:
             page.goto(f"https://www.instagram.com/{username}/", timeout=30000)
             _human_sleep("after_nav")
             self._dismiss_popups(page)
+
+            # (옵션) 팔로우 먼저
+            if auto_follow:
+                self._try_follow(page)
 
             # 'Message' 버튼 찾기
             msg_btn = _try_selectors(page, SELECTORS["message_button_on_profile"], timeout_ms=10000)
@@ -398,3 +447,113 @@ class DMSender:
                 pass
 
             self._log(f"🏁 종료: 성공 {self.state.get('sent', 0)} / 실패 {self.state.get('failed', 0)}")
+
+    # ─── 엑셀 행기반 발송 (회사 DM_Sender_GUI v2.2.2 양식) ───
+    def run_excel_rows(self, rows: list[dict], auto_follow: bool = False) -> list[dict]:
+        """엑셀 행 그대로 발송. 각 row 키:
+        sender_id, sender_pw, sender_name, target_id, target_name, message
+        → 같은 발신계정끼리 묶어 세션 재사용 로그인 후 발송.
+        결과로 각 row에 status('성공'/'실패') + reason 채워서 반환."""
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self._log("❌ Playwright 안 깔림. 'playwright install chromium' 필요.")
+            for r in rows:
+                r["status"], r["reason"] = "실패", "Playwright 미설치"
+            return rows
+
+        from collections import OrderedDict
+        groups: "OrderedDict[str, list]" = OrderedDict()
+        for r in rows:
+            groups.setdefault((r.get("sender_id") or "").strip(), []).append(r)
+
+        self.state["total"] = len(rows)
+        self.state.setdefault("sent", 0)
+        self.state.setdefault("failed", 0)
+        done = 0
+        UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+
+        with sync_playwright() as p:
+            for acc_idx, (sender_id, acc_rows) in enumerate(groups.items()):
+                if self._should_stop():
+                    self._log("⏹ 사용자 중지")
+                    break
+                sender_pw = (acc_rows[0].get("sender_pw") or "").strip()
+                sender_name = acc_rows[0].get("sender_name") or ""
+                self._log(f"🌐 계정 {acc_idx+1}/{len(groups)}: @{sender_id} ({len(acc_rows)}건)")
+
+                browser = context = page = None
+                login_ok = False
+                try:
+                    browser = p.chromium.launch(
+                        headless=False,
+                        args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
+                    )
+                    session_path = self._account_session_path(sender_id)
+                    ctx_opts = {"viewport": {"width": 1280, "height": 800},
+                                "user_agent": UA, "locale": "ko-KR"}
+                    if session_path.exists():
+                        ctx_opts["storage_state"] = str(session_path)
+                    context = browser.new_context(**ctx_opts)
+                    page = context.new_page()
+                    login_ok = self.login(page, {"username": sender_id, "password": sender_pw})
+                    if login_ok and self._is_checkpoint(page):
+                        login_ok = False
+                        self._log(f"  🚫 @{sender_id} 인증/차단 화면 (문자·사람인증) — 계정 건너뜀. 수동 로그인 필요!")
+                    if login_ok:
+                        try:
+                            context.storage_state(path=str(session_path))
+                        except Exception:
+                            pass
+                except Exception as e:
+                    login_ok = False
+                    self._log(f"  ❌ 브라우저/로그인 오류: {str(e)[:90]}")
+
+                for ri, r in enumerate(acc_rows):
+                    if self._should_stop():
+                        break
+                    done += 1
+                    tgt = (r.get("target_id") or "").strip()
+                    self.state["current"] = f"@{tgt}"
+                    if not login_ok:
+                        r["status"], r["reason"] = "실패", "계정 로그인 실패/차단 (수동 로그인 확인)"
+                        self.state["failed"] += 1
+                        self._log(f"  ✗ ({done}/{len(rows)}) @{tgt} — {r['reason']}")
+                        continue
+                    msg = (r.get("message") or "")
+                    msg = msg.replace("[name]", sender_name).replace("[targetname]", r.get("target_name") or "")
+                    ok, reason = self.send_dm(page, {"username": tgt}, msg, auto_follow=auto_follow)
+                    # 발송 직후 차단화면 떴는지 체크
+                    if not ok and self._is_checkpoint(page):
+                        reason = "계정 차단/인증 화면 — 이후 발송 중단"
+                        r["status"], r["reason"] = "실패", reason
+                        self.state["failed"] += 1
+                        self._log(f"  🚫 ({done}/{len(rows)}) @{tgt} — {reason}")
+                        break  # 이 계정 나머지 중단
+                    r["status"], r["reason"] = ("성공", "") if ok else ("실패", reason)
+                    if ok:
+                        self.state["sent"] += 1
+                        self._log(f"  ✓ ({done}/{len(rows)}) @{tgt}")
+                    else:
+                        self.state["failed"] += 1
+                        self._log(f"  ✗ ({done}/{len(rows)}) @{tgt} — {reason}")
+                    # 다음 발송까지 인간 대기
+                    if not self._should_stop():
+                        wt = _human_sleep("between_dms")
+                        self._log(f"    ⏱ {wt:.0f}초 대기")
+
+                try:
+                    if context:
+                        context.close()
+                    if browser:
+                        browser.close()
+                except Exception:
+                    pass
+
+        # 미처리(중지된) 행 표시
+        for r in rows:
+            r.setdefault("status", "미발송")
+            r.setdefault("reason", "")
+        self._log(f"🏁 종료: 성공 {self.state.get('sent',0)} / 실패 {self.state.get('failed',0)} / 전체 {len(rows)}")
+        return rows
