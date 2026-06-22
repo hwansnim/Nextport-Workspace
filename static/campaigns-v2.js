@@ -413,6 +413,36 @@
     loadList();
   }
 
+  // 캠페인(셀러정보) 메타 — 편집 버튼으로 보기/편집 토글
+  function renderCamMeta(c) {
+    const edit = !!s.metaEdit;
+    const igHref = c.instagram_url || (c.linked_influencer_handle ? `https://instagram.com/${c.linked_influencer_handle}/` : "");
+    const sd = c.market_schedule || (c.sets?.[0]?.ads?.[0]?.scheduling?.start_date) || "-";
+    const ed = (c.sets?.[0]?.ads?.[0]?.scheduling?.end_date) || c.market_end || "-";
+    const inp = (f, v, ph) => `<input class="cam-edit-inp" data-v2="cam-edit-field" data-f="${f}" value="${esc(v || "")}" placeholder="${esc(ph || "")}" />`;
+    $("#camMetaBody").innerHTML = `
+      <div class="cam-meta-row"><span class="lbl">셀러명</span><span class="val">${edit ? inp("seller_name", c.seller_name, "셀러명") : `<b>${esc(c.seller_name || "-")}</b>`}</span></div>
+      <div class="cam-meta-row"><span class="lbl">브랜드 / 제품</span><span class="val">${edit ? inp("brand", c.brand, "브랜드") + ' <span class="hint">/</span> ' + inp("product", c.product, "제품") : `${esc(c.brand || "-")} / ${esc(c.product || "-")}`}</span></div>
+      <div class="cam-meta-row"><span class="lbl">타입</span><span class="val">${edit
+        ? `<select class="cam-edit-sel" data-v2="cam-edit-field" data-f="type">${["마이크로", "메가", "벤더"].map(v => `<option ${v === c.type ? "selected" : ""}>${v}</option>`).join("")}</select>`
+        : `<span class="cam-type cam-type-${esc(c.type || "")}">${esc(c.type || "-")}</span>`}</span></div>
+      <div class="cam-meta-row"><span class="lbl">상태</span><span class="val">
+        <select data-v2="cam-edit-status" class="cam-edit-sel" ${edit ? "" : "disabled"}>${["준비중", "진행중", "완료", "중단"].map(v => `<option ${v === c.status ? "selected" : ""}>${v}</option>`).join("")}</select>
+      </span></div>
+      <div class="cam-meta-row"><span class="lbl">인스타</span><span class="val">${edit
+        ? inp("instagram_url", c.instagram_url, "https://instagram.com/...")
+        : (igHref ? `<a href="${esc(igHref)}" target="_blank" rel="noopener" style="color:var(--blue)">@${esc(c.linked_influencer_handle || igHref.split("/").filter(Boolean).pop() || "")} ↗</a>` : "<span class='hint'>미연결</span>")}</span></div>
+      <div class="cam-meta-row"><span class="lbl">마켓 일정</span><span class="val">${esc(sd)} ~ ${esc(ed)}</span></div>
+      <div class="cam-meta-row cam-meta-wide"><span class="lbl">셀러 특징</span>
+        <textarea class="cam-edit-textarea" data-v2="cam-edit-traits" rows="2" placeholder="톤·스타일·USP·주의사항" ${edit ? "" : "readonly"}>${esc(c.seller_traits || "")}</textarea>
+      </div>
+      <div class="cam-meta-row cam-meta-wide"><span class="lbl">메모 (내부)</span>
+        <textarea class="cam-edit-textarea" data-v2="cam-edit-notes" rows="2" ${edit ? "" : "readonly"}>${esc(c.notes || "")}</textarea>
+      </div>
+      ${edit ? `<div class="cam-meta-edit-hint">✏️ 편집 중 — 칸을 벗어나면 자동 저장됩니다</div>` : ""}
+    `;
+  }
+
   function renderCamDetail(c) {
     s.cachedCampaign = c;
     $("#camBcCampaign").textContent = `${c.seller_name || "?"} · ${c.brand || "?"} / ${c.product || "?"}`;
@@ -424,27 +454,7 @@
     const liveEl = $("#camRevenueLive");
     if (liveEl) liveEl.innerHTML = `매출 <b>${fmtKRW(tt.revenue)}</b> · 마진 <b>${marginPct(tt.revenue, tt.cost) ?? "—"}%</b>`;
 
-    const igHref = c.instagram_url || (c.linked_influencer_handle ? `https://instagram.com/${c.linked_influencer_handle}/` : "");
-    $("#camMetaBody").innerHTML = `
-      <div class="cam-meta-row"><span class="lbl">셀러명</span><span class="val"><b>${esc(c.seller_name || "-")}</b></span></div>
-      <div class="cam-meta-row"><span class="lbl">브랜드 / 제품</span><span class="val">${esc(c.brand || "-")} / ${esc(c.product || "-")}</span></div>
-      <div class="cam-meta-row"><span class="lbl">타입</span><span class="val"><span class="cam-type cam-type-${esc(c.type || "")}">${esc(c.type || "-")}</span></span></div>
-      <div class="cam-meta-row"><span class="lbl">상태</span><span class="val">
-        <select data-v2="cam-edit-status" class="cam-edit-sel">
-          ${["준비중","진행중","완료","중단"].map(v => `<option ${v===c.status?"selected":""}>${v}</option>`).join("")}
-        </select>
-      </span></div>
-      <div class="cam-meta-row"><span class="lbl">인스타</span><span class="val">
-        ${igHref ? `<a href="${esc(igHref)}" target="_blank" rel="noopener" style="color:var(--blue)">@${esc(c.linked_influencer_handle || igHref.split("/").filter(Boolean).pop() || "")}  ↗</a>` : "<span class='hint'>미연결</span>"}
-      </span></div>
-      <div class="cam-meta-row"><span class="lbl">마켓 일정</span><span class="val">${esc(c.market_schedule || (c.sets?.[0]?.ads?.[0]?.scheduling?.start_date) || "-")} ~ ${esc((c.sets?.[0]?.ads?.[0]?.scheduling?.end_date) || c.market_end || "-")}</span></div>
-      <div class="cam-meta-row cam-meta-wide"><span class="lbl">셀러 특징</span>
-        <textarea class="cam-edit-textarea" data-v2="cam-edit-traits" rows="2" placeholder="톤·스타일·USP·주의사항">${esc(c.seller_traits || "")}</textarea>
-      </div>
-      <div class="cam-meta-row cam-meta-wide"><span class="lbl">메모 (내부)</span>
-        <textarea class="cam-edit-textarea" data-v2="cam-edit-notes" rows="2">${esc(c.notes || "")}</textarea>
-      </div>
-    `;
+    renderCamMeta(c);
 
     // 정산 (일자별)
     renderSettlement(c);
@@ -487,7 +497,6 @@
                 ${prog.chips.map(ch => `<span class="csp-chip ${ch.done?'csp-done':''}">${ch.done?'✓':'○'} ${esc(ch.label)}</span>`).join("")}
               </div>
             </div>
-            <input class="cam-set-memo" placeholder="세트 메모 (이번 차수 키 포인트)" data-v2="set-memo" data-id="${esc(st.id)}" value="${esc(st.memo || "")}" />
             <label class="cam-set-ship">📦 마지막 제품 발송일 <input type="date" data-v2="set-ship" data-id="${esc(st.id)}" value="${esc(st.last_ship_date || "")}" /></label>
             <div class="cam-set-feats">
               <span class="csf-label">사용 기능:</span>
@@ -499,7 +508,7 @@
             <div class="cam-set-ads">
               ${(st.ads || []).map(a => `
                 <div class="cam-ad-chip ${a.id === s.activeMarketId ? "active" : ""}" data-v2="ad-open" data-set="${esc(st.id)}" data-id="${esc(a.id)}">
-                  <span>${esc(a.name)}</span>
+                  <span>${adCount > 1 ? esc(a.name) : "📋 공구 상세 열기"}</span>
                   <span class="cam-status s-${esc(a.status || "준비중")}">${esc(a.status || "준비중")}</span>
                 </div>
               `).join("")}
@@ -556,17 +565,20 @@
       <div class="bn-cat-grid" data-kind="${kind}">
         ${arr.map((im, i) => {
           const disp = im.thumb || im.url;
-          const dl = im.file_id ? `/api/file/${im.file_id}` : im.url;
+          const full = im.file_id ? `/api/file/${im.file_id}` : (im.url || disp);
           const nm = (im.name || "banner").replace(/"/g, "");
           return `
           <div class="bn-tile">
-            <img src="${esc(disp)}" loading="lazy" />
-            ${dl ? `<a class="bn-dl" href="${esc(dl)}" download="${esc(nm)}" title="원본 다운로드" onclick="event.stopPropagation()">⬇</a>` : ""}
-            <button class="bn-del" data-v2="ad-banner-img-del" data-cat="${key}" data-kind="${kind}" data-idx="${i}" title="삭제">×</button>
+            <img src="${esc(disp)}" loading="lazy" data-v2="bn-zoom" data-full="${esc(full)}" title="클릭하면 크게" />
+            <div class="bn-tile-acts">
+              ${full ? `<a class="bn-act bn-dl" href="${esc(full)}" download="${esc(nm)}" title="원본 다운로드" onclick="event.stopPropagation()">⬇</a>` : ""}
+              <button class="bn-act bn-rep" data-v2="ad-banner-img-replace" data-cat="${key}" data-kind="${kind}" data-idx="${i}" title="교체">↻</button>
+              <button class="bn-act bn-del" data-v2="ad-banner-img-del" data-cat="${key}" data-kind="${kind}" data-idx="${i}" title="삭제">×</button>
+            </div>
           </div>`;
         }).join("")}
         <button type="button" class="bn-add" data-v2="ad-banner-pick" data-cat="${key}" data-kind="${kind}">
-          <span class="bn-add-plus">+</span><span class="bn-add-txt">${kind === "final" ? "최종본" : "레퍼런스"}<br><small>클릭·드래그</small></span>
+          <span class="bn-add-plus">+</span><span class="bn-add-txt">${kind === "final" ? "최종본 추가" : "레퍼런스 추가"}<br><small>클릭·드래그</small></span>
         </button>
       </div>`;
     $("#adBannerGrid").innerHTML = BANNER_CATS.map(c => {
@@ -575,10 +587,16 @@
         <div class="bn-cat">
           <div class="bn-cat-head">${esc(c.label)}</div>
           <textarea class="bn-cat-note" data-v2="ad-banner-cat-note" data-cat="${c.key}" rows="2" placeholder="배너 내용/지시사항 (예: 가격, 구성, 강조 문구)">${esc(cv.note || "")}</textarea>
-          <div class="bn-sub">레퍼런스</div>
-          ${bnGallery(c.key, "ref", cv.imgs || [])}
-          <div class="bn-sub bn-sub-final">✓ 최종 배너</div>
-          ${bnGallery(c.key, "final", cv.finals || [])}
+          <div class="bn-cols">
+            <div class="bn-col">
+              <div class="bn-sub">레퍼런스</div>
+              ${bnGallery(c.key, "ref", cv.imgs || [])}
+            </div>
+            <div class="bn-col">
+              <div class="bn-sub bn-sub-final">✓ 최종 배너</div>
+              ${bnGallery(c.key, "final", cv.finals || [])}
+            </div>
+          </div>
         </div>`;
     }).join("");
 
@@ -645,7 +663,7 @@
           <td class="num" style="color:#888">${fmtKRW(r.cost)}</td>
           <td><button class="btn-text" data-v2="ad-sales-del" data-idx="${i}">×</button></td>
         </tr>`).join("")
-      : `<tr><td colspan="6" class="empty">매출 입력 없음 — 아래에서 날짜별로 박기</td></tr>`;
+      : `<tr><td colspan="6" class="empty">매출 입력 없음 — 아래에서 날짜별로 입력하세요</td></tr>`;
     const tRev = sales.reduce((a, r) => a + (parseInt(r.revenue) || 0), 0);
     const tCost = sales.reduce((a, r) => a + (parseInt(r.cost) || 0), 0);
     const tQty = sales.reduce((a, r) => a + (parseInt(r.qty) || 0), 0);
@@ -662,7 +680,42 @@
         <tr><td colspan="6" style="text-align:right;font-size:11.5px;color:var(--accent)">공헌이익 <b>${fmtKRW(tRev - tCost)}</b> · 마진율 <b>${fmtPct(margin)}</b></td></tr>
       ` : "";
     }
+    _populateSalesProduct(s.cachedCampaign || {});
+    _setSalesMode(s.salesMode || "manual");
   }
+
+  // 매출 입력 — 수동 / 제품자동 모드 전환
+  function _setSalesMode(mode) {
+    s.salesMode = mode;
+    const man = $("#salesAddManual"), prod = $("#salesAddProduct");
+    if (man) man.hidden = mode !== "manual";
+    if (prod) prod.hidden = mode !== "product";
+    document.querySelectorAll('[data-v2="sales-mode"]').forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+  }
+  // 캠페인에 연결된 제품의 수량별 가격 → 드롭다운
+  function _populateSalesProduct(c) {
+    const sel = $("#salesPTier"); if (!sel) return;
+    const prod = (s.productList || []).find(p => p.id === c.product_id);
+    const tiers = (prod && prod.tiers) || [];
+    if (!prod || !tiers.length) {
+      sel.innerHTML = `<option value="">제품 정보에서 제품 연결 + 수량별 가격 등록 필요</option>`;
+      _updateSalesPreview(); return;
+    }
+    sel.innerHTML = tiers.map(t => {
+      const gp = t.group_price || 0, cost = t.cost || 0;
+      return `<option value="${esc(prod.id)}_${t.qty}" data-gp="${gp}" data-cost="${cost}" data-memo="${esc(prod.name + " " + t.qty + "개")}">${esc(prod.name)} · ${t.qty}개 — 공구가 ₩${gp.toLocaleString()}</option>`;
+    }).join("");
+    _updateSalesPreview();
+  }
+  function _updateSalesPreview() {
+    const opt = $("#salesPTier")?.selectedOptions[0];
+    const cnt = parseInt($("#salesPQty")?.value) || 0;
+    const gp = parseInt(opt?.dataset.gp) || 0, cost = parseInt(opt?.dataset.cost) || 0;
+    const el = $("#salesPPreview");
+    if (el) el.textContent = `매출 ₩${(gp * cnt).toLocaleString()} · 비용 ₩${(cost * cnt).toLocaleString()}`;
+  }
+  document.addEventListener("input", (e) => { if (e.target.id === "salesPQty") _updateSalesPreview(); });
+  document.addEventListener("change", (e) => { if (e.target.id === "salesPTier") _updateSalesPreview(); });
 
   // ─── 이벤트 관리 · 비용표 ───────────────────────────────
   const _n = n => (parseInt(n) || 0).toLocaleString();
@@ -684,7 +737,8 @@
 
     $("#evCostBody").innerHTML = costs.length ? costs.map((r, i) => `
       <tr>
-        <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="name" value="${esc(r.name || "")}" placeholder="EVENT ${i + 1}" /></td>
+        <td class="ev-idx"><b>EVENT ${i + 1}</b></td>
+        <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="name" value="${esc(r.name || "")}" placeholder="예: 사은품 증정" /></td>
         <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="product" value="${esc(r.product || "")}" placeholder="제품/상품권" /></td>
         <td class="num"><input type="number" data-v2="ev-cost-edit" data-idx="${i}" data-f="unit_price" value="${r.unit_price || ""}" /></td>
         <td class="num"><input type="number" data-v2="ev-cost-edit" data-idx="${i}" data-f="shipping" value="${r.shipping || ""}" /></td>
@@ -693,12 +747,12 @@
         <td class="num ev-auto"><b>₩${_n(_evCalc(r))}</b></td>
         <td><input data-v2="ev-cost-edit" data-idx="${i}" data-f="note" value="${esc(r.note || "")}" /></td>
         <td><button class="btn-text" data-v2="ev-cost-del" data-idx="${i}">×</button></td>
-      </tr>`).join("") : `<tr><td colspan="9" class="empty">이벤트 비용 없음 — [+ 이벤트 행 추가]</td></tr>`;
-    $("#evCostFoot").innerHTML = costs.length ? `<tr class="ev-total"><td colspan="6" style="text-align:right">합계</td><td class="num"><b>₩${_n(evTotal)}</b></td><td colspan="2"></td></tr>` : "";
+      </tr>`).join("") : `<tr><td colspan="10" class="empty">이벤트 비용 없음 — [+ 이벤트 행 추가]</td></tr>`;
+    $("#evCostFoot").innerHTML = costs.length ? `<tr class="ev-total"><td colspan="7" style="text-align:right">합계</td><td class="num"><b>₩${_n(evTotal)}</b></td><td colspan="2"></td></tr>` : "";
 
     $("#evOtherBody").innerHTML = others.length ? others.map((r, i) => `
       <tr>
-        <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="date" value="${esc(r.date || "")}" placeholder="26-05-04" /></td>
+        <td><input type="date" data-v2="ev-other-edit" data-idx="${i}" data-f="date" value="${esc(r.date || "")}" /></td>
         <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="owner" value="${esc(r.owner || "")}" placeholder="담당자" /></td>
         <td><input data-v2="ev-other-edit" data-idx="${i}" data-f="purpose" value="${esc(r.purpose || "")}" placeholder="용도" /></td>
         <td class="num"><input type="number" data-v2="ev-other-edit" data-idx="${i}" data-f="cost" value="${r.cost || ""}" /></td>
@@ -1399,6 +1453,13 @@
     }
     if (what === "cam-back") return backToList();
     if (what === "cam-add-set") return openSetDialog();
+    if (what === "cam-edit-meta") {
+      s.metaEdit = !s.metaEdit;
+      document.getElementById("camMetaPanel")?.classList.remove("collapsed");
+      if (s.cachedCampaign) renderCamMeta(s.cachedCampaign);
+      trg.textContent = s.metaEdit ? "완료" : "편집";
+      return;
+    }
     // 세트 사용 기능 토글 (중간 수정)
     if (what === "set-feat-toggle") {
       const setId = trg.dataset.id, feat = trg.dataset.feat;
@@ -1451,7 +1512,7 @@
     // 날짜별 매출 추가/삭제
     if (what === "ad-sales-add") {
       const date = $("#adSalesNewDate").value;
-      if (!date) { alert("날짜 박아"); return; }
+      if (!date) { alert("날짜를 선택하세요"); return; }
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
       const sales = [...(ad.sales || []), {
@@ -1469,6 +1530,22 @@
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
       const sales = (ad.sales || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
+      return patchAd({ sales });
+    }
+    if (what === "sales-mode") { _setSalesMode(trg.dataset.mode); return; }
+    if (what === "ad-sales-add-product") {
+      const date = $("#salesPDate").value;
+      if (!date) { alert("날짜를 선택하세요"); return; }
+      const opt = $("#salesPTier")?.selectedOptions[0];
+      if (!opt || !opt.value) { alert("제품 정보에서 제품 연결 + 수량별 가격을 먼저 등록하세요"); return; }
+      const cnt = parseInt($("#salesPQty").value) || 0;
+      if (!cnt) { alert("건수를 입력하세요"); return; }
+      const gp = parseInt(opt.dataset.gp) || 0, cost1 = parseInt(opt.dataset.cost) || 0;
+      const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+      const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+      const sales = [...(ad.sales || []), { date, memo: opt.dataset.memo || "", qty: cnt, revenue: gp * cnt, cost: cost1 * cnt }];
+      sales.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+      $("#salesPDate").value = ""; $("#salesPQty").value = ""; _updateSalesPreview();
       return patchAd({ sales });
     }
 
@@ -1517,6 +1594,7 @@
       return;
     }
     if (what === "ad-banner-img-del") {
+      if (!confirm("이 배너 이미지를 삭제할까요?")) return;
       const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
       const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
       const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
@@ -1524,7 +1602,46 @@
       if (cats[k]) cats[k][field] = (cats[k][field] || []).filter((_, i) => i !== parseInt(trg.dataset.idx));
       return patchAd({ banner_cats: cats });
     }
+    if (what === "ad-banner-img-replace") {
+      s.bannerReplace = { cat: trg.dataset.cat, kind: trg.dataset.kind, idx: parseInt(trg.dataset.idx) };
+      $("#adBannerFile")?.click();
+      return;
+    }
+    if (what === "bn-zoom") {
+      return openImgZoom(trg.dataset.full);
+    }
   });
+
+  // 이미지 확대 라이트박스
+  function openImgZoom(src) {
+    if (!src) return;
+    const ov = document.createElement("div");
+    ov.className = "img-zoom-ov";
+    ov.innerHTML = `<img src="${esc(src)}" /><button class="img-zoom-x">×</button>`;
+    ov.addEventListener("click", () => ov.remove());
+    document.body.appendChild(ov);
+  }
+
+  // 배너 1장 교체 (지정 슬롯)
+  async function replaceBannerImageAt(file) {
+    const t = s.bannerReplace; s.bannerReplace = null;
+    if (!t || !file) return;
+    const field = t.kind === "final" ? "finals" : "imgs";
+    const thumb = await resizeImage(file, 640, 0.8);
+    let item = { url: thumb, name: file.name };
+    try {
+      const fd = new FormData(); fd.append("file", file, file.name);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (res.ok) { const j = await res.json(); item = { url: thumb || j.url, thumb: thumb || "", file_id: j.file_id, name: j.name || file.name }; }
+    } catch (e) {}
+    const c = await api(`/api/campaigns_v2/${s.activeCamId}`);
+    const ad = c.sets.find(x => x.id === s.activeSetId)?.ads.find(x => x.id === s.activeMarketId);
+    const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
+    cats[t.cat] = cats[t.cat] || { note: "", imgs: [], finals: [] };
+    cats[t.cat][field] = cats[t.cat][field] || [];
+    cats[t.cat][field][t.idx] = item;
+    await patchAd({ banner_cats: cats });
+  }
 
   // ─── 배너/레퍼런스 이미지 업로드 (리사이즈 후 base64로 저장) ───
   function resizeImage(file, maxPx = 1280, quality = 0.82) {
@@ -1581,7 +1698,8 @@
   // 파일 선택
   document.addEventListener("change", (e) => {
     if (e.target.id === "adBannerFile") {
-      addBannerImages(e.target.files, s.bannerPickCat);
+      if (s.bannerReplace) replaceBannerImageAt(e.target.files[0]);
+      else addBannerImages(e.target.files, s.bannerPickCat);
       e.target.value = "";
     }
   });
@@ -1713,6 +1831,7 @@
 
   document.addEventListener("change", async (e) => {
     if (e.target.dataset.v2 === "cam-edit-status") patchCampaign({ status: e.target.value });
+    if (e.target.dataset.v2 === "cam-edit-field") patchCampaign({ [e.target.dataset.f]: e.target.value });
     if (e.target.dataset.v2 === "cam-ship") {
       const f = e.target.dataset.f;
       patchCampaign({ product_shipping: { [f]: e.target.value } });

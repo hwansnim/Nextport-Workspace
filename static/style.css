@@ -840,18 +840,19 @@ dialog .dialog-actions .spacer { flex: 1; }
   white-space: nowrap;
 }
 .stl-table th {
-  background: #ecebe5;
-  border: 1px solid #d9d6cc;
+  background: var(--hover);
+  border: 1px solid var(--hairline);
   padding: 8px 10px;
   font-size: 11px;
-  color: #555;
+  font-weight: 600;
+  color: var(--muted);
   position: sticky;
   top: 0;
   text-align: left;
 }
 .stl-table th.num { text-align: right; }
 .stl-table td {
-  border: 1px solid #efece4;
+  border: 1px solid var(--hairline);
   padding: 3px 4px;
 }
 .stl-table td.num { text-align: right; }
@@ -872,18 +873,19 @@ dialog .dialog-actions .spacer { flex: 1; }
   outline: none;
 }
 .stl-table .stl-total td {
-  background: #eff6ff;
-  border-top: 2px solid var(--accent);
+  background: var(--accent-soft);
+  border-top: 1px solid var(--accent);
   font-size: 12.5px;
+  font-weight: 600;
 }
 /* 첫 컬럼(날짜) 고정 */
 .stl-table th:first-child, .stl-table td:first-child {
   position: sticky;
   left: 0;
-  background: #f9fafb;
+  background: #fff;
   z-index: 1;
 }
-.stl-table th:first-child { z-index: 3; background: #ecebe5; }
+.stl-table th:first-child { z-index: 3; background: var(--hover); }
 
 /* 열 토글 팝오버 */
 .stl-colpop {
@@ -971,32 +973,31 @@ dialog .dialog-actions .spacer { flex: 1; }
 .sp-phone-frame {
   position: relative;
   width: 300px;
-  height: 600px;
+  height: 623px;       /* 실제 폰 비율(390x844)에 맞춰 — 9:19.5 */
   background: #1a1a1a;
-  border-radius: 36px;
-  padding: 12px;
+  border-radius: 38px;
+  padding: 11px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  overflow: hidden;    /* 축소된 iframe 박스 클리핑 */
 }
-.sp-phone-notch {
-  position: absolute;
-  top: 12px; left: 50%; transform: translateX(-50%);
-  width: 110px; height: 22px;
-  background: #1a1a1a;
-  border-radius: 0 0 14px 14px;
-  z-index: 2;
-  pointer-events: none; /* 클릭/스크롤 통과 — iframe 직접 조작 가능 */
-}
+.sp-phone-notch { display: none; }   /* 실제 화면을 가리지 않도록 노치 제거 */
 .sp-phone-screen {
   width: 100%; height: 100%;
   border: 0;
-  border-radius: 26px;
+  border-radius: 28px;
   background: #fff;
   pointer-events: auto;
   overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
+/* 실제 폰 폭(390px)으로 렌더한 셀러 화면을 프레임에 맞게 축소 → 비율 100% 동일 */
+.sp-live-frame {
+  width: 390px; height: 844px;
+  transform: scale(0.71); transform-origin: top left;
+  border: 0; border-radius: 0;
+  overflow: hidden;
+}
 .sp-phone-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.sp-live-frame { display: block; }
 .sp-view-toggle {
   display: inline-flex; background: var(--track, #f0f0f3); border-radius: 980px; padding: 3px; gap: 2px;
 }
@@ -1006,6 +1007,12 @@ dialog .dialog-actions .spacer { flex: 1; }
   padding: 6px 14px; border-radius: 980px; transition: all .15s;
 }
 .sp-seg.active { background: #fff; color: var(--text); box-shadow: var(--shadow-sm); }
+
+/* 매출 입력 모드 토글 (수동/제품자동) */
+.sales-mode-toggle { display: inline-flex; background: var(--track, #f0f0f3); border-radius: 980px; padding: 3px; gap: 2px; margin-bottom: 10px; }
+.sm-seg { border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 14px; border-radius: 980px; transition: all .15s; }
+.sm-seg.active { background: #fff; color: var(--text); box-shadow: var(--shadow-sm); }
+.sales-p-preview { font-size: 12.5px; font-weight: 600; color: var(--accent); white-space: nowrap; align-self: center; }
 
 /* ─── 셀러 노출 미리보기 — 데일리 스와이프 ─── */
 .sp-day-nav {
@@ -1302,6 +1309,14 @@ dialog .dialog-actions .spacer { flex: 1; }
   font-family: inherit;
   resize: vertical;
 }
+.cam-edit-textarea[readonly] { background: transparent; border-color: transparent; padding-left: 0; resize: none; }
+.cam-edit-sel[disabled] { background: transparent; border-color: transparent; color: var(--text); -webkit-appearance: none; appearance: none; padding-left: 0; }
+.cam-edit-inp {
+  padding: 5px 9px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  font-size: 12.5px; font-family: inherit; color: var(--text); min-width: 90px;
+}
+.cam-edit-inp:focus { outline: none; border-color: var(--accent); }
+.cam-meta-edit-hint { font-size: 11.5px; color: var(--accent); padding: 6px 2px 2px; width: 100%; }
 
 .cam-ship-grid {
   display: grid;
@@ -1460,18 +1475,18 @@ dialog .dialog-actions .spacer { flex: 1; }
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: inherit;                 /* 앱 폰트로 통일 */
+  font-variant-numeric: tabular-nums;   /* 숫자 자릿수 정렬은 유지 */
 }
 .dv-sheet thead th {
-  background: #ecebe5;
-  border-right: 1px solid #d9d6cc;
-  border-bottom: 2px solid #b8b3a5;
+  background: var(--hover);
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--border-strong);
   padding: 8px 10px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 11px;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  color: var(--muted);
+  letter-spacing: -0.01em;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -1479,13 +1494,14 @@ dialog .dialog-actions .spacer { flex: 1; }
 .dv-hdr-cell.dv-num { text-align: right; }
 .dv-sheet tbody td {
   padding: 7px 10px;
-  border-right: 1px solid #efece4;
-  border-bottom: 1px solid #efece4;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
   background: #fff;
+  color: var(--text);
 }
 .dv-sheet .dv-rowhdr {
-  background: #ecebe5;
-  color: #777;
+  background: var(--hover);
+  color: var(--muted);
   text-align: center;
   font-weight: 600;
   font-size: 11px;
@@ -1510,9 +1526,10 @@ dialog .dialog-actions .spacer { flex: 1; }
   background: #e3f2fd !important;
 }
 .dv-foot-row td {
-  background: #f9fafb !important;
-  border-top: 2px solid #b8b3a5 !important;
+  background: var(--hover) !important;
+  border-top: 1px solid var(--border-strong) !important;
   font-size: 13px;
+  font-weight: 600;
 }
 
 .dv-formula-bar {
@@ -1520,17 +1537,17 @@ dialog .dialog-actions .spacer { flex: 1; }
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #f9fafb;
-  border-top: 1px solid var(--border);
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: var(--hover);
+  border-top: 1px solid var(--hairline);
+  font-family: inherit;
 }
 .dvf-label {
   background: #fff;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-style: italic;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--accent);
 }
 #dvFormulaInput {
@@ -2533,10 +2550,35 @@ body.mobile-mode #toastContainer {
 }
 .bn-cat-note:focus { outline: none; border-color: var(--accent); }
 .bn-cat-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
 }
+/* 레퍼런스(왼쪽) / 최종 배너(오른쪽) 가로 2열 */
+.bn-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+.bn-col { min-width: 0; }
+.bn-col .bn-sub:first-child { margin-top: 4px; }
+@media (max-width: 720px) { .bn-cols { grid-template-columns: 1fr; } }
 .bn-sub { font-size: 11.5px; font-weight: 600; color: var(--muted); margin: 12px 0 7px; }
 .bn-sub-final { color: var(--green); }
+/* 타일 액션 (다운로드/교체/삭제) */
+.bn-tile-acts { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity .12s; }
+.bn-tile:hover .bn-tile-acts { opacity: 1; }
+.bn-act {
+  width: 22px; height: 22px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 22px; text-align: center;
+  text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.bn-act:hover { background: var(--accent); }
+.bn-tile img[data-v2="bn-zoom"] { cursor: zoom-in; }
+/* 이미지 확대 라이트박스 */
+.img-zoom-ov {
+  position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.9);
+  display: flex; align-items: center; justify-content: center; padding: 30px; cursor: zoom-out;
+}
+.img-zoom-ov img { max-width: 94%; max-height: 92%; border-radius: 8px; box-shadow: 0 10px 50px rgba(0,0,0,.6); }
+.img-zoom-x {
+  position: fixed; top: 18px; right: 24px; width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.15); color: #fff; border: none; font-size: 22px; cursor: pointer;
+}
 
 /* 릴스 영상 (초안/최종 직접 업로드) */
 .reel-vids { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
@@ -4158,14 +4200,19 @@ input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="
   padding: 8px 10px; border-bottom: 1px solid var(--hairline); white-space: nowrap;
 }
 .ev-table th.num { text-align: right; }
-.ev-table td { padding: 3px 6px; border-bottom: 1px solid var(--hairline-row); }
+.ev-table td { padding: 3px 4px; border-bottom: 1px solid var(--hairline-row); vertical-align: middle; }
 .ev-table td.num { text-align: right; }
-.ev-table td.ev-auto { color: var(--accent); white-space: nowrap; padding-right: 12px; }
+.ev-table td.ev-auto { color: var(--accent); white-space: nowrap; padding-right: 10px; }
+/* 헤더(좌 10px)와 셀 입력값 위치를 맞춰 정렬 통일 — 텍스트=좌, 숫자=우 */
 .ev-table input {
   width: 100%; border: 1px solid transparent; border-radius: 6px;
-  padding: 5px 7px; font-size: 12.5px; font-family: inherit; color: var(--text); background: transparent;
+  padding: 5px 6px; font-size: 12.5px; font-family: inherit; color: var(--text); background: transparent;
 }
 .ev-table input.num, .ev-table td.num input { text-align: right; }
+.ev-table td.ev-idx { text-align: center; white-space: nowrap; }
+.ev-table td.ev-idx b { font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 980px; }
+.ev-table th.ev-idx-th { text-align: center; }
+.ev-table th.ev-del-th, .ev-table td:last-child { width: 34px; text-align: center; }
 .ev-table input:focus { outline: none; border-color: var(--accent); background: #fff; }
 .ev-table input[type=number] { -moz-appearance: textfield; }
 .ev-table tr.ev-total td { background: var(--hover); padding: 8px 10px; font-size: 13px; border-bottom: none; }
