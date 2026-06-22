@@ -172,28 +172,20 @@
       root.innerHTML = html;
       return;
     }
-    const costs = fi.costs || {};
+    // 🔒 셀러에겐 매출 + 정산조건만. 원가/공헌이익/수수료/PG/부가세는 절대 미노출.
+    const st = c.settlement || {};
     root.innerHTML = `
       <div class="sp-settle-hero">
         <div class="ssh-label">총 매출</div>
         <div class="ssh-value">${fmtKRW(fi.revenue)}원</div>
-        <div class="ssh-divider"></div>
-        <div class="ssh-grid">
-          <div><div class="ssg-label">총 비용</div><div class="ssg-value">−${fmtKRW(fi.total_cost)}원</div></div>
-          <div><div class="ssg-label">공헌이익</div><div class="ssg-value gold">${fmtKRW(fi.profit)}원</div></div>
-          <div><div class="ssg-label">이익률</div><div class="ssg-value gold">${fi.rate}%</div></div>
-        </div>
       </div>
-
+      ${(st.rs_percent || st.type || st.pg_logistics) ? `
       <div class="sp-info-box" style="margin-top:14px">
-        <h3>비용 상세</h3>
-        <div class="sp-info-row"><span class="k">셀러수수료</span><span class="v">${fmtKRW(costs.seller_fee)}원</span></div>
-        <div class="sp-info-row"><span class="k">PG사 수수료</span><span class="v">${fmtKRW(costs.pg_fee)}원</span></div>
-        <div class="sp-info-row"><span class="k">이벤트 비용</span><span class="v">${fmtKRW(costs.event_cost)}원</span></div>
-        <div class="sp-info-row"><span class="k">원가</span><span class="v">${fmtKRW(costs.cost)}원</span></div>
-        <div class="sp-info-row"><span class="k">배송비</span><span class="v">${fmtKRW(costs.shipping)}원</span></div>
-        <div class="sp-info-row"><span class="k">부가세</span><span class="v">${fmtKRW(costs.vat)}원</span></div>
-      </div>
+        <h3>정산 조건</h3>
+        ${st.rs_percent ? `<div class="sp-info-row"><span class="k">RS%</span><span class="v">${st.rs_percent}%</span></div>` : ""}
+        ${st.type ? `<div class="sp-info-row"><span class="k">유형</span><span class="v">${esc(st.type)}</span></div>` : ""}
+        ${st.pg_logistics ? `<div class="sp-info-row"><span class="k">PG/배송</span><span class="v">${esc(st.pg_logistics)}</span></div>` : ""}
+      </div>` : ""}
     `;
   }
 

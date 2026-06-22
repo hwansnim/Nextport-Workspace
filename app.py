@@ -1279,20 +1279,9 @@ def api_seller_data(token: str):
         related_events.append(ev)
     related_events.sort(key=lambda x: x.get("date", ""))
 
-    # 정산 자동 계산
+    # 매출만 노출 — 🔒 원가/공헌이익/수수료는 셀러용 응답에 절대 포함하지 않음.
     fi = c.get("financials") or {}
     revenue = float(fi.get("revenue") or 0)
-    costs = {
-        "seller_fee": float(fi.get("seller_fee") or 0),
-        "pg_fee": float(fi.get("pg_fee") or 0),
-        "event_cost": float(fi.get("event_cost") or 0),
-        "cost": float(fi.get("cost") or 0),
-        "shipping": float(fi.get("shipping") or 0),
-        "vat": float(fi.get("vat") or 0),
-    }
-    total_cost = sum(costs.values())
-    profit = revenue - total_cost
-    rate = (profit / revenue * 100) if revenue > 0 else 0
 
     return jsonify({
         "campaign": {
@@ -1322,10 +1311,6 @@ def api_seller_data(token: str):
         "events": related_events,
         "financials": {
             "revenue": revenue,
-            "costs": costs,
-            "total_cost": total_cost,
-            "profit": profit,
-            "rate": round(rate, 2),
             "has_data": revenue > 0,
         },
     })
