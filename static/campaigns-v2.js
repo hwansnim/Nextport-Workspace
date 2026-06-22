@@ -554,11 +554,17 @@
     if (!ad.banner_cats && (ad.banner_images || []).length) cats.open = { note: "", imgs: ad.banner_images };
     const bnGallery = (key, kind, arr) => `
       <div class="bn-cat-grid" data-kind="${kind}">
-        ${arr.map((im, i) => `
+        ${arr.map((im, i) => {
+          const disp = im.thumb || im.url;
+          const dl = im.file_id ? `/api/file/${im.file_id}` : im.url;
+          const nm = (im.name || "banner").replace(/"/g, "");
+          return `
           <div class="bn-tile">
-            <img src="${esc(im.url)}" loading="lazy" />
+            <img src="${esc(disp)}" loading="lazy" />
+            ${dl ? `<a class="bn-dl" href="${esc(dl)}" download="${esc(nm)}" title="원본 다운로드" onclick="event.stopPropagation()">⬇</a>` : ""}
             <button class="bn-del" data-v2="ad-banner-img-del" data-cat="${key}" data-kind="${kind}" data-idx="${i}" title="삭제">×</button>
-          </div>`).join("")}
+          </div>`;
+        }).join("")}
         <button type="button" class="bn-add" data-v2="ad-banner-pick" data-cat="${key}" data-kind="${kind}">
           <span class="bn-add-plus">+</span><span class="bn-add-txt">${kind === "final" ? "최종본" : "레퍼런스"}<br><small>클릭·드래그</small></span>
         </button>
@@ -767,7 +773,7 @@
     return set?.ads.find(x => x.id === s.activeMarketId) || null;
   }
 
-  // 셀러 노출 미리보기 = 데일리 스와이프 (content_days 직결)
+  // 셀러 노출 미리보기 = (1) 실제 셀러 화면 iframe + (2) 콘텐츠 편집 스와이프
   function renderSellerMobilePreview(set, ad) {
     const days = ad.content_days || [];
     // 마켓 바뀌면 오늘 날짜로 초기화
@@ -777,6 +783,34 @@
       s.previewDayIdx = ti >= 0 ? ti : 0;
     }
     renderSwipeDay(ad);
+    ensureSellerLiveFrame();
+    setPreviewMode(s.previewMode || "live");
+  }
+
+  // 실제 셀러가 보는 화면을 폰 프레임 iframe 으로 (관리자 미리보기 = 트래킹 제외)
+  async function ensureSellerLiveFrame(force) {
+    const frame = $("#adSellerLive");
+    if (!frame || !s.activeCamId) return;
+    if (!force && frame.dataset.cam === s.activeCamId) return;
+    try {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/share`);
+      frame.src = location.origin + r.preview_path;  // /seller/<code>?preview=1
+      frame.dataset.cam = s.activeCamId;
+    } catch (e) { /* 조용히 무시 */ }
+  }
+
+  function setPreviewMode(mode) {
+    s.previewMode = mode;
+    const live = mode !== "edit";
+    const lf = $("#adSellerLive"), sw = $("#adSellerSwipe");
+    if (lf) lf.hidden = !live;
+    if (sw) sw.hidden = live;
+    const nav = $("#spDayNav"), today = $("#spTodayBtn");
+    if (nav) nav.hidden = live;       // 날짜 네비/오늘로 = 편집 모드에서만
+    if (today) today.hidden = live;
+    document.querySelectorAll("[data-v2='sp-mode-live'],[data-v2='sp-mode-edit']")
+      .forEach(b => b.classList.toggle("active", b.dataset.v2 === ("sp-mode-" + (live ? "live" : "edit"))));
+    if (live) ensureSellerLiveFrame(true);  // 셀러 화면 볼 때마다 최신 반영
   }
 
   function renderSwipeDay(ad) {
@@ -1025,14 +1059,30 @@
   }
 
   async function shareLink() {
-    if (!s.activeMarketId) { alert("광고(마켓) 먼저 선택"); return; }
+    if (!s.activeCamId) { alert("캠페인 먼저 선택"); return; }
     try {
-      const r = await api(`/api/campaigns_v2/${s.activeCamId}/sets/${s.activeSetId}/ads/${s.activeMarketId}/share`);
-      const url = location.origin + r.path;
-      await navigator.clipboard.writeText(url);
-      window.showToast?.({ icon: "🔗", title: "셀러 링크 복사됨", body: "셀러한테 그대로 보내세요 (모바일 최적화)", accent: true, ttl: 7000 });
-      prompt("셀러한테 보낼 링크 (복사됨):", url);
+      // 캠페인 단위 공유 — 전 차수(1·2·3차) 누적 큐레이션 뷰. 셀러용 + 관리자 미리보기 둘 다 발급.
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/share`);
+      const sellerUrl = location.origin + r.seller_path;
+      const previewUrl = location.origin + r.preview_path;
+      await navigator.clipboard.writeText(sellerUrl);
+      window.showToast?.({ icon: "🔗", title: "셀러 링크 복사됨", body: "셀러한테 그대로 보내세요 (모바일 최적화 · 원가/공헌이익 미노출)", accent: true, ttl: 7000 });
+      prompt("📲 셀러용 링크 (복사됨 — 셀러한테 전달):\n\n관리자 미리보기 링크 (접속 기록 안 잡힘):\n" + previewUrl + "\n\n셀러용 링크:", sellerUrl);
     } catch (e) { alert("실패: " + e.message); }
+  }
+
+  // 셀러가 실제로 보는 화면(캠페인 단위 큐레이션) — 관리자 미리보기(접속 기록 X)
+  async function openSellerPreview() {
+    if (!s.activeCamId) { alert("캠페인 먼저 선택"); return; }
+    const w = window.open("about:blank", "_blank");
+    try {
+      const r = await api(`/api/campaigns_v2/${s.activeCamId}/share`);
+      const url = location.origin + r.preview_path;
+      if (w) w.location = url; else window.open(url, "_blank");
+    } catch (e) {
+      if (w) w.close();
+      alert("미리보기 실패: " + e.message);
+    }
   }
 
   function exportContentToClipboard() {
@@ -1279,7 +1329,11 @@
     if (what === "cg-open-gen") return openGenDialog();
     if (what === "cg-gen-close") { $("#contentGenDialog")?.close?.(); return; }
     if (what === "cg-share") return shareLink();
-    if (what === "cg-preview") return previewSellerSheet();
+    if (what === "cg-preview") return openSellerPreview();
+    if (what === "cg-preview-sheet") return previewSellerSheet();
+    if (what === "sp-mode-live") return setPreviewMode("live");
+    if (what === "sp-mode-edit") return setPreviewMode("edit");
+    if (what === "cg-reload-live") return ensureSellerLiveFrame(true);
     if (what === "cg-export-clip") return exportContentToClipboard();
     if (what === "cg-pick-img") return openImgPicker(parseInt(trg.dataset.di), parseInt(trg.dataset.si));
     if (what === "imgpick-close") { $("#imgPickerDialog")?.close?.(); return; }
@@ -1504,11 +1558,24 @@
     const cats = JSON.parse(JSON.stringify(ad.banner_cats || {}));
     cats[cat] = cats[cat] || { note: "", imgs: [], finals: [] };
     cats[cat][field] = cats[cat][field] || [];
+    let driveFail = false;
     for (const f of files) {
-      const url = await resizeImage(f);
-      if (url) cats[cat][field].push({ url });
+      const thumb = await resizeImage(f, 640, 0.8);   // 표시용 썸네일(가벼움)
+      let item = null;
+      // 원본은 드라이브에 통째로 업로드 (file_id만 JSON에 저장 → 데이터 안 불음)
+      try {
+        const fd = new FormData(); fd.append("file", f, f.name);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (res.ok) {
+          const j = await res.json();
+          item = { url: thumb || j.url, thumb: thumb || "", file_id: j.file_id, name: j.name || f.name };
+        } else { driveFail = true; }
+      } catch (e) { driveFail = true; }
+      if (!item) item = { url: thumb, name: f.name };   // 드라이브 미연결 → 저화질 폴백
+      cats[cat][field].push(item);
     }
     await patchAd({ banner_cats: cats });
+    if (driveFail) window.showToast?.({ icon: "⚠️", title: "원본 업로드 실패", body: "드라이브 미연결 — 저화질本만 저장됨", ttl: 5000 });
   }
 
   // 파일 선택

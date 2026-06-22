@@ -273,7 +273,7 @@
               </div>
 
               <!-- 콘텐츠 가이드 (셀러 톤 매칭 생성) = 스케줄링 -->
-              <section class="panel content-guide-panel" data-feat="schedule">
+              <section class="panel acc content-guide-panel" data-feat="schedule">
                 <div class="panel-head">
                   <h2>콘텐츠 가이드 (스케줄링)</h2>
                   <div class="head-actions">
@@ -377,24 +377,31 @@
                   </div>
                 </div>
 
-                <!-- 👁 셀러 노출 미리보기 — 데일리 스와이프 (셀러가 매일 올릴 스토리) -->
+                <!-- 👁 셀러 노출 미리보기 — 셀러가 폰에서 실제로 보는 화면 (캠페인=셀러 1명) -->
                 <div class="ad-section ad-section-wide" data-feat="preview">
-                  <div class="ad-sec-head">셀러 노출 미리보기 <span style="font-weight:400;color:var(--muted);font-size:11.5px">(좌우 스와이프 = 날짜 이동 · 셀이 매일 올릴 스토리 · 클릭=편집)</span></div>
+                  <div class="ad-sec-head">셀러 노출 미리보기 <span style="font-weight:400;color:var(--muted);font-size:11.5px">(셀러가 폰에서 실제로 보는 화면 · 원가/공헌이익 미노출)</span></div>
                   <div class="ad-sec-body">
                     <div class="seller-preview-split">
                       <div class="sp-phone-col">
-                        <div class="sp-day-nav">
+                        <div class="sp-view-toggle">
+                          <button class="sp-seg active" data-v2="sp-mode-live">📱 셀러 화면</button>
+                          <button class="sp-seg" data-v2="sp-mode-edit">✏️ 콘텐츠 편집</button>
+                        </div>
+                        <div class="sp-day-nav" id="spDayNav" hidden>
                           <button class="sp-nav-btn" data-v2="sp-prev-day" title="이전 날">‹</button>
                           <span class="sp-day-label" id="spDayLabel">—</span>
                           <button class="sp-nav-btn" data-v2="sp-next-day" title="다음 날">›</button>
                         </div>
                         <div class="sp-phone-frame">
                           <div class="sp-phone-notch"></div>
-                          <div class="sp-phone-screen" id="adSellerSwipe"></div>
+                          <iframe class="sp-phone-screen sp-live-frame" id="adSellerLive" title="셀러 화면"></iframe>
+                          <div class="sp-phone-screen" id="adSellerSwipe" hidden></div>
                         </div>
                         <div class="sp-phone-actions">
-                          <button class="btn-secondary" data-v2="sp-today">오늘로</button>
-                          <button class="btn-secondary" data-v2="cg-share">셀러 링크 복사</button>
+                          <button class="btn-secondary" data-v2="sp-today" id="spTodayBtn" hidden>오늘로</button>
+                          <button class="btn-secondary" data-v2="cg-reload-live">↻ 새로고침</button>
+                          <button class="btn-secondary" data-v2="cg-preview">새 탭에서 크게</button>
+                          <button class="btn-secondary" data-v2="cg-share">셀러 링크</button>
                         </div>
                       </div>
                       <div class="sp-track-col">

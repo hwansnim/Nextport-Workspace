@@ -995,7 +995,17 @@ dialog .dialog-actions .spacer { flex: 1; }
   overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
-.sp-phone-actions { display: flex; gap: 8px; }
+.sp-phone-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.sp-live-frame { display: block; }
+.sp-view-toggle {
+  display: inline-flex; background: var(--track, #f0f0f3); border-radius: 980px; padding: 3px; gap: 2px;
+}
+.sp-seg {
+  border: none; background: transparent; color: var(--muted);
+  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  padding: 6px 14px; border-radius: 980px; transition: all .15s;
+}
+.sp-seg.active { background: #fff; color: var(--text); box-shadow: var(--shadow-sm); }
 
 /* ─── 셀러 노출 미리보기 — 데일리 스와이프 ─── */
 .sp-day-nav {
@@ -2561,6 +2571,13 @@ body.mobile-mode #toastContainer {
   display: flex; align-items: center; justify-content: center;
 }
 .bn-del:hover { background: rgba(0,0,0,.8); }
+.bn-dl {
+  position: absolute; top: 6px; left: 6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,0,0,.55); color: #fff; text-decoration: none;
+  font-size: 12px; line-height: 22px; text-align: center; cursor: pointer;
+}
+.bn-dl:hover { background: var(--accent); }
 .bn-cap {
   border: none; border-top: 1px solid var(--hairline);
   padding: 6px 9px; font-size: 11.5px; font-family: inherit; color: var(--text);

@@ -3,223 +3,438 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>{{ campaign.seller_name }} 공동구매 콘텐츠 가이드</title>
+  <title>{{ view.seller_name }} × 하루픽스 공동구매</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet" />
   <style>
-    :root { --accent:#3182F6; --bg:#faf8f4; --card:#fff; --line:#eee5d8; --muted:#999; }
+    /* ── 메인 워크스페이스와 동일한 디자인 토큰 (Apple SaaS) ── */
+    :root {
+      --accent:#0071e3; --accent-hover:#0077ed; --accent-soft:#ecf4fe;
+      --text:#1d1d1f; --text2:#515154; --muted:#86868b;
+      --bg:#fbfbfd; --card:#fff; --line:#e8e8ed; --line-strong:#d2d2d7;
+      --ok:#34c759; --ok-soft:#e9f9ee;
+      --radius:18px; --radius-sm:12px; --radius-pill:980px;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.04); --shadow-md:0 6px 22px rgba(0,0,0,.07);
+    }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { margin:0; font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif; background:var(--bg); color:#222; }
-    .sv-top { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--line); padding:14px 16px; }
-    .sv-top h1 { margin:0; font-size:16px; }
-    .sv-top .sub { font-size:11.5px; color:var(--muted); margin-top:3px; }
-    .sv-progress { margin-top:8px; height:6px; background:#f0ede5; border-radius:3px; overflow:hidden; }
-    .sv-progress > span { display:block; height:100%; background:var(--accent); transition:width .3s; }
+    html,body { margin:0; }
+    body {
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Pretendard Variable",Pretendard,sans-serif;
+      background:var(--bg); color:var(--text); line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+    }
+    .wrap { max-width:540px; margin:0 auto; min-height:100vh; background:var(--bg); }
 
-    /* 날짜 리스트 */
-    .sv-days { padding:10px 12px 100px; }
-    .sv-day-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; cursor:pointer; display:flex; align-items:center; gap:12px; }
-    .sv-day-card:active { transform:scale(.99); }
-    .sv-dday { font-size:18px; font-weight:800; color:var(--accent); min-width:54px; text-align:center; }
-    .sv-day-info { flex:1; }
-    .sv-day-date { font-size:14px; font-weight:600; }
-    .sv-day-phase { font-size:11px; color:var(--muted); margin-top:2px; }
-    .sv-day-count { font-size:11px; color:var(--muted); }
-    .sv-day-done { color:#2e9e44; font-weight:700; }
-    .phase-도입 .sv-dday { color:#3b82f6; }
-    .phase-교감 .sv-dday { color:#eab308; }
-    .phase-정보 .sv-dday { color:#22a35a; }
-    .phase-임박 .sv-dday { color:var(--accent); }
-    .phase-마감 .sv-dday { color:#ef4444; }
+    .preview-flag {
+      background:#1d1d1f; color:#fff; font-size:12px; font-weight:600;
+      text-align:center; padding:7px 12px; letter-spacing:-.01em;
+    }
+    .preview-flag b { color:#5ac8fa; }
 
-    /* 스토리 뷰어 (풀스크린 스와이프) */
-    .sv-viewer { position:fixed; inset:0; z-index:50; background:#1a1a1a; display:none; flex-direction:column; }
-    .sv-viewer.open { display:flex; }
-    .sv-bars { display:flex; gap:4px; padding:10px 12px 6px; }
-    .sv-bar { flex:1; height:3px; background:rgba(255,255,255,.3); border-radius:2px; overflow:hidden; }
-    .sv-bar.active { background:#fff; }
-    .sv-bar.done { background:rgba(255,255,255,.7); }
-    .sv-vtop { display:flex; align-items:center; justify-content:space-between; padding:4px 14px 10px; color:#fff; }
-    .sv-vtop .vt-date { font-size:13px; font-weight:600; }
-    .sv-vclose { background:none; border:0; color:#fff; font-size:26px; cursor:pointer; padding:0 6px; }
-    .sv-slides { flex:1; position:relative; overflow:hidden; }
-    .sv-slide { position:absolute; inset:0; display:none; flex-direction:column; overflow-y:auto; padding:0 0 20px; }
-    .sv-slide.active { display:flex; }
-    .sv-slide-title { color:#fff; font-size:13px; font-weight:700; padding:6px 18px 12px; opacity:.85; }
-    .sv-img { width:100%; background:#000; }
-    .sv-img img { width:100%; display:block; max-height:50vh; object-fit:contain; }
-    .sv-img-empty { width:100%; height:180px; background:#2a2a2a; display:flex; align-items:center; justify-content:center; color:#666; font-size:13px; }
-    .sv-content { background:#fff; margin:0 14px; border-radius:14px; padding:16px; margin-top:-20px; position:relative; z-index:2; }
-    .sv-concept { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; }
-    .sv-caption { font-size:15px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
-    .sv-actions { display:flex; gap:8px; margin-top:14px; }
-    .sv-btn { flex:1; border:0; border-radius:10px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
-    .sv-btn-copy { background:var(--accent); color:#fff; }
-    .sv-btn-copy.copied { background:#2e9e44; }
-    .sv-check-row { display:flex; align-items:center; gap:10px; margin-top:12px; padding:12px; background:#f7f5f0; border-radius:10px; }
-    .sv-check-box { width:26px; height:26px; border-radius:7px; border:2px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; flex-shrink:0; background:#fff; }
-    .sv-check-box.on { background:#2e9e44; border-color:#2e9e44; color:#fff; }
-    .sv-check-label { font-size:13px; flex:1; }
-    .sv-link-input { width:100%; margin-top:8px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; font-family:inherit; }
-    .sv-nav { position:absolute; top:0; bottom:0; width:30%; z-index:5; }
-    .sv-nav-left { left:0; }
-    .sv-nav-right { right:0; }
-    .sv-hint { text-align:center; color:rgba(255,255,255,.5); font-size:11px; padding:8px; }
-    .sv-foot { padding:16px; text-align:center; color:var(--muted); font-size:11px; }
+    /* ── 헤더 ── */
+    .hd {
+      position:sticky; top:0; z-index:20; background:rgba(255,255,255,.86);
+      backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
+      border-bottom:1px solid var(--line); padding:16px 18px 14px;
+    }
+    .hd-brand { font-size:18px; font-weight:700; letter-spacing:-.02em; }
+    .hd-sub { font-size:12.5px; color:var(--muted); margin-top:2px; }
+    .hd-progress { margin-top:12px; }
+    .pbar { height:7px; background:#eef0f3; border-radius:var(--radius-pill); overflow:hidden; }
+    .pbar > span { display:block; height:100%; background:var(--accent); border-radius:var(--radius-pill); transition:width .35s ease; }
+    .ptxt { font-size:11.5px; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between; }
+    .ptxt b { color:var(--text); font-variant-numeric:tabular-nums; }
+
+    /* ── 차수 pill ── */
+    .rounds { display:flex; gap:7px; padding:14px 18px 2px; overflow-x:auto; }
+    .rounds::-webkit-scrollbar { display:none; }
+    .round-pill {
+      flex-shrink:0; border:1px solid var(--line-strong); background:#fff; color:var(--text2);
+      font-size:13px; font-weight:600; font-family:inherit; padding:8px 16px; border-radius:var(--radius-pill);
+      cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .round-pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+    main { padding:14px 14px 90px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:18px; margin-bottom:14px; }
+    .card-h { font-size:16px; font-weight:700; letter-spacing:-.01em; display:flex; align-items:center; gap:7px; }
+    .card-h .sub { font-size:12px; font-weight:400; color:var(--muted); }
+    .card-sub { font-size:12.5px; color:var(--muted); margin-top:3px; }
+    .muted { color:var(--muted); }
+    .empty { font-size:13px; color:var(--muted); padding:14px 2px; }
+
+    /* ── 콘텐츠 가이드 날짜 카드 ── */
+    .day-list { margin-top:14px; display:flex; flex-direction:column; gap:9px; }
+    .day-card {
+      display:flex; align-items:center; gap:13px; padding:14px 15px;
+      border:1px solid var(--line); border-radius:var(--radius-sm); cursor:pointer;
+      transition:transform .12s, box-shadow .15s, border-color .15s; background:#fff;
+    }
+    .day-card:active { transform:scale(.985); }
+    .day-card.done { border-color:var(--ok); background:var(--ok-soft); }
+    .dday { font-size:17px; font-weight:800; color:var(--accent); min-width:62px; text-align:center; letter-spacing:-.02em; line-height:1.15; }
+    .dday small { display:block; font-size:10.5px; font-weight:600; color:var(--muted); margin-top:1px; }
+    .day-mid { flex:1; min-width:0; }
+    .day-date { font-size:14px; font-weight:600; }
+    .day-meta { font-size:11.5px; color:var(--muted); margin-top:2px; }
+    .day-cnt { font-size:11.5px; font-weight:600; color:var(--muted); white-space:nowrap; }
+    .day-cnt.done { color:var(--ok); }
+    .chev { color:#c7c7cc; font-size:19px; }
+    .phase-사전 .dday { color:#8e8e93; }
+    .phase-도입 .dday { color:#0071e3; }
+    .phase-교감 .dday { color:#ff9500; }
+    .phase-정보 .dday { color:#34c759; }
+    .phase-임박 .dday { color:#ff3b30; }
+    .phase-마감 .dday { color:#ff3b30; }
+
+    /* ── 배너 ── */
+    .bn-grid { margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .bn-item { border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; cursor:pointer; background:#f5f5f7; }
+    .bn-item img { width:100%; display:block; aspect-ratio:1/1; object-fit:cover; }
+    .bn-cap { font-size:11px; font-weight:600; color:var(--text2); padding:7px 9px; background:#fff; }
+
+    /* ── 이벤트 ── */
+    .ev-list { margin-top:12px; display:flex; flex-direction:column; gap:9px; }
+    .ev-item { display:flex; gap:11px; padding:12px 13px; border:1px solid var(--line); border-radius:var(--radius-sm); }
+    .ev-dot { width:9px; height:9px; border-radius:50%; background:var(--accent); margin-top:5px; flex-shrink:0; }
+    .ev-name { font-size:13.5px; font-weight:600; }
+    .ev-date { font-size:11.5px; color:var(--accent); font-weight:600; margin-top:1px; }
+    .ev-desc { font-size:12.5px; color:var(--text2); margin-top:3px; white-space:pre-wrap; }
+
+    /* ── 출고 / 매출 / 정산 ── */
+    .info-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); }
+    .info-row:last-child { border-bottom:0; }
+    .info-k { font-size:13px; color:var(--text2); }
+    .info-v { font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+    .badge { font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:var(--radius-pill); }
+    .badge.ok { background:var(--ok-soft); color:#1f9d3f; }
+    .badge.wait { background:#fff4e5; color:#c77700; }
+    .sales-total { display:flex; align-items:baseline; justify-content:space-between; padding:14px 0 4px; }
+    .sales-total .amt { font-size:24px; font-weight:800; letter-spacing:-.02em; }
+    .sales-days { margin-top:8px; }
+    .sales-day { display:flex; justify-content:space-between; padding:8px 0; font-size:13px; border-top:1px solid var(--line); }
+    .sales-day .d { color:var(--muted); }
+    .sales-day .v { font-weight:600; font-variant-numeric:tabular-nums; }
+
+    footer { text-align:center; color:var(--muted); font-size:11px; padding:8px 18px 30px; }
+
+    /* ── 풀스크린 스토리 뷰어 ── */
+    .viewer { position:fixed; inset:0; z-index:60; background:#0b0b0c; display:none; flex-direction:column; }
+    .viewer.open { display:flex; }
+    .v-bars { display:flex; gap:4px; padding:12px 14px 6px; }
+    .v-bar { flex:1; height:3px; background:rgba(255,255,255,.28); border-radius:2px; }
+    .v-bar.active { background:#fff; }
+    .v-bar.done { background:rgba(255,255,255,.7); }
+    .v-top { display:flex; align-items:center; justify-content:space-between; padding:2px 16px 10px; color:#fff; }
+    .v-date { font-size:13.5px; font-weight:600; }
+    .v-close { background:none; border:0; color:#fff; font-size:27px; cursor:pointer; padding:0 4px; line-height:1; }
+    .v-slides { flex:1; position:relative; overflow:hidden; }
+    .v-slide { position:absolute; inset:0; display:none; flex-direction:column; overflow-y:auto; padding-bottom:24px; }
+    .v-slide.active { display:flex; }
+    .v-stitle { color:rgba(255,255,255,.9); font-size:13px; font-weight:700; padding:4px 18px 12px; }
+    .v-img { width:100%; background:#000; }
+    .v-img img { width:100%; display:block; max-height:46vh; object-fit:contain; }
+    .v-img-empty { width:100%; height:150px; background:#161617; display:flex; align-items:center; justify-content:center; color:#5a5a5e; font-size:13px; }
+    .v-content { background:#fff; margin:-18px 14px 0; border-radius:var(--radius); padding:18px; position:relative; z-index:2; box-shadow:var(--shadow-md); }
+    .v-concept { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; }
+    .v-caption { font-size:15px; line-height:1.72; white-space:pre-wrap; word-break:break-word; }
+    .v-btn { width:100%; border:0; border-radius:var(--radius-sm); padding:14px; font-size:14.5px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:14px; background:var(--accent); color:#fff; transition:background .15s; }
+    .v-btn:active { background:var(--accent-hover); }
+    .v-btn.copied { background:var(--ok); }
+    .v-check { display:flex; align-items:center; gap:11px; margin-top:11px; padding:13px; background:#f5f5f7; border-radius:var(--radius-sm); cursor:pointer; }
+    .v-box { width:26px; height:26px; border-radius:8px; border:2px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; background:#fff; transition:all .12s; }
+    .v-box.on { background:var(--ok); border-color:var(--ok); color:#fff; }
+    .v-check-l { font-size:13px; flex:1; font-weight:500; }
+    .v-link { width:100%; margin-top:9px; padding:11px 13px; border:1px solid var(--line-strong); border-radius:var(--radius-sm); font-size:12.5px; font-family:inherit; outline:none; }
+    .v-link:focus { border-color:var(--accent); }
+    .v-nav { position:absolute; top:0; bottom:0; width:32%; z-index:5; }
+    .v-nav-l { left:0; } .v-nav-r { right:0; }
+    .v-hint { text-align:center; color:rgba(255,255,255,.45); font-size:11px; padding:8px; }
+
+    /* ── 배너 라이트박스 ── */
+    .lightbox { position:fixed; inset:0; z-index:70; background:rgba(0,0,0,.92); display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+    .lightbox.open { display:flex; }
+    .lightbox img { max-width:100%; max-height:74vh; border-radius:10px; }
+    .lb-actions { display:flex; gap:10px; margin-top:18px; }
+    .lb-btn { border:0; border-radius:var(--radius-pill); padding:12px 22px; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; }
+    .lb-dl { background:var(--accent); color:#fff; }
+    .lb-close { background:rgba(255,255,255,.16); color:#fff; }
   </style>
 </head>
 <body>
-  <div class="sv-top">
-    <h1>📣 {{ campaign.seller_name }} × 하루픽스 {{ campaign.brand }} {{ set_label }}</h1>
-    <div class="sub">{{ campaign.product }} · 공구 일정 {{ (ad.scheduling.start_date or '미정') }} ~ {{ (ad.scheduling.end_date or '미정') }}</div>
-    {% if campaign.seller_traits %}<div class="sub">✨ {{ campaign.seller_traits }}</div>{% endif %}
-    <div class="sv-progress"><span id="svProgressBar" style="width:0%"></span></div>
-    <div class="sub" id="svProgressText" style="margin-top:5px"></div>
+  <div class="wrap">
+    {% if is_preview %}
+    <div class="preview-flag">👁 <b>관리자 미리보기</b> · 이 화면은 셀러 접속 기록에 안 잡힙니다</div>
+    {% endif %}
+
+    <header class="hd">
+      <div class="hd-brand">{{ view.seller_name }} <span class="muted" style="font-weight:400">× 하루픽스</span></div>
+      <div class="hd-sub">{{ view.brand }}{% if view.product %} · {{ view.product }}{% endif %}</div>
+      <div class="hd-progress">
+        <div class="pbar"><span id="pbar" style="width:0%"></span></div>
+        <div class="ptxt"><span id="ptxtL">콘텐츠 진행률</span><span><b id="ptxtR">0 / 0</b></span></div>
+      </div>
+    </header>
+
+    <div class="rounds" id="rounds"></div>
+
+    <main>
+      <section class="card" id="secGuide">
+        <div class="card-h">📅 콘텐츠 가이드 <span class="sub">(스케줄링)</span></div>
+        <div class="card-sub" id="guideRange"></div>
+        <div class="day-list" id="dayList"></div>
+      </section>
+
+      <section class="card" id="secBanner" hidden>
+        <div class="card-h">🖼 최종 배너</div>
+        <div class="card-sub">탭하면 크게 보고 다운로드할 수 있어요</div>
+        <div class="bn-grid" id="bannerGrid"></div>
+      </section>
+
+      <section class="card" id="secEvent" hidden>
+        <div class="card-h">🎁 이벤트</div>
+        <div class="ev-list" id="eventList"></div>
+      </section>
+
+      <section class="card" id="secInfo" hidden>
+        <div class="card-h">🚚 출고 · 매출 · 정산</div>
+        <div id="infoBody"></div>
+      </section>
+    </main>
+
+    <footer>넥스트포트 공동구매 워크스페이스</footer>
   </div>
 
-  <div class="sv-days" id="svDays"></div>
-
-  <!-- 스토리 뷰어 -->
-  <div class="sv-viewer" id="svViewer">
-    <div class="sv-bars" id="svBars"></div>
-    <div class="sv-vtop">
-      <span class="vt-date" id="svViewerDate"></span>
-      <button class="sv-vclose" onclick="closeViewer()">×</button>
+  <!-- 풀스크린 스토리 뷰어 -->
+  <div class="viewer" id="viewer">
+    <div class="v-bars" id="vBars"></div>
+    <div class="v-top">
+      <span class="v-date" id="vDate"></span>
+      <button class="v-close" onclick="closeViewer()">×</button>
     </div>
-    <div class="sv-slides" id="svSlides"></div>
-    <div class="sv-hint">← 좌우 탭 또는 스와이프로 이동 →</div>
+    <div class="v-slides" id="vSlides"></div>
+    <div class="v-hint">← 좌우 탭 또는 스와이프로 이동 →</div>
   </div>
 
-  <div class="sv-foot">넥스트포트 공동구매 워크스페이스 · 콘텐츠 그대로 복사해서 올려주시면 됩니다 🙏</div>
+  <!-- 배너 라이트박스 -->
+  <div class="lightbox" id="lightbox">
+    <img id="lbImg" alt="" />
+    <div class="lb-actions">
+      <a class="lb-btn lb-dl" id="lbDl" download>⬇ 다운로드</a>
+      <button class="lb-btn lb-close" onclick="closeLightbox()">닫기</button>
+    </div>
+  </div>
 
   <script>
-    const TOKEN = {{ token|tojson }};
-    const DAYS = {{ content_days|tojson }};
-    let curDay = 0, curSlot = 0;
+    const VIEW = {{ view|tojson }};
+    const CODE = {{ code|tojson }};
+    const IS_PREVIEW = {{ is_preview|tojson }};
+    const ROUNDS = VIEW.rounds || [];
+    let ri = 0, curDay = 0, curSlot = 0;
 
-    function countPosted() {
-      let total = 0, done = 0;
-      DAYS.forEach(d => (d.slots||[]).forEach(s => { total++; if (s.posted) done++; }));
-      return { total, done };
+    const $ = s => document.querySelector(s);
+    function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+    function activeRound(){ return ROUNDS[ri] || {days:[],banners:[],events:[]}; }
+    function visibleDays(){ const r=activeRound(); return (r.show_schedule===false)?[]:(r.days||[]); }
+    const won = n => "₩" + (n||0).toLocaleString();
+
+    /* ── 차수 pill ── */
+    function renderRounds(){
+      const el = $("#rounds");
+      if (ROUNDS.length <= 1){ el.hidden = true; return; }
+      el.hidden = false;
+      el.innerHTML = ROUNDS.map((r,i)=>`<button class="round-pill ${i===ri?'active':''}" onclick="switchRound(${i})">${esc(r.label)}</button>`).join("");
     }
-    function renderProgress() {
-      const { total, done } = countPosted();
-      const pct = total ? Math.round(done/total*100) : 0;
-      document.getElementById("svProgressBar").style.width = pct + "%";
-      document.getElementById("svProgressText").textContent = `진행 ${done} / ${total}개 (${pct}%)`;
+    function switchRound(i){ ri=i; renderRounds(); renderRound(); }
+
+    /* ── 진행률 (활성 차수 기준) ── */
+    function progress(){
+      let total=0, done=0;
+      visibleDays().forEach(d=>(d.slots||[]).forEach(s=>{ total++; if(s.posted) done++; }));
+      return { total, done, pct: total? Math.round(done/total*100):0 };
     }
-    function renderDays() {
-      const root = document.getElementById("svDays");
-      root.innerHTML = DAYS.map((d, i) => {
-        const slots = d.slots || [];
-        const done = slots.filter(s => s.posted).length;
-        const allDone = done === slots.length && slots.length > 0;
-        return `<div class="sv-day-card phase-${d.phase}" onclick="openViewer(${i})">
-          <div class="sv-dday">${d.d_label}</div>
-          <div class="sv-day-info">
-            <div class="sv-day-date">${d.date.slice(5)} (${d.weekday}) · ${d.phase}</div>
-            <div class="sv-day-count ${allDone?'sv-day-done':''}">${allDone?'✅ 완료':`스토리 ${slots.length}개 · 올림 ${done}`}</div>
+    function renderProgress(){
+      const p = progress();
+      $("#pbar").style.width = p.pct + "%";
+      $("#ptxtR").textContent = `${p.done} / ${p.total}`;
+      $("#ptxtL").textContent = ROUNDS.length>1 ? `${esc(activeRound().label)} 스토리 진행률` : "콘텐츠 진행률";
+    }
+
+    /* ── 콘텐츠 가이드 ── */
+    function renderGuide(){
+      const r = activeRound();
+      const sec = $("#secGuide");
+      const range = (r.start_date||"") + (r.end_date? " ~ " + r.end_date : "");
+      $("#guideRange").textContent = range || "";
+      const days = visibleDays();
+      if (!days.length){
+        $("#dayList").innerHTML = `<div class="empty">아직 등록된 스토리 가이드가 없어요. 준비되면 여기에 떠요 🙌</div>`;
+        return;
+      }
+      $("#dayList").innerHTML = days.map((d,i)=>{
+        const slots = d.slots||[];
+        const done = slots.filter(s=>s.posted).length;
+        const all = slots.length>0 && done===slots.length;
+        const wd = d.weekday? `(${esc(d.weekday)})` : "";
+        const dateTxt = (d.date||"").slice(5);
+        return `<div class="day-card phase-${esc(d.phase)} ${all?'done':''}" onclick="openViewer(${i})">
+          <div class="dday">${esc(d.d_label||"")}${d.phase?`<small>${esc(d.phase)}</small>`:""}</div>
+          <div class="day-mid">
+            <div class="day-date">${esc(dateTxt)} ${wd}</div>
+            <div class="day-meta">스토리 ${slots.length}개</div>
           </div>
-          <div style="color:#ccc;font-size:20px">›</div>
+          <div class="day-cnt ${all?'done':''}">${all?'✓ 완료':`올림 ${done}/${slots.length}`}</div>
+          <div class="chev">›</div>
         </div>`;
       }).join("");
-      renderProgress();
     }
 
-    function openViewer(di) { curDay = di; curSlot = 0; document.getElementById("svViewer").classList.add("open"); renderViewer(); }
-    function closeViewer() { document.getElementById("svViewer").classList.remove("open"); renderDays(); }
+    /* ── 배너 ── */
+    function renderBanners(){
+      const banners = activeRound().banners || [];
+      const sec = $("#secBanner");
+      sec.hidden = banners.length===0;
+      if (!banners.length) return;
+      $("#bannerGrid").innerHTML = banners.map((b,i)=>`
+        <div class="bn-item" onclick="openLightbox(${i})">
+          <img src="${esc(b.url)}" loading="lazy" alt="${esc(b.label)}" />
+          <div class="bn-cap">${esc(b.label)}</div>
+        </div>`).join("");
+    }
+    function openLightbox(i){
+      const b = (activeRound().banners||[])[i]; if(!b) return;
+      $("#lbImg").src = b.url;
+      const a = $("#lbDl");
+      a.href = b.download || b.url;   // 원본 파일로 다운로드
+      a.setAttribute("download", b.name || `${(VIEW.seller_name||'banner')}_${b.label||''}.png`.replace(/\s+/g,"_"));
+      $("#lightbox").classList.add("open");
+    }
+    function closeLightbox(){ $("#lightbox").classList.remove("open"); }
 
-    function renderViewer() {
-      const d = DAYS[curDay];
-      const slots = d.slots || [];
-      document.getElementById("svViewerDate").textContent = `${d.date.slice(5)} (${d.weekday}) ${d.d_label}`;
-      document.getElementById("svBars").innerHTML = slots.map((s, i) =>
-        `<div class="sv-bar ${i===curSlot?'active':(i<curSlot?'done':'')}"></div>`).join("");
-      document.getElementById("svSlides").innerHTML = slots.map((s, i) => `
-        <div class="sv-slide ${i===curSlot?'active':''}" data-si="${i}">
-          <div class="sv-slide-title">${s.title}</div>
-          ${s.image_url
-            ? `<div class="sv-img"><img src="${s.image_url}" alt="" loading="lazy" /></div>`
-            : `<div class="sv-img-empty">📷 레퍼런스 이미지 없음</div>`}
-          <div class="sv-content">
-            ${s.concept ? `<div class="sv-concept">💡 ${escapeHtml(s.concept)}</div>` : ""}
-            <div class="sv-caption">${escapeHtml(s.caption || "(내용 준비 중)")}</div>
-            <div class="sv-actions">
-              <button class="sv-btn sv-btn-copy" onclick="copySlot(${i}, this)">📋 복사하기</button>
-            </div>
-            <div class="sv-check-row">
-              <div class="sv-check-box ${s.posted?'on':''}" onclick="togglePosted(${i}, this)">${s.posted?'✓':''}</div>
-              <div class="sv-check-label">${s.posted ? '올렸어요!' : '올리면 체크해주세요'}</div>
-            </div>
-            <input class="sv-link-input" placeholder="(선택) 올린 스토리 링크 붙여넣기" value="${(s.live_url||'').replace(/"/g,'&quot;')}" onchange="saveLink(${i}, this.value)" />
+    /* ── 이벤트 ── */
+    function renderEvents(){
+      const evs = activeRound().events || [];
+      const sec = $("#secEvent");
+      sec.hidden = evs.length===0;
+      if (!evs.length) return;
+      $("#eventList").innerHTML = evs.map(ev=>`
+        <div class="ev-item">
+          <div class="ev-dot"></div>
+          <div style="flex:1;min-width:0">
+            <div class="ev-name">${esc(ev.name||"이벤트")}</div>
+            ${ev.date?`<div class="ev-date">${esc(ev.date)}</div>`:""}
+            ${ev.desc?`<div class="ev-desc">${esc(ev.desc)}</div>`:""}
           </div>
-          <div class="sv-nav sv-nav-left" onclick="prevSlot()"></div>
-          <div class="sv-nav sv-nav-right" onclick="nextSlot()"></div>
         </div>`).join("");
     }
 
-    function prevSlot() { if (curSlot > 0) { curSlot--; renderViewer(); } else if (curDay > 0) { curDay--; curSlot=(DAYS[curDay].slots||[]).length-1; renderViewer(); } }
-    function nextSlot() {
-      const slots = DAYS[curDay].slots || [];
-      if (curSlot < slots.length-1) { curSlot++; renderViewer(); }
-      else if (curDay < DAYS.length-1) { curDay++; curSlot=0; renderViewer(); }
-      else closeViewer();
+    /* ── 출고 / 매출 / 정산 (캠페인 단위, 1회 렌더) ── */
+    function renderInfo(){
+      const rows = [];
+      if (VIEW.ship_date){
+        let v = VIEW.ship_date;
+        if (VIEW.ship_carrier) v += ` · ${VIEW.ship_carrier}`;
+        rows.push(`<div class="info-row"><span class="info-k">제품 출고일</span><span class="info-v">${esc(v)}</span></div>`);
+        if (VIEW.ship_tracking)
+          rows.push(`<div class="info-row"><span class="info-k">송장번호</span><span class="info-v">${esc(VIEW.ship_tracking)}</span></div>`);
+      }
+      rows.push(`<div class="info-row"><span class="info-k">정산 상태</span>${VIEW.settlement_done
+        ? '<span class="badge ok">✓ 정산 완료</span>'
+        : '<span class="badge wait">정산 진행 예정</span>'}</div>`);
+
+      let salesBlock = "";
+      if (VIEW.has_sales){
+        salesBlock = `<div class="sales-total"><span class="info-k">누적 매출</span><span class="amt">${won(VIEW.total_revenue)}</span></div>
+          <div class="sales-days">${(VIEW.daily_sales||[]).map(s=>`
+            <div class="sales-day"><span class="d">${esc((s.date||"").slice(5)||s.date)}</span><span class="v">${won(s.revenue)}</span></div>`).join("")}</div>`;
+      }
+
+      const hasAny = VIEW.ship_date || VIEW.has_sales || true; // 정산 상태는 항상
+      $("#secInfo").hidden = !hasAny;
+      $("#infoBody").innerHTML = rows.join("") + salesBlock;
     }
 
-    function copySlot(si, btn) {
-      const cap = DAYS[curDay].slots[si].caption || "";
-      navigator.clipboard.writeText(cap).then(() => {
-        btn.textContent = "✅ 복사됨!"; btn.classList.add("copied");
-        setTimeout(() => { btn.textContent = "📋 복사하기"; btn.classList.remove("copied"); }, 1500);
-      });
+    /* ── 스토리 뷰어 ── */
+    function openViewer(di){ curDay=di; curSlot=0; $("#viewer").classList.add("open"); renderViewer(); }
+    function closeViewer(){ $("#viewer").classList.remove("open"); renderRound(); }
+
+    function renderViewer(){
+      const days = visibleDays();
+      const d = days[curDay]; if(!d) return;
+      const slots = d.slots||[];
+      const wd = d.weekday?`(${esc(d.weekday)})`:"";
+      $("#vDate").textContent = `${(d.date||"").slice(5)} ${wd} · ${d.d_label||""}`;
+      $("#vBars").innerHTML = slots.map((s,i)=>`<div class="v-bar ${i===curSlot?'active':(i<curSlot?'done':'')}"></div>`).join("");
+      $("#vSlides").innerHTML = slots.map((s,i)=>`
+        <div class="v-slide ${i===curSlot?'active':''}" data-si="${i}">
+          <div class="v-stitle">${esc(s.title||`스토리 ${i+1}`)}</div>
+          ${s.image_url
+            ? `<div class="v-img"><img src="${esc(s.image_url)}" loading="lazy" alt="" /></div>`
+            : `<div class="v-img-empty">📷 레퍼런스 이미지 없음</div>`}
+          <div class="v-content">
+            ${s.concept?`<div class="v-concept">💡 ${esc(s.concept)}</div>`:""}
+            <div class="v-caption">${esc(s.caption||"(내용 준비 중)")}</div>
+            <button class="v-btn" onclick="copySlot(${i},this)">📋 캡션 복사하기</button>
+            <div class="v-check" onclick="togglePosted(${i})">
+              <div class="v-box ${s.posted?'on':''}">${s.posted?'✓':''}</div>
+              <div class="v-check-l">${s.posted?'올렸어요!':'올리면 여기 체크해주세요'}</div>
+            </div>
+            <input class="v-link" placeholder="(선택) 올린 스토리 링크 붙여넣기" value="${esc(s.live_url||'')}" onchange="saveLink(${i},this.value)" />
+          </div>
+          <div class="v-nav v-nav-l" onclick="prevSlot()"></div>
+          <div class="v-nav v-nav-r" onclick="nextSlot()"></div>
+        </div>`).join("");
     }
-    function togglePosted(si, el) {
-      const cur = DAYS[curDay].slots[si].posted;
-      const next = !cur;
-      DAYS[curDay].slots[si].posted = next;
-      el.classList.toggle("on", next); el.textContent = next ? "✓" : "";
-      el.nextElementSibling.textContent = next ? "올렸어요!" : "올리면 체크해주세요";
-      patchSlot(si, "posted", next);
+    function prevSlot(){ const days=visibleDays(); if(curSlot>0){curSlot--;renderViewer();} else if(curDay>0){curDay--;curSlot=(days[curDay].slots||[]).length-1;renderViewer();} }
+    function nextSlot(){ const days=visibleDays(); const slots=days[curDay].slots||[]; if(curSlot<slots.length-1){curSlot++;renderViewer();} else if(curDay<days.length-1){curDay++;curSlot=0;renderViewer();} else closeViewer(); }
+
+    function copySlot(si,btn){
+      const cap = (visibleDays()[curDay].slots[si].caption)||"";
+      navigator.clipboard.writeText(cap).then(()=>{ btn.textContent="✅ 복사됨!"; btn.classList.add("copied"); setTimeout(()=>{btn.textContent="📋 캡션 복사하기";btn.classList.remove("copied");},1500); });
     }
-    function saveLink(si, val) { DAYS[curDay].slots[si].live_url = val; patchSlot(si, "live_url", val); }
-    function patchSlot(si, field, value) {
-      fetch(`/api/seller/${TOKEN}/slot`, {
-        method: "PATCH", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ day_index: curDay, slot_index: si, field, value }),
+    function togglePosted(si){
+      const d = visibleDays()[curDay]; const sl = d.slots[si];
+      const next = !sl.posted; sl.posted = next;
+      if (next) sl.posted_at = new Date().toISOString();
+      renderViewer();
+      patchSlot(d._di, sl._si, "posted", next);
+    }
+    function saveLink(si,val){ const d=visibleDays()[curDay]; d.slots[si].live_url=val; patchSlot(d._di, d.slots[si]._si, "live_url", val); }
+    function patchSlot(rawDi, rawSi, field, value){
+      fetch(`/api/sv/${CODE}/slot`, {
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ set_id: activeRound().set_id, day_index: rawDi, slot_index: rawSi, field, value, preview: IS_PREVIEW }),
       }).catch(()=>{});
     }
-    function escapeHtml(s){return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
 
-    // 스와이프 제스처
-    let tsx = 0;
-    document.getElementById("svSlides").addEventListener("touchstart", e => tsx = e.touches[0].clientX, {passive:true});
-    document.getElementById("svSlides").addEventListener("touchend", e => {
-      const dx = e.changedTouches[0].clientX - tsx;
-      if (dx < -50) nextSlot(); else if (dx > 50) prevSlot();
-    }, {passive:true});
+    /* ── 스와이프 ── */
+    let tsx=0;
+    $("#vSlides").addEventListener("touchstart", e=>tsx=e.touches[0].clientX, {passive:true});
+    $("#vSlides").addEventListener("touchend", e=>{ const dx=e.changedTouches[0].clientX-tsx; if(dx<-50)nextSlot(); else if(dx>50)prevSlot(); }, {passive:true});
 
-    renderDays();
+    /* ── 렌더 ── */
+    function renderRound(){ renderGuide(); renderBanners(); renderEvents(); renderProgress(); }
+    function renderAll(){ renderRounds(); renderRound(); renderInfo(); }
+    renderAll();
 
-    // ─── 접속 트래킹 (러닝타임 누적) — 내부 미리보기(?preview=1)는 제외 ───
-    const IS_PREVIEW = new URLSearchParams(location.search).get("preview") === "1";
+    /* ── 접속 트래킹 (관리자 미리보기 제외) ── */
     const SID = (Date.now().toString(36) + Math.floor(performance.now()).toString(36));
-    function track(event, seconds) {
-      if (IS_PREVIEW) return;  // 내부 미리보기는 트래킹 X
+    function track(event, seconds){
+      if (IS_PREVIEW) return;
       try {
-        const body = JSON.stringify({ event, session_id: SID, seconds: seconds || 0 });
-        if (event === "close" && navigator.sendBeacon) {
-          navigator.sendBeacon(`/api/seller/${TOKEN}/track`, new Blob([body], {type:"application/json"}));
+        const body = JSON.stringify({ event, session_id: SID, seconds: seconds||0 });
+        if (event==="close" && navigator.sendBeacon){
+          navigator.sendBeacon(`/api/sv/${CODE}/track`, new Blob([body],{type:"application/json"}));
         } else {
-          fetch(`/api/seller/${TOKEN}/track`, { method:"POST", headers:{"Content-Type":"application/json"}, body, keepalive:true }).catch(()=>{});
+          fetch(`/api/sv/${CODE}/track`, {method:"POST",headers:{"Content-Type":"application/json"},body,keepalive:true}).catch(()=>{});
         }
       } catch(e){}
     }
     track("open");
-    let active = true, acc = 0;
-    document.addEventListener("visibilitychange", () => { active = !document.hidden; });
-    // 15초마다 heartbeat (보이는 동안만)
-    setInterval(() => { if (active) { acc += 15; track("ping", 15); } }, 15000);
-    window.addEventListener("beforeunload", () => track("close", active ? 5 : 0));
+    let active=true;
+    document.addEventListener("visibilitychange", ()=>{ active=!document.hidden; });
+    setInterval(()=>{ if(active) track("ping",15); }, 15000);
+    window.addEventListener("beforeunload", ()=>track("close", active?5:0));
   </script>
 </body>
 </html>

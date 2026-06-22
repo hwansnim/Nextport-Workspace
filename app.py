@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import sys
 import threading
 import uuid
@@ -17,7 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, make_response, render_template, request, send_from_directory
+from flask import Flask, jsonify, make_response, redirect, render_template, request, send_from_directory
 from flask_cors import CORS
 
 # Project paths
@@ -4223,7 +4224,13 @@ def api_archive_images():
     return jsonify({"images": out, "total": len(out)})
 
 
-# ─── 셀러 공유 뷰 (모바일 스와이프) ───
+# ─── 셀러 공개 뷰 (캠페인 단위 큐레이션) ─────────────────────
+#  🔒 보안 원칙: 셀러에게는 _seller_safe_view 화이트리스트 필드만 노출.
+#  원가/공헌이익/수수료(seller_fee·pg_fee·vat)/event_costs/배너 레퍼런스·내부메모는
+#  절대 페이로드에 담지 않는다. (서버 사이드 차단 = 단일 보안 경계)
+BANNER_CAT_LABELS = {"open": "오픈 배너", "price": "가격구성 배너", "event": "이벤트 배너"}
+
+
 def _seller_token(cam_id, set_id, ad_id) -> str:
     import base64 as _b64
     raw = f"{cam_id}|{set_id}|{ad_id}".encode("utf-8")
@@ -4243,33 +4250,167 @@ def _decode_seller_token(token: str):
     return None, None, None
 
 
+def _ensure_access_code(cam: dict, items: list[dict]) -> str:
+    """캠페인에 셀러 접속코드 부여(없으면 생성·충돌회피). 호출 측에서 save 필요."""
+    code = cam.get("seller_access_code")
+    if code:
+        return code
+    existing = {c.get("seller_access_code") for c in items if c.get("seller_access_code")}
+    code = secrets.token_urlsafe(6).replace("-", "x").replace("_", "y")[:9]
+    while code in existing:
+        code = secrets.token_urlsafe(6).replace("-", "x").replace("_", "y")[:9]
+    cam["seller_access_code"] = code
+    return code
+
+
+def _seller_safe_view(cam: dict) -> dict:
+    """셀러 노출용 큐레이션 페이로드 — 화이트리스트 필드만. (보안 경계)
+    캠페인 단위로 전 차수(1·2·3차) 스토리/최종배너/이벤트를 누적해서 묶고,
+    출고일·일자별 매출(매출액만)·정산 완료 여부를 노출한다."""
+    rounds = []
+    for st in sorted(cam.get("sets", []), key=lambda s: (s.get("round") or 0)):
+        feats = st.get("features") or {}
+        ads = st.get("ads") or []
+        ad = ads[0] if ads else {}
+        sch = ad.get("scheduling") or {}
+        # 콘텐츠 가이드 — 스토리만(피드 제외). raw 인덱스 보존(_di/_si) → 체크 PATCH 매핑용.
+        days = []
+        for di, d in enumerate(ad.get("content_days") or []):
+            slots = []
+            for si, sl in enumerate(d.get("slots") or []):
+                if sl.get("type") == "feed":
+                    continue
+                slots.append({
+                    "title": sl.get("title", ""),
+                    "concept": sl.get("concept", ""),
+                    "caption": sl.get("caption", ""),
+                    "image_url": sl.get("image_url", ""),
+                    "posted": bool(sl.get("posted")),
+                    "live_url": sl.get("live_url", ""),
+                    "_si": si,
+                })
+            if not slots:
+                continue
+            days.append({
+                "date": d.get("date", ""),
+                "weekday": d.get("weekday", ""),
+                "d_label": d.get("d_label", ""),
+                "phase": d.get("phase", ""),
+                "weekly": bool(d.get("weekly")),
+                "_di": di,
+                "slots": slots,
+            })
+        # 최종 배너만 (레퍼런스/내부메모 제외). 표시는 썸네일, 다운로드는 드라이브 원본.
+        banners = []
+        cats = ad.get("banner_cats") or {}
+        for key, label in BANNER_CAT_LABELS.items():
+            cv = cats.get(key) or {}
+            for im in (cv.get("finals") or []):
+                if not isinstance(im, dict):
+                    continue
+                orig = (f"/api/file/{im['file_id']}" if im.get("file_id") else "") or im.get("url") or im.get("data")
+                disp = im.get("thumb") or im.get("url") or im.get("data") or orig
+                if disp:
+                    banners.append({"label": label, "url": disp, "download": orig or disp, "name": im.get("name") or ""})
+        # 이벤트 — 이름/날짜/설명만 (비용 event_costs 제외)
+        events = []
+        for ev in (ad.get("events") or []):
+            name = ev.get("label") or ev.get("name") or ev.get("title") or ""
+            if not name and not ev.get("date"):
+                continue
+            events.append({
+                "name": name,
+                "date": ev.get("date") or "",
+                "desc": ev.get("desc") or ev.get("note") or ev.get("memo") or "",
+            })
+        rounds.append({
+            "set_id": st.get("id"),
+            "round": st.get("round"),
+            "label": st.get("label") or (f"{st.get('round')}차" if st.get("round") else "공구"),
+            "start_date": sch.get("start_date") or "",
+            "end_date": sch.get("end_date") or "",
+            "show_schedule": bool(feats.get("schedule", True)),
+            "days": days,
+            "banners": banners,
+            "events": events,
+        })
+    # 일자별 매출 — 매출(revenue)만. 원가/공헌이익/수수료 전부 제외.
+    daily_sales = []
+    for r in ((cam.get("settlement") or {}).get("rows") or []):
+        rev = int(r.get("revenue") or 0)
+        if not r.get("date") and not rev:
+            continue
+        daily_sales.append({"date": r.get("date") or "", "revenue": rev})
+    daily_sales.sort(key=lambda x: x["date"])
+    total_rev = sum(x["revenue"] for x in daily_sales)
+    ship = cam.get("product_shipping") or {}
+    return {
+        "seller_name": cam.get("seller_name", ""),
+        "brand": cam.get("brand", ""),
+        "product": cam.get("product", ""),
+        "ship_date": ship.get("sent_date") or "",
+        "ship_carrier": ship.get("carrier") or "",
+        "ship_tracking": ship.get("tracking_no") or "",
+        "rounds": rounds,
+        "daily_sales": daily_sales,
+        "total_revenue": total_rev,
+        "settlement_done": bool(cam.get("settlement_done")),
+        "has_sales": bool(daily_sales),
+    }
+
+
+@app.route("/api/campaigns_v2/<cam_id>/share", methods=["GET"])
+def api_campaigns_v2_campaign_share(cam_id):
+    """캠페인 단위 셀러 공유 — 셀러용 링크 + 관리자 미리보기(트래킹 제외) 링크."""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    code = _ensure_access_code(cam, items)
+    _save_campaigns_v2(items)
+    return jsonify({
+        "code": code,
+        "seller_path": f"/seller/{code}",
+        "preview_path": f"/seller/{code}?preview=1",
+    })
+
+
 @app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/share", methods=["GET"])
 def api_campaigns_v2_share_link(cam_id, set_id, ad_id):
-    """셀러한테 보낼 공유 링크 토큰 발급."""
-    token = _seller_token(cam_id, set_id, ad_id)
-    return jsonify({"token": token, "path": f"/seller/{token}"})
+    """(레거시 차수단위 호출) → 캠페인 단위 접속코드로 통합."""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    if not cam:
+        return jsonify({"error": "캠페인 없음"}), 404
+    code = _ensure_access_code(cam, items)
+    _save_campaigns_v2(items)
+    return jsonify({"token": code, "path": f"/seller/{code}",
+                    "preview_path": f"/seller/{code}?preview=1"})
 
 
 @app.route("/seller/<token>", methods=["GET"])
 def seller_view(token):
-    """셀러용 모바일 스와이프 뷰 — 날짜 리스트 → 탭 → STORY 스와이프 + 복사 + 체크."""
-    cam_id, set_id, ad_id = _decode_seller_token(token)
-    if not cam_id:
-        return "잘못된 링크", 404
+    """셀러용 캠페인 단위 큐레이션 뷰.
+    token = 접속코드(우선) | 레거시 base64 차수토큰(→캠페인 코드로 redirect)."""
     items = _load_campaigns_v2()
-    cam = next((c for c in items if c["id"] == cam_id), None)
-    st = next((s for s in (cam or {}).get("sets", []) if s["id"] == set_id), None) if cam else None
-    ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
-    if not ad:
-        return "콘텐츠를 찾을 수 없습니다", 404
-    return render_template(
-        "seller_view.html",
-        token=token,
-        campaign=cam,
-        set_label=(st.get("label") or ""),
-        ad=ad,
-        content_days=ad.get("content_days") or [],
-    )
+    cam = next((c for c in items if c.get("seller_access_code") == token), None)
+    if cam:
+        return render_template(
+            "seller_view.html",
+            code=token,
+            view=_seller_safe_view(cam),
+            is_preview=(request.args.get("preview") == "1"),
+        )
+    # 레거시 base64 토큰 → 해당 캠페인 코드로 redirect (기존 공유 링크 호환)
+    cam_id, _set_id, _ad_id = _decode_seller_token(token)
+    if cam_id:
+        legacy = next((c for c in items if c["id"] == cam_id), None)
+        if legacy:
+            code = _ensure_access_code(legacy, items)
+            _save_campaigns_v2(items)
+            q = "?preview=1" if request.args.get("preview") == "1" else ""
+            return redirect(f"/seller/{code}{q}")
+    return "잘못된 링크입니다", 404
 
 
 SELLER_TRACK_FILE = DATA_DIR / "seller_tracking.json"
@@ -4288,18 +4429,18 @@ def _save_seller_track(data: dict) -> None:
     SELLER_TRACK_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-@app.route("/api/seller/<token>/track", methods=["POST"])
-def api_seller_track(token):
-    """셀러 접속 트래킹. event: open(세션 시작) | ping(heartbeat) | close.
-    body: {event, session_id, seconds?}"""
-    p = request.get_json(silent=True) or {}
+def _code_track_key(code: str) -> str:
+    return f"code:{code}"
+
+
+def _record_track_event(key: str, p: dict) -> None:
+    """event: open(세션 시작) | ping(heartbeat) | close. body: {event, session_id, seconds?}"""
     event = p.get("event")
     sid = p.get("session_id") or "anon"
     now = datetime.now().isoformat(timespec="seconds")
     data = _load_seller_track()
-    rec = data.setdefault(token, {"sessions": [], "total_seconds": 0, "visit_count": 0, "first_at": now, "last_at": now})
+    rec = data.setdefault(key, {"sessions": [], "total_seconds": 0, "visit_count": 0, "first_at": now, "last_at": now})
     rec["last_at"] = now
-
     if event == "open":
         rec["visit_count"] = (rec.get("visit_count") or 0) + 1
         rec["sessions"].insert(0, {"session_id": sid, "started_at": now, "seconds": 0, "last_ping": now})
@@ -4307,41 +4448,42 @@ def api_seller_track(token):
     elif event in ("ping", "close"):
         sess = next((s for s in rec["sessions"] if s.get("session_id") == sid), None)
         if sess:
-            add = int(p.get("seconds") or 0)
-            # 비정상 큰 값 방지 (heartbeat 간격 최대 60초로 클램프)
-            add = max(0, min(add, 90))
+            add = max(0, min(int(p.get("seconds") or 0), 90))  # heartbeat 클램프
             sess["seconds"] = (sess.get("seconds") or 0) + add
             sess["last_ping"] = now
             rec["total_seconds"] = (rec.get("total_seconds") or 0) + add
     _save_seller_track(data)
+
+
+@app.route("/api/sv/<code>/track", methods=["POST"])
+def api_sv_track(code):
+    """셀러 접속 트래킹(코드 기반). 관리자 미리보기(preview)는 기록 제외."""
+    p = request.get_json(silent=True) or {}
+    if p.get("preview"):
+        return jsonify({"ok": True, "skipped": "preview"})
+    _record_track_event(_code_track_key(code), p)
     return jsonify({"ok": True})
 
 
-@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/tracking", methods=["GET"])
-def api_seller_tracking_get(cam_id, set_id, ad_id):
-    """내부용 — 이 광고의 셀러 접속 현황."""
-    token = _seller_token(cam_id, set_id, ad_id)
-    data = _load_seller_track()
-    rec = data.get(token) or {"sessions": [], "total_seconds": 0, "visit_count": 0}
-    return jsonify(rec)
-
-
-@app.route("/api/seller/<token>/slot", methods=["PATCH"])
-def api_seller_slot_update(token):
-    """셀러가 체크/링크 박을 때 — posted, live_url 만 허용."""
-    cam_id, set_id, ad_id = _decode_seller_token(token)
-    if not cam_id:
-        return jsonify({"error": "잘못된 토큰"}), 404
+@app.route("/api/sv/<code>/slot", methods=["PATCH"])
+def api_sv_slot(code):
+    """셀러 체크/링크 (posted, live_url 만 허용). set_id + raw day/slot 인덱스."""
     items = _load_campaigns_v2()
-    cam = next((c for c in items if c["id"] == cam_id), None)
-    st = next((s for s in (cam or {}).get("sets", []) if s["id"] == set_id), None) if cam else None
-    ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
-    if not ad:
-        return jsonify({"error": "광고 없음"}), 404
+    cam = next((c for c in items if c.get("seller_access_code") == code), None)
+    if not cam:
+        return jsonify({"error": "잘못된 코드"}), 404
     p = request.get_json(force=True) or {}
-    di, si, field = p.get("day_index"), p.get("slot_index"), p.get("field")
+    if p.get("preview"):
+        return jsonify({"ok": True, "skipped": "preview"})  # 미리보기는 셀러 데이터 변경 X
+    field = p.get("field")
     if field not in ("posted", "live_url"):
         return jsonify({"error": "허용되지 않는 필드"}), 400
+    st = next((s for s in cam.get("sets", []) if s["id"] == p.get("set_id")), None)
+    ads = (st or {}).get("ads") or []
+    ad = ads[0] if ads else None
+    if not ad:
+        return jsonify({"error": "세트 없음"}), 404
+    di, si = p.get("day_index"), p.get("slot_index")
     days = ad.get("content_days") or []
     if di is None or si is None or di >= len(days) or si >= len(days[di].get("slots", [])):
         return jsonify({"error": "인덱스 초과"}), 400
@@ -4350,6 +4492,34 @@ def api_seller_slot_update(token):
         days[di]["slots"][si]["posted_at"] = datetime.now().isoformat(timespec="seconds")
     _save_campaigns_v2(items)
     return jsonify({"ok": True})
+
+
+@app.route("/api/seller/<token>/track", methods=["POST"])
+def api_seller_track(token):
+    """(레거시 base64 토큰 호환) 트래킹 — 캠페인 코드로 환산해 통합 기록."""
+    p = request.get_json(silent=True) or {}
+    if p.get("preview"):
+        return jsonify({"ok": True, "skipped": "preview"})
+    key = _code_track_key(token)
+    cam_id, _s, _a = _decode_seller_token(token)
+    if cam_id:
+        items = _load_campaigns_v2()
+        legacy = next((c for c in items if c["id"] == cam_id), None)
+        if legacy and legacy.get("seller_access_code"):
+            key = _code_track_key(legacy["seller_access_code"])
+    _record_track_event(key, p)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/campaigns_v2/<cam_id>/sets/<set_id>/ads/<ad_id>/tracking", methods=["GET"])
+def api_seller_tracking_get(cam_id, set_id, ad_id):
+    """내부용 — 캠페인 셀러 접속 현황(코드 기반 · 캠페인 단위 합산)."""
+    items = _load_campaigns_v2()
+    cam = next((c for c in items if c["id"] == cam_id), None)
+    code = (cam or {}).get("seller_access_code")
+    data = _load_seller_track()
+    rec = (data.get(_code_track_key(code)) if code else None) or {"sessions": [], "total_seconds": 0, "visit_count": 0}
+    return jsonify(rec)
 
 
 # ─── 콘텐츠 슬롯 단건 수정 (셀러뷰/내부 공용) ───
