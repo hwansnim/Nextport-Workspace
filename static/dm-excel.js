@@ -31,6 +31,45 @@
     document.querySelectorAll("[data-v2='dmx-mode']").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
     const addBtn = $("dmmAddBtn"); if (addBtn) addBtn.addEventListener("click", addAccount);
     const sendBtn = $("dmmSendBtn"); if (sendBtn) sendBtn.addEventListener("click", startManual);
+    // 실시간 발송 엔진 상태 — 항상 폴링 (링크 어디서나 확인)
+    if ($("dmEngine")) { pollEngine(); setInterval(pollEngine, 4000); }
+  }
+
+  function ageText(sec) {
+    if (sec == null) return "방금";
+    if (sec < 60) return sec + "초 전";
+    const m = Math.floor(sec / 60);
+    return m < 60 ? m + "분 전" : Math.floor(m / 60) + "시간 전";
+  }
+  async function pollEngine() {
+    const dot = $("dmEngineDot"), txt = $("dmEngineTxt"), det = $("dmEngineDetail");
+    if (!dot) return;
+    try {
+      const r = await fetch("/api/dm/status");
+      const s = await r.json();
+      const j = s.job || {};
+      const stats = (j.total != null)
+        ? `성공 ${j.sent || 0} · 실패 ${j.failed || 0}${j.held ? " · 보류 " + j.held : ""} / 총 ${j.total}`
+        : "";
+      dot.className = "dm-engine-dot e-" + s.engine;
+      if (s.engine === "running") {
+        txt.textContent = "🟢 발송 중";
+        det.textContent = `${j.current ? "지금 " + j.current + " · " : ""}${stats} · 마지막 활동 ${ageText(s.age_seconds)}`;
+      } else if (s.engine === "stale") {
+        txt.textContent = "🔴 멈춘 것 같음";
+        det.textContent = `마지막 활동 ${ageText(s.age_seconds)} — 발송기(PC) 확인 필요`;
+      } else if (s.engine === "error") {
+        txt.textContent = "⚠️ 오류로 멈춤";
+        det.textContent = (stats ? stats + " · " : "") + "로그 확인하세요";
+      } else {
+        txt.textContent = "🟡 대기 중";
+        det.textContent = (j.total != null) ? "최근 발송: " + stats : "발송 작업 없음";
+      }
+    } catch (e) {
+      dot.className = "dm-engine-dot e-off";
+      txt.textContent = "⚪ 서버 응답 없음";
+      det.textContent = "앱이 꺼져 있거나 연결이 안 됨";
+    }
   }
 
   // ── 엑셀 / 수동 모드 전환 ──

@@ -5259,10 +5259,12 @@ def api_dm_send():
 def _log_callback(job_id: str):
     def cb(msg: str):
         if job_id in DM_JOBS_STATE:
-            logs = DM_JOBS_STATE[job_id]["log"]
+            st = DM_JOBS_STATE[job_id]
+            st["last_beat"] = datetime.now().isoformat(timespec="seconds")  # 심장박동
+            logs = st["log"]
             logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
             if len(logs) > 200:
-                DM_JOBS_STATE[job_id]["log"] = logs[-200:]
+                st["log"] = logs[-200:]
     return cb
 
 
@@ -5280,6 +5282,40 @@ def api_dm_job_stop(jid: str):
     if state:
         state["status"] = "stopping"
     return jsonify({"ok": True})
+
+
+@app.route("/api/dm/status", methods=["GET"])
+def api_dm_status():
+    """발송 엔진 실시간 상태 — 링크 어디서나 '지금 발송 중인지' 확인.
+    engine: running(가동) | stale(멈춘 듯) | idle(대기) | error."""
+    if not DM_JOBS_STATE:
+        return jsonify({"engine": "idle", "job": None})
+    running = [j for j in DM_JOBS_STATE.values() if j.get("status") in ("running", "stopping")]
+    if running:
+        job = max(running, key=lambda j: j.get("last_beat") or j.get("started_at") or "")
+    else:
+        job = max(DM_JOBS_STATE.values(), key=lambda j: j.get("started_at") or "")
+    last = job.get("last_beat") or job.get("started_at")
+    age = None
+    try:
+        age = (datetime.now() - datetime.fromisoformat(last)).total_seconds()
+    except Exception:
+        age = None
+    status = job.get("status")
+    if status in ("running", "stopping"):
+        # 발송 간격/휴식(최대 10분) 고려 — 12분 이상 무신호면 멈춘 것으로 판단
+        engine = "stale" if (age is not None and age > 720) else "running"
+    elif status == "error":
+        engine = "error"
+    else:
+        engine = "idle"
+    return jsonify({
+        "engine": engine,
+        "age_seconds": int(age) if age is not None else None,
+        "last_beat": last,
+        "job": {k: job.get(k) for k in ("id", "kind", "status", "total", "sent",
+                                        "failed", "held", "current", "started_at", "finished_at")},
+    })
 
 
 # ═══════════════════════════════════════════════════════════
