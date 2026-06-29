@@ -92,7 +92,7 @@
     if (!target_id) { alert("받는 사람 ID를 입력하세요."); return; }
     const message = $("dmmMessage").value.trim();
     if (!message) { alert("메시지를 입력하세요."); return; }
-    if (!confirm(`@${target_id} 에게 DM을 보낼까요?\n\n• 크롬 창이 자동으로 열립니다\n• 안전 설정(간격/한도) 적용됩니다`)) return;
+    if (!confirm(`@${target_id} 에게 DM을 보낼까요?\n\n• 브라우저 창 없이 백그라운드로 발송됩니다\n• 안전 설정(간격/한도) 적용됩니다`)) return;
     const body = {
       account_id, target_id, target_name: $("dmmTargetName").value.trim(), message,
       auto_follow: $("dmmAutoFollow").checked,
@@ -146,7 +146,7 @@
 
   async function start() {
     if (!file) return;
-    if (!confirm("자동 DM 발송을 시작할까요?\n\n• 크롬 창이 자동으로 열립니다 (끄지 마세요)\n• 인스타에 사람처럼 천천히 보냅니다\n• 계정이 막힐 수 있으니 과하게 돌리지 마세요")) return;
+    if (!confirm("자동 DM 발송을 시작할까요?\n\n• 브라우저 창 없이 백그라운드로 조용히 발송됩니다\n• 인스타에 사람처럼 천천히 보냅니다\n• 계정이 막힐 수 있으니 과하게 돌리지 마세요")) return;
 
     const fd = new FormData();
     fd.append("file", file, file.name);

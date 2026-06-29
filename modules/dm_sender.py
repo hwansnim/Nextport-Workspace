@@ -154,6 +154,11 @@ class DMSender:
     def _account_session_path(self, username: str) -> Path:
         return self.session_dir / f"{username}.json"
 
+    def _api_session_path(self, username: str) -> Path:
+        # instagrapi 전용 세션(브라우저 storage_state와 포맷 다름)
+        safe = "".join(c for c in username if c.isalnum() or c in "._@-")
+        return self.session_dir / f"{safe}.api.json"
+
     def _dismiss_popups(self, page) -> None:
         """다이얼로그 / 알림 팝업 자동 닫기 (Not Now / Skip 등)."""
         for _ in range(3):
@@ -483,6 +488,126 @@ class DMSender:
         except Exception:
             pass
 
+    def _run_instagrapi(self, rows: list[dict], o: dict, auto_follow: bool) -> list[dict]:
+        """instagrapi 직접 API 발송 — 브라우저 안 띄움. 친구 앱과 동일 방식."""
+        from instagrapi import Client
+        from instagrapi.exceptions import (
+            ChallengeRequired, PleaseWaitFewMinutes, UserNotFound, FeedbackRequired)
+        from collections import OrderedDict
+
+        groups: "OrderedDict[str, list]" = OrderedDict()
+        for r in rows:
+            groups.setdefault((r.get("sender_id") or "").strip(), []).append(r)
+        self.state["total"] = len(rows)
+        for k in ("sent", "failed", "held"):
+            self.state.setdefault(k, 0)
+        self._log(f"🛡 안전 모드 (instagrapi · 창 없음) — 계정당 하루 {o['daily_limit']}건·한번 {o['batch_limit']}건, "
+                  f"간격 {o['gap_min']}~{o['gap_max']}초, {o['break_every']}건마다 휴식")
+
+        for acc_idx, (sender_id, acc_rows) in enumerate(groups.items()):
+            if self._should_stop():
+                self._log("⏹ 사용자 중지")
+                break
+            today_cnt = self._today_count(sender_id)
+            remaining = max(0, o["daily_limit"] - today_cnt)
+            allow = min(len(acc_rows), o["batch_limit"], remaining)
+            self._log(f"🌐 계정 {acc_idx+1}/{len(groups)}: @{sender_id} — 오늘 {today_cnt}/{o['daily_limit']}건 발송됨, 이번 {allow}건")
+            if allow <= 0:
+                for r in acc_rows:
+                    r["status"], r["reason"] = "보류", f"일일 한도 도달({today_cnt}/{o['daily_limit']}) — 내일 다시"
+                    self.state["held"] += 1
+                self._log(f"  ⏸ @{sender_id} 일일 한도 도달 — 계정 보호 위해 건너뜀")
+                continue
+            for r in acc_rows[allow:]:
+                r["status"], r["reason"] = "보류", f"이번 회차 한도(배치 {o['batch_limit']}·일일 {o['daily_limit']}) — 다음에"
+                self.state["held"] += 1
+            work = acc_rows[:allow]
+            sender_pw = (work[0].get("sender_pw") or "").strip()
+            sender_name = work[0].get("sender_name") or ""
+
+            cl = Client()
+            cl.delay_range = [2, 5]  # 요청 사이 내장 랜덤 딜레이
+            sp = self._api_session_path(sender_id)
+            if sp.exists():
+                try:
+                    cl.load_settings(sp)  # 세션 재사용 = 재로그인 안 함
+                except Exception:
+                    pass
+            login_ok = False
+            try:
+                self._log(f"  🔐 로그인 @{sender_id}")
+                cl.login(sender_id, sender_pw)
+                login_ok = True
+                try:
+                    cl.dump_settings(sp)
+                except Exception:
+                    pass
+            except ChallengeRequired:
+                self._log(f"  🚫 @{sender_id} 문자/사람인증 필요 — 이 계정 건너뜀 (수동 인증 후 재시도)")
+            except Exception as e:
+                self._log(f"  ❌ @{sender_id} 로그인 실패: {str(e)[:90]}")
+
+            sent_since_break = 0
+            for ri, r in enumerate(work):
+                if self._should_stop():
+                    break
+                tgt = (r.get("target_id") or "").strip().lstrip("@")
+                self.state["current"] = f"@{tgt}"
+                if not login_ok:
+                    r["status"], r["reason"] = "실패", "계정 로그인 실패/인증필요 (수동 로그인 확인)"
+                    self.state["failed"] += 1
+                    self._log(f"  ✗ @{tgt} — 로그인 실패")
+                    continue
+                msg = (r.get("message") or "")
+                msg = msg.replace("[name]", sender_name).replace("[targetname]", r.get("target_name") or "")
+                try:
+                    uid = int(cl.user_id_from_username(tgt))
+                    if auto_follow:
+                        try:
+                            cl.user_follow(uid)
+                        except Exception:
+                            pass
+                    cl.direct_send(msg, user_ids=[uid])
+                    r["status"], r["reason"] = "성공", ""
+                    self.state["sent"] += 1
+                    self._bump_count(sender_id)
+                    sent_since_break += 1
+                    self._log(f"  ✓ ({self.state['sent']}) @{tgt}")
+                except UserNotFound:
+                    r["status"], r["reason"] = "실패", "프로필 없음/비공개"
+                    self.state["failed"] += 1
+                    self._log(f"  ✗ @{tgt} — 프로필 없음")
+                except (PleaseWaitFewMinutes, FeedbackRequired):
+                    r["status"], r["reason"] = "실패", "속도제한/차단 감지 — 이 계정 중단(보호)"
+                    self.state["failed"] += 1
+                    self._log(f"  🚫 @{tgt} — 차단/제한 감지, 계정 중단")
+                    break
+                except ChallengeRequired:
+                    r["status"], r["reason"] = "실패", "인증 화면 — 계정 중단"
+                    self.state["failed"] += 1
+                    self._log(f"  🚫 @{tgt} — 인증 요구, 계정 중단")
+                    break
+                except Exception as e:
+                    r["status"], r["reason"] = "실패", str(e)[:90]
+                    self.state["failed"] += 1
+                    self._log(f"  ✗ @{tgt} — {str(e)[:60]}")
+                if ri < len(work) - 1 and not self._should_stop():
+                    if sent_since_break >= o["break_every"]:
+                        bt = random.uniform(o["break_min"], o["break_max"])
+                        self._log(f"    ☕ 휴식 {bt/60:.1f}분 (봇탐지 회피)")
+                        time.sleep(bt)
+                        sent_since_break = 0
+                    else:
+                        gt = random.uniform(o["gap_min"], o["gap_max"])
+                        self._log(f"    ⏱ {gt:.0f}초 대기")
+                        time.sleep(gt)
+
+        for r in rows:
+            r.setdefault("status", "미발송")
+            r.setdefault("reason", "")
+        self._log(f"🏁 종료: 성공 {self.state.get('sent',0)} / 실패 {self.state.get('failed',0)} / 보류 {self.state.get('held',0)} / 전체 {len(rows)}")
+        return rows
+
     def run_excel_rows(self, rows: list[dict], auto_follow: bool = False, opts: dict = None) -> list[dict]:
         """엑셀 행 그대로 발송. 각 row 키:
         sender_id, sender_pw, sender_name, target_id, target_name, message
@@ -499,12 +624,20 @@ class DMSender:
                 except Exception:
                     pass
 
+        # 백엔드: instagrapi(브라우저 없이 인스타 API 직접 호출) 우선 — 창 안 뜸·가볍고 덜 막힘.
+        # 없거나 실패하면 Playwright(브라우저) 폴백.
+        try:
+            import instagrapi  # noqa: F401
+            return self._run_instagrapi(rows, o, auto_follow)
+        except ImportError:
+            self._log("instagrapi 미설치 → 브라우저(Playwright) 방식으로 폴백")
+
         try:
             from playwright.sync_api import sync_playwright
         except ImportError:
-            self._log("❌ Playwright 안 깔림. 'playwright install chromium' 필요.")
+            self._log("❌ Playwright 도 안 깔림. 'pip install instagrapi' 또는 'playwright install chromium' 필요.")
             for r in rows:
-                r["status"], r["reason"] = "실패", "Playwright 미설치"
+                r["status"], r["reason"] = "실패", "발송 엔진 미설치"
             return rows
 
         from collections import OrderedDict

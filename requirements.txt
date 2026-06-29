@@ -1,5 +1,6 @@
 flask==3.0.3
 flask-cors==4.0.1
+instagrapi==2.16.25
 playwright==1.47.0
 google-api-python-client==2.149.0
 google-auth-httplib2==0.2.0
