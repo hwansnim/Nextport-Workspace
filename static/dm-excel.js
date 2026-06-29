@@ -27,6 +27,16 @@
 
     $("dmxStart").addEventListener("click", start);
     $("dmxStop").addEventListener("click", stop);
+    document.querySelectorAll(".dmx-preset").forEach((b) => b.addEventListener("click", () => setPreset(b.dataset.preset)));
+  }
+
+  function setPreset(p) {
+    document.querySelectorAll(".dmx-preset").forEach((b) => b.classList.toggle("active", b.dataset.preset === p));
+    const v = p === "fast"
+      ? { daily: 50, batch: 15, gmin: 25, gmax: 90, brk: 8 }   // 표준(위험↑)
+      : { daily: 30, batch: 10, gmin: 60, gmax: 300, brk: 6 }; // 안전(권장)
+    $("dmxDaily").value = v.daily; $("dmxBatch").value = v.batch;
+    $("dmxGapMin").value = v.gmin; $("dmxGapMax").value = v.gmax; $("dmxBreakEvery").value = v.brk;
   }
 
   function setFile(f) {
@@ -43,6 +53,11 @@
     const fd = new FormData();
     fd.append("file", file, file.name);
     fd.append("auto_follow", $("dmxAutoFollow").checked ? "1" : "0");
+    fd.append("daily_limit", $("dmxDaily").value || "30");
+    fd.append("batch_limit", $("dmxBatch").value || "10");
+    fd.append("gap_min", $("dmxGapMin").value || "60");
+    fd.append("gap_max", $("dmxGapMax").value || "300");
+    fd.append("break_every", $("dmxBreakEvery").value || "6");
 
     $("dmxStart").disabled = true;
     $("dmxStart").textContent = "시작 중…";
@@ -73,12 +88,14 @@
     try {
       const r = await fetch(`/api/dm/jobs/${jobId}`);
       const s = await r.json();
-      const done = (s.sent || 0) + (s.failed || 0);
-      $("dmxDone").textContent = done;
+      const held = s.held || 0;
+      const attempted = (s.sent || 0) + (s.failed || 0);
+      $("dmxDone").textContent = attempted;
       $("dmxSent").textContent = s.sent || 0;
       $("dmxFailed").textContent = s.failed || 0;
+      const hb = $("dmxHeld"); if (hb) hb.textContent = held;
       $("dmxCur").textContent = s.current ? "→ " + s.current : "";
-      const pct = s.total ? Math.round((done / s.total) * 100) : 0;
+      const pct = s.total ? Math.round(((attempted + held) / s.total) * 100) : 0;
       $("dmxBar").style.width = pct + "%";
       renderLog(s.log || []);
       if (s.status === "done" || s.status === "error") {
@@ -95,8 +112,9 @@
     const res = $("dmxResult");
     res.href = `/api/dm/excel/result/${jobId}`;
     res.hidden = false;
-    log(s.status === "error" ? "❌ 오류로 종료 — 결과 엑셀 확인" : `🏁 완료 — 성공 ${s.sent || 0} / 실패 ${s.failed || 0}`);
-    if (window.showToast) window.showToast({ icon: s.status === "error" ? "⚠️" : "✅", title: "DM 발송 종료", body: `성공 ${s.sent || 0} · 실패 ${s.failed || 0}`, accent: true, ttl: 6000 });
+    const held = s.held || 0;
+    log(s.status === "error" ? "❌ 오류로 종료 — 결과 엑셀 확인" : `🏁 완료 — 성공 ${s.sent || 0} / 실패 ${s.failed || 0}${held ? " / 보류 " + held : ""}`);
+    if (window.showToast) window.showToast({ icon: s.status === "error" ? "⚠️" : "✅", title: "DM 발송 종료", body: `성공 ${s.sent || 0} · 실패 ${s.failed || 0}${held ? " · 보류 " + held : ""}`, accent: true, ttl: 6000 });
   }
 
   async function stop() {

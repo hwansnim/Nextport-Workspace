@@ -5323,6 +5323,22 @@ def api_dm_excel_run():
     if not f:
         return jsonify({"error": "엑셀 파일을 올려주세요."}), 400
     auto_follow = request.form.get("auto_follow") in ("1", "true", "True", "on")
+
+    def _intf(name, default):
+        try:
+            return int(request.form.get(name) or default)
+        except Exception:
+            return default
+    # 안전(밴 회피) 옵션 — 기본 = 안전 모드
+    opts = {
+        "daily_limit": _intf("daily_limit", 30),
+        "batch_limit": _intf("batch_limit", 10),
+        "gap_min": _intf("gap_min", 60),
+        "gap_max": _intf("gap_max", 300),
+        "break_every": _intf("break_every", 6),
+        "break_min": _intf("break_min", 180),
+        "break_max": _intf("break_max", 600),
+    }
     try:
         rows = _parse_dm_excel(f)
     except Exception as e:  # noqa: BLE001
@@ -5334,8 +5350,8 @@ def api_dm_excel_run():
     DM_EXCEL_ROWS[job_id] = rows
     DM_JOBS_STATE[job_id] = {
         "id": job_id, "kind": "excel", "status": "running",
-        "total": len(rows), "sent": 0, "failed": 0, "current": None, "log": [],
-        "accounts": len({r["sender_id"] for r in rows}), "auto_follow": auto_follow,
+        "total": len(rows), "sent": 0, "failed": 0, "held": 0, "current": None, "log": [],
+        "accounts": len({r["sender_id"] for r in rows}), "auto_follow": auto_follow, "opts": opts,
         "started_at": datetime.now().isoformat(timespec="seconds"), "finished_at": None,
     }
 
@@ -5343,7 +5359,7 @@ def api_dm_excel_run():
         try:
             from dm_sender import DMSender  # type: ignore
             sender = DMSender(state=DM_JOBS_STATE[job_id], log_callback=_log_callback(job_id))
-            sender.run_excel_rows(rows, auto_follow=auto_follow)
+            sender.run_excel_rows(rows, auto_follow=auto_follow, opts=opts)
             DM_JOBS_STATE[job_id]["status"] = "done"
         except Exception as e:  # noqa: BLE001
             log.exception("DM excel job failed")

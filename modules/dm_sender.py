@@ -449,11 +449,56 @@ class DMSender:
             self._log(f"🏁 종료: 성공 {self.state.get('sent', 0)} / 실패 {self.state.get('failed', 0)}")
 
     # ─── 엑셀 행기반 발송 (회사 DM_Sender_GUI v2.2.2 양식) ───
-    def run_excel_rows(self, rows: list[dict], auto_follow: bool = False) -> list[dict]:
+    # ─── 영구 일일 발송 카운트 (계정 보호) ───
+    def _counts_path(self) -> Path:
+        return self.session_dir.parent / "dm_send_counts.json"
+
+    def _load_counts(self) -> dict:
+        p = self._counts_path()
+        if not p.exists():
+            return {}
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def _today_count(self, sender_id: str) -> int:
+        from datetime import datetime as _dt
+        today = _dt.now().date().isoformat()
+        return int((self._load_counts().get(sender_id) or {}).get(today, 0))
+
+    def _bump_count(self, sender_id: str) -> None:
+        from datetime import datetime as _dt
+        today = _dt.now().date().isoformat()
+        data = self._load_counts()
+        rec = data.setdefault(sender_id, {})
+        rec[today] = int(rec.get(today, 0)) + 1
+        try:  # 최근 14일만 유지
+            for k in sorted(rec.keys())[:-14]:
+                rec.pop(k, None)
+        except Exception:
+            pass
+        try:
+            self._counts_path().write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    def run_excel_rows(self, rows: list[dict], auto_follow: bool = False, opts: dict = None) -> list[dict]:
         """엑셀 행 그대로 발송. 각 row 키:
         sender_id, sender_pw, sender_name, target_id, target_name, message
         → 같은 발신계정끼리 묶어 세션 재사용 로그인 후 발송.
-        결과로 각 row에 status('성공'/'실패') + reason 채워서 반환."""
+        opts(안전 모드): daily_limit / batch_limit / gap_min / gap_max / break_every / break_min / break_max
+        결과로 각 row에 status('성공'/'실패'/'보류') + reason 채워서 반환."""
+        # 안전 기본값 — 정지(밴) 최대한 회피
+        o = {"daily_limit": 30, "batch_limit": 10, "gap_min": 60, "gap_max": 300,
+             "break_every": 6, "break_min": 180, "break_max": 600}
+        for k, v in (opts or {}).items():
+            if v is not None:
+                try:
+                    o[k] = int(v)
+                except Exception:
+                    pass
+
         try:
             from playwright.sync_api import sync_playwright
         except ImportError:
@@ -470,6 +515,9 @@ class DMSender:
         self.state["total"] = len(rows)
         self.state.setdefault("sent", 0)
         self.state.setdefault("failed", 0)
+        self.state.setdefault("held", 0)
+        self._log(f"🛡 안전 모드 — 계정당 하루 {o['daily_limit']}건·한번 {o['batch_limit']}건, "
+                  f"간격 {o['gap_min']}~{o['gap_max']}초, {o['break_every']}건마다 휴식")
         done = 0
         UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
@@ -479,9 +527,23 @@ class DMSender:
                 if self._should_stop():
                     self._log("⏹ 사용자 중지")
                     break
-                sender_pw = (acc_rows[0].get("sender_pw") or "").strip()
-                sender_name = acc_rows[0].get("sender_name") or ""
-                self._log(f"🌐 계정 {acc_idx+1}/{len(groups)}: @{sender_id} ({len(acc_rows)}건)")
+                # 🔒 양 제한 — 오늘 누적 + 이번 배치 한도
+                today_cnt = self._today_count(sender_id)
+                remaining = max(0, o["daily_limit"] - today_cnt)
+                allow = min(len(acc_rows), o["batch_limit"], remaining)
+                self._log(f"🌐 계정 {acc_idx+1}/{len(groups)}: @{sender_id} — 오늘 {today_cnt}/{o['daily_limit']}건 발송됨, 이번 {allow}건")
+                if allow <= 0:
+                    for r in acc_rows:
+                        r["status"], r["reason"] = "보류", f"일일 한도 도달({today_cnt}/{o['daily_limit']}) — 내일 다시"
+                        self.state["held"] += 1
+                    self._log(f"  ⏸ @{sender_id} 일일 한도 도달 — 계정 보호 위해 건너뜀")
+                    continue
+                for r in acc_rows[allow:]:  # 한도 초과분 보류
+                    r["status"], r["reason"] = "보류", f"이번 회차 한도(배치 {o['batch_limit']}·일일 {o['daily_limit']}) — 다음에"
+                    self.state["held"] += 1
+                work = acc_rows[:allow]
+                sender_pw = (work[0].get("sender_pw") or "").strip()
+                sender_name = work[0].get("sender_name") or ""
 
                 browser = context = page = None
                 login_ok = False
@@ -493,7 +555,7 @@ class DMSender:
                     session_path = self._account_session_path(sender_id)
                     ctx_opts = {"viewport": {"width": 1280, "height": 800},
                                 "user_agent": UA, "locale": "ko-KR"}
-                    if session_path.exists():
+                    if session_path.exists():  # 세션 재사용 = 재로그인 안 함(의심 회피)
                         ctx_opts["storage_state"] = str(session_path)
                     context = browser.new_context(**ctx_opts)
                     page = context.new_page()
@@ -510,7 +572,8 @@ class DMSender:
                     login_ok = False
                     self._log(f"  ❌ 브라우저/로그인 오류: {str(e)[:90]}")
 
-                for ri, r in enumerate(acc_rows):
+                sent_since_break = 0
+                for ri, r in enumerate(work):
                     if self._should_stop():
                         break
                     done += 1
@@ -519,29 +582,37 @@ class DMSender:
                     if not login_ok:
                         r["status"], r["reason"] = "실패", "계정 로그인 실패/차단 (수동 로그인 확인)"
                         self.state["failed"] += 1
-                        self._log(f"  ✗ ({done}/{len(rows)}) @{tgt} — {r['reason']}")
+                        self._log(f"  ✗ @{tgt} — {r['reason']}")
                         continue
                     msg = (r.get("message") or "")
                     msg = msg.replace("[name]", sender_name).replace("[targetname]", r.get("target_name") or "")
                     ok, reason = self.send_dm(page, {"username": tgt}, msg, auto_follow=auto_follow)
-                    # 발송 직후 차단화면 떴는지 체크
+                    # 발송 직후 차단/인증 화면 → 이 계정 즉시 중단(밀어붙이지 않음)
                     if not ok and self._is_checkpoint(page):
-                        reason = "계정 차단/인증 화면 — 이후 발송 중단"
-                        r["status"], r["reason"] = "실패", reason
+                        r["status"], r["reason"] = "실패", "계정 차단/인증 화면 — 이후 발송 중단"
                         self.state["failed"] += 1
-                        self._log(f"  🚫 ({done}/{len(rows)}) @{tgt} — {reason}")
-                        break  # 이 계정 나머지 중단
+                        self._log(f"  🚫 @{tgt} — 차단 감지, 이 계정 중단(보호)")
+                        break
                     r["status"], r["reason"] = ("성공", "") if ok else ("실패", reason)
                     if ok:
                         self.state["sent"] += 1
-                        self._log(f"  ✓ ({done}/{len(rows)}) @{tgt}")
+                        self._bump_count(sender_id)
+                        sent_since_break += 1
+                        self._log(f"  ✓ ({self.state['sent']}) @{tgt}")
                     else:
                         self.state["failed"] += 1
-                        self._log(f"  ✗ ({done}/{len(rows)}) @{tgt} — {reason}")
-                    # 다음 발송까지 인간 대기
-                    if not self._should_stop():
-                        wt = _human_sleep("between_dms")
-                        self._log(f"    ⏱ {wt:.0f}초 대기")
+                        self._log(f"  ✗ @{tgt} — {reason}")
+                    # 리듬 — 간격 + 주기적 긴 휴식
+                    if ri < len(work) - 1 and not self._should_stop():
+                        if sent_since_break >= o["break_every"]:
+                            bt = random.uniform(o["break_min"], o["break_max"])
+                            self._log(f"    ☕ 휴식 {bt/60:.1f}분 (봇탐지 회피)")
+                            time.sleep(bt)
+                            sent_since_break = 0
+                        else:
+                            gt = random.uniform(o["gap_min"], o["gap_max"])
+                            self._log(f"    ⏱ {gt:.0f}초 대기")
+                            time.sleep(gt)
 
                 try:
                     if context:
@@ -551,9 +622,8 @@ class DMSender:
                 except Exception:
                     pass
 
-        # 미처리(중지된) 행 표시
         for r in rows:
             r.setdefault("status", "미발송")
             r.setdefault("reason", "")
-        self._log(f"🏁 종료: 성공 {self.state.get('sent',0)} / 실패 {self.state.get('failed',0)} / 전체 {len(rows)}")
+        self._log(f"🏁 종료: 성공 {self.state.get('sent',0)} / 실패 {self.state.get('failed',0)} / 보류 {self.state.get('held',0)} / 전체 {len(rows)}")
         return rows

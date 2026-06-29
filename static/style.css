@@ -2649,6 +2649,19 @@ body.mobile-mode #toastContainer {
   font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; line-height: 1.7;
 }
 .dmx-log-line { white-space: pre-wrap; word-break: break-all; }
+.dmx-hold b { color: #c77700; }
+/* 안전 설정 */
+.dmx-safe { border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 13px 14px; margin-top: 14px; background: var(--bg); }
+.dmx-safe-head { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; flex-wrap: wrap; }
+.dmx-safe-preset { display: inline-flex; background: #fff; border: 1px solid var(--hairline); border-radius: 980px; padding: 2px; gap: 2px; margin-left: auto; }
+.dmx-preset { border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; padding: 5px 12px; border-radius: 980px; }
+.dmx-preset.active { background: var(--accent); color: #fff; }
+.dmx-safe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 14px; margin-top: 12px; }
+.dmx-safe-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.dmx-safe-grid input { padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; color: var(--text); width: 100%; }
+.dmx-safe-grid input:focus { outline: none; border-color: var(--accent); }
+.dmx-gap { display: flex; align-items: center; gap: 6px; }
+.dmx-gap span { color: var(--muted); }
 .bn-cap {
   border: none; border-top: 1px solid var(--hairline);
   padding: 6px 9px; font-size: 11.5px; font-family: inherit; color: var(--text);

@@ -593,6 +593,23 @@
             <div class="hint">6열: 발신ID · 발신PW · 발신자이름[name] · 받는사람ID · 받는사람이름[targetname] · 내용</div>
           </div>
 
+          <div class="dmx-safe">
+            <div class="dmx-safe-head">
+              🛡 안전 설정 <span class="hint">(인스타 정지 회피)</span>
+              <div class="dmx-safe-preset">
+                <button type="button" class="dmx-preset active" data-preset="safe">안전 (권장)</button>
+                <button type="button" class="dmx-preset" data-preset="fast">표준 (위험↑)</button>
+              </div>
+            </div>
+            <div class="dmx-safe-grid">
+              <label>계정당 하루 한도<input type="number" id="dmxDaily" value="30" min="1" max="80" /></label>
+              <label>한 번에 (계정당)<input type="number" id="dmxBatch" value="10" min="1" max="30" /></label>
+              <label>발송 간격(초)<span class="dmx-gap"><input type="number" id="dmxGapMin" value="60" min="10" /><span>~</span><input type="number" id="dmxGapMax" value="300" min="10" /></span></label>
+              <label>휴식 주기 (건마다)<input type="number" id="dmxBreakEvery" value="6" min="1" max="30" /></label>
+            </div>
+            <div class="hint" style="margin-top:6px">💡 새 계정은 <b>하루 10~20개</b>부터 천천히 늘리세요. 막히면 더 낮추고 며칠 쉬게 하세요. 한도 초과분은 '보류'로 표시돼 다음에 보내면 됩니다.</div>
+          </div>
+
           <div class="dmx-controls">
             <label class="dmx-check"><input type="checkbox" id="dmxAutoFollow" /> 자동 팔로우 <span class="hint">(DM이 '알 수도 있는 사람'에 떠서 확인율↑)</span></label>
             <div class="dmx-btns">
@@ -607,6 +624,7 @@
               <span>진행 <b id="dmxDone">0</b> / <b id="dmxTotal">0</b></span>
               <span class="dmx-ok">성공 <b id="dmxSent">0</b></span>
               <span class="dmx-fail">실패 <b id="dmxFailed">0</b></span>
+              <span class="dmx-hold">보류 <b id="dmxHeld">0</b></span>
               <span class="hint" id="dmxCur"></span>
             </div>
             <div class="dmx-bar"><span id="dmxBar" style="width:0%"></span></div>
