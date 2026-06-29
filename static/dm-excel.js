@@ -28,6 +28,104 @@
     $("dmxStart").addEventListener("click", start);
     $("dmxStop").addEventListener("click", stop);
     document.querySelectorAll(".dmx-preset").forEach((b) => b.addEventListener("click", () => setPreset(b.dataset.preset)));
+    document.querySelectorAll("[data-v2='dmx-mode']").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+    const addBtn = $("dmmAddBtn"); if (addBtn) addBtn.addEventListener("click", addAccount);
+    const sendBtn = $("dmmSendBtn"); if (sendBtn) sendBtn.addEventListener("click", startManual);
+  }
+
+  // ── 엑셀 / 수동 모드 전환 ──
+  let accountsLoaded = false;
+  function setMode(m) {
+    document.querySelectorAll("[data-v2='dmx-mode']").forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
+    const ex = m !== "manual";
+    if ($("dmxModeExcel")) $("dmxModeExcel").hidden = !ex;
+    if ($("dmxModeManual")) $("dmxModeManual").hidden = ex;
+    if ($("dmxExcelFollow")) $("dmxExcelFollow").style.display = ex ? "" : "none";
+    if ($("dmxStart")) $("dmxStart").style.display = ex ? "" : "none";
+    if (!ex && !accountsLoaded) { accountsLoaded = true; loadSenderAccounts(); }
+  }
+
+  // ── 내 계정 저장/관리 ──
+  async function loadSenderAccounts() {
+    try {
+      const r = await fetch("/api/dm/sender-accounts");
+      const j = await r.json();
+      renderAccounts(j.accounts || []);
+    } catch (e) { $("dmmList").innerHTML = `<div class="hint">계정 불러오기 실패</div>`; }
+  }
+  function renderAccounts(accs) {
+    const list = $("dmmList"), sel = $("dmmAccount");
+    if (!accs.length) {
+      list.innerHTML = `<div class="hint">저장된 계정 없음 — 아래에서 추가하세요</div>`;
+    } else {
+      list.innerHTML = accs.map((a) => `<div class="dmm-acc"><span><b>@${escapeHtml(a.username)}</b>${a.name ? " · " + escapeHtml(a.name) : ""}</span><button class="btn-text" data-del="${a.id}">삭제</button></div>`).join("");
+      list.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => deleteAccount(b.dataset.del)));
+    }
+    if (sel) sel.innerHTML = accs.length
+      ? accs.map((a) => `<option value="${a.id}">@${escapeHtml(a.username)}${a.name ? " (" + escapeHtml(a.name) + ")" : ""}</option>`).join("")
+      : `<option value="">먼저 계정을 저장하세요</option>`;
+  }
+  async function addAccount() {
+    const username = $("dmmNewUser").value.trim();
+    const password = $("dmmNewPw").value;
+    const name = $("dmmNewName").value.trim();
+    if (!username || !password) { alert("아이디와 비밀번호를 입력하세요."); return; }
+    try {
+      const r = await fetch("/api/dm/sender-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password, name }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "실패");
+      $("dmmNewUser").value = ""; $("dmmNewPw").value = ""; $("dmmNewName").value = "";
+      loadSenderAccounts();
+      if (window.showToast) window.showToast({ icon: "✅", title: "계정 저장됨", body: "@" + username });
+    } catch (e) { alert("저장 실패: " + e.message); }
+  }
+  async function deleteAccount(id) {
+    if (!confirm("이 계정을 삭제할까요?")) return;
+    try { await fetch("/api/dm/sender-accounts/" + id, { method: "DELETE" }); loadSenderAccounts(); } catch (e) {}
+  }
+
+  // ── 수동 발송 ──
+  async function startManual() {
+    const account_id = $("dmmAccount").value;
+    if (!account_id) { alert("보내는 계정을 먼저 저장·선택하세요."); return; }
+    const target_id = $("dmmTargetId").value.trim();
+    if (!target_id) { alert("받는 사람 ID를 입력하세요."); return; }
+    const message = $("dmmMessage").value.trim();
+    if (!message) { alert("메시지를 입력하세요."); return; }
+    if (!confirm(`@${target_id} 에게 DM을 보낼까요?\n\n• 크롬 창이 자동으로 열립니다\n• 안전 설정(간격/한도) 적용됩니다`)) return;
+    const body = {
+      account_id, target_id, target_name: $("dmmTargetName").value.trim(), message,
+      auto_follow: $("dmmAutoFollow").checked,
+      daily_limit: $("dmxDaily").value, batch_limit: $("dmxBatch").value,
+      gap_min: $("dmxGapMin").value, gap_max: $("dmxGapMax").value, break_every: $("dmxBreakEvery").value,
+    };
+    $("dmmSendBtn").disabled = true; $("dmmSendBtn").textContent = "시작 중…";
+    try {
+      const r = await fetch("/api/dm/manual/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "실패");
+      beginJob(j.job_id, j.total);
+      log(`▶ 수동 발송 시작 — @${target_id}`);
+    } catch (e) {
+      alert("발송 시작 실패: " + e.message);
+    } finally {
+      $("dmmSendBtn").disabled = false; $("dmmSendBtn").textContent = "▶ 수동 발송 (1명)";
+    }
+  }
+
+  // 공통 — 잡 시작 후 진행/로그/폴링 셋업 (엑셀·수동 공유)
+  function beginJob(jid, total) {
+    jobId = jid;
+    $("dmxTotal").textContent = total;
+    $("dmxProgress").hidden = false;
+    $("dmxLog").hidden = false;
+    $("dmxLog").innerHTML = "";
+    lastLogLen = 0;
+    $("dmxStop").hidden = false;
+    $("dmxResult").hidden = true;
+    if (poll) clearInterval(poll);
+    poll = setInterval(tick, 1500);
+    tick();
   }
 
   function setPreset(p) {
@@ -65,17 +163,9 @@
       const r = await fetch("/api/dm/excel/run", { method: "POST", body: fd });
       const j = await r.json();
       if (!r.ok) { throw new Error(j.error || "실패"); }
-      jobId = j.job_id;
-      $("dmxTotal").textContent = j.total;
-      $("dmxProgress").hidden = false;
-      $("dmxLog").hidden = false;
-      $("dmxLog").innerHTML = "";
-      $("dmxStop").hidden = false;
-      $("dmxResult").hidden = true;
+      beginJob(j.job_id, j.total);
       $("dmxStart").textContent = "발송 중…";
       log(`▶ 발송 시작 — ${j.total}건 / 계정 ${j.accounts}개`);
-      poll = setInterval(tick, 1500);
-      tick();
     } catch (e) {
       alert("발송 시작 실패: " + e.message);
       $("dmxStart").disabled = false;

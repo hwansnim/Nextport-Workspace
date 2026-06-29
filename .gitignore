@@ -41,3 +41,7 @@ design_ref/
 # OAuth 비밀 (절대 커밋 금지)
 credentials.json
 token.json
+
+# 인스타 발신 계정 비번 (로컬·드라이브만, git 금지)
+data/dm_sender_accounts.json
+data/dm_send_counts.json

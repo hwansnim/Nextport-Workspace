@@ -576,21 +576,55 @@
           <p class="page-sub">엑셀 한 장으로 인스타 DM 자동 발송. 지금 누구에게 보내는지 실시간 로그.</p>
         </div>
 
-        <!-- 📨 엑셀 자동 DM 발송 (회사 DM_Sender 양식 그대로) -->
+        <!-- 📨 자동 DM 발송 (엑셀 / 수동) -->
         <section class="panel" id="dmExcelPanel">
           <div class="panel-head">
-            <h2>엑셀 자동 DM 발송</h2>
+            <h2>자동 DM 발송</h2>
             <div class="head-actions">
-              <a class="btn-text" href="/api/dm/excel/sample">⬇ 샘플 엑셀 받기</a>
+              <div class="dmx-mode-toggle">
+                <button type="button" class="dmx-modeseg active" data-v2="dmx-mode" data-mode="excel">📄 엑셀</button>
+                <button type="button" class="dmx-modeseg" data-v2="dmx-mode" data-mode="manual">✍️ 수동</button>
+              </div>
+              <a class="btn-text" href="/api/dm/excel/sample">⬇ 샘플 엑셀</a>
             </div>
           </div>
-          <div class="dmx-warn">⚠️ 인스타 정책상 <b>이 PC에서만</b> 작동합니다(발송 시 크롬이 자동으로 열림). 과하게 보내면 계정이 막혀요 — <b>계정당 하루 50개·한 번에 10개 이내</b> 권장.</div>
+          <div class="dmx-warn">⚠️ 인스타 정책상 <b>이 PC에서만</b> 작동합니다(발송 시 크롬이 자동으로 열림). 과하게 보내면 계정이 막혀요 — 아래 <b>안전 설정</b> 권장값 유지하세요.</div>
 
-          <div class="dmx-drop" id="dmxDrop">
-            <input type="file" id="dmxFile" accept=".xlsx" hidden />
-            <div class="dmx-drop-ico">📄</div>
-            <div id="dmxDropText">엑셀 파일을 끌어다 놓거나 <b>클릭해서 선택</b></div>
-            <div class="hint">6열: 발신ID · 발신PW · 발신자이름[name] · 받는사람ID · 받는사람이름[targetname] · 내용</div>
+          <!-- 엑셀 모드 -->
+          <div id="dmxModeExcel">
+            <div class="dmx-drop" id="dmxDrop">
+              <input type="file" id="dmxFile" accept=".xlsx" hidden />
+              <div class="dmx-drop-ico">📄</div>
+              <div id="dmxDropText">엑셀 파일을 끌어다 놓거나 <b>클릭해서 선택</b></div>
+              <div class="hint">6열: 발신ID · 발신PW · 발신자이름[name] · 받는사람ID · 받는사람이름[targetname] · 내용</div>
+            </div>
+          </div>
+
+          <!-- 수동 모드 -->
+          <div id="dmxModeManual" hidden>
+            <div class="dmm-block">
+              <div class="dmm-head">내 인스타 계정 <span class="hint">(한 번 저장하면 매번 안 쳐도 됨)</span></div>
+              <div class="dmm-list" id="dmmList"><div class="hint">불러오는 중…</div></div>
+              <div class="dmm-add">
+                <input type="text" id="dmmNewUser" placeholder="아이디 또는 이메일" />
+                <input type="password" id="dmmNewPw" placeholder="비밀번호" />
+                <input type="text" id="dmmNewName" placeholder="표시이름 [name] (예: 하루픽스)" />
+                <button type="button" class="btn-secondary" id="dmmAddBtn">+ 계정 저장</button>
+              </div>
+            </div>
+            <div class="dmm-block">
+              <div class="dmm-head">수동 발송 (테스트·소량용)</div>
+              <div class="dmm-grid">
+                <label>보내는 계정<select id="dmmAccount"></select></label>
+                <label>받는 사람 ID<input type="text" id="dmmTargetId" placeholder="인스타 ID (@없이)" /></label>
+                <label>받는 사람 이름 [targetname]<input type="text" id="dmmTargetName" placeholder="예: 주연주" /></label>
+              </div>
+              <textarea id="dmmMessage" rows="5" placeholder="메시지 — [name]=내 이름, [targetname]=받는분 으로 자동 치환됩니다.&#10;예) 안녕하세요 [targetname]님! 하루픽스 [name]입니다 :)"></textarea>
+              <div class="dmm-send-row">
+                <label class="dmx-check"><input type="checkbox" id="dmmAutoFollow" /> 자동 팔로우</label>
+                <button type="button" class="btn-primary" id="dmmSendBtn">▶ 수동 발송 (1명)</button>
+              </div>
+            </div>
           </div>
 
           <div class="dmx-safe">
@@ -611,9 +645,9 @@
           </div>
 
           <div class="dmx-controls">
-            <label class="dmx-check"><input type="checkbox" id="dmxAutoFollow" /> 자동 팔로우 <span class="hint">(DM이 '알 수도 있는 사람'에 떠서 확인율↑)</span></label>
+            <label class="dmx-check" id="dmxExcelFollow"><input type="checkbox" id="dmxAutoFollow" /> 자동 팔로우 <span class="hint">(DM이 '알 수도 있는 사람'에 떠서 확인율↑)</span></label>
             <div class="dmx-btns">
-              <button class="btn-primary" id="dmxStart" disabled>▶ 발송 시작</button>
+              <button class="btn-primary" id="dmxStart" disabled>▶ 엑셀 발송 시작</button>
               <button class="btn-secondary" id="dmxStop" hidden>⏹ 중지</button>
               <a class="btn-secondary" id="dmxResult" hidden download>⬇ 결과 엑셀</a>
             </div>

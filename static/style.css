@@ -2662,6 +2662,25 @@ body.mobile-mode #toastContainer {
 .dmx-safe-grid input:focus { outline: none; border-color: var(--accent); }
 .dmx-gap { display: flex; align-items: center; gap: 6px; }
 .dmx-gap span { color: var(--muted); }
+/* 엑셀/수동 모드 토글 */
+.dmx-mode-toggle { display: inline-flex; background: var(--track, #f0f0f3); border-radius: 980px; padding: 3px; gap: 2px; }
+.dmx-modeseg { border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 14px; border-radius: 980px; }
+.dmx-modeseg.active { background: var(--accent); color: #fff; }
+/* 수동 발송 */
+.dmm-block { border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; }
+.dmm-head { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.dmm-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.dmm-acc { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px; background: var(--bg); border: 1px solid var(--hairline); border-radius: var(--radius-sm); font-size: 13px; }
+.dmm-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.dmm-add input { flex: 1; min-width: 130px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; }
+.dmm-add input:focus { outline: none; border-color: var(--accent); }
+.dmm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px 12px; margin-bottom: 10px; }
+.dmm-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.dmm-grid input, .dmm-grid select { padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; color: var(--text); background: #fff; }
+.dmm-grid input:focus, .dmm-grid select:focus { outline: none; border-color: var(--accent); }
+#dmmMessage { width: 100%; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 13.5px; line-height: 1.6; resize: vertical; }
+#dmmMessage:focus { outline: none; border-color: var(--accent); }
+.dmm-send-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
 .bn-cap {
   border: none; border-top: 1px solid var(--hairline);
   padding: 6px 9px; font-size: 11.5px; font-family: inherit; color: var(--text);

@@ -5418,6 +5418,125 @@ def api_dm_excel_sample():
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
+# ─── DM 발신 계정 저장 + 수동 발송 (테스트/소량용) ───
+DM_SENDER_ACCOUNTS_FILE = DATA_DIR / "dm_sender_accounts.json"
+
+
+def _load_sender_accounts() -> list[dict]:
+    if not DM_SENDER_ACCOUNTS_FILE.exists():
+        return []
+    try:
+        return json.loads(DM_SENDER_ACCOUNTS_FILE.read_text(encoding="utf-8")).get("accounts", [])
+    except Exception:
+        return []
+
+
+def _save_sender_accounts(items: list[dict]) -> None:
+    DM_SENDER_ACCOUNTS_FILE.write_text(
+        json.dumps({"accounts": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/dm/sender-accounts", methods=["GET", "POST"])
+def api_dm_sender_accounts():
+    """내 인스타 발신 계정 저장. POST{username,password,name}. GET은 비번 마스킹."""
+    items = _load_sender_accounts()
+    if request.method == "POST":
+        p = request.get_json(force=True) or {}
+        username = (p.get("username") or "").strip().lstrip("@")
+        password = (p.get("password") or "").strip()
+        name = (p.get("name") or "").strip()
+        if not username or not password:
+            return jsonify({"error": "아이디와 비밀번호를 입력하세요."}), 400
+        ex = next((a for a in items if (a.get("username") or "").lower() == username.lower()), None)
+        if ex:
+            ex["password"] = password
+            if name:
+                ex["name"] = name
+            acc = ex
+        else:
+            acc = {"id": uuid.uuid4().hex[:8], "username": username, "password": password,
+                   "name": name, "created_at": datetime.now().isoformat(timespec="seconds")}
+            items.append(acc)
+        _save_sender_accounts(items)
+        return jsonify({"ok": True, "account": {"id": acc["id"], "username": acc["username"], "name": acc.get("name", "")}})
+    return jsonify({"accounts": [{"id": a["id"], "username": a["username"], "name": a.get("name", ""),
+                                  "has_pw": bool(a.get("password"))} for a in items]})
+
+
+@app.route("/api/dm/sender-accounts/<aid>", methods=["DELETE"])
+def api_dm_sender_account_delete(aid):
+    _save_sender_accounts([a for a in _load_sender_accounts() if a.get("id") != aid])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/dm/manual/run", methods=["POST"])
+def api_dm_manual_run():
+    """수동 발송 — 저장계정 선택(or 인라인) + 받는사람 + 메시지 → 안전엔진 재사용."""
+    if (load_config() or {}).get("env_mode") == "cloud":
+        return jsonify({"error": "DM 발송은 로컬 PC에서만 됩니다. PC에서 워크스페이스를 켜고 실행하세요."}), 400
+    p = request.get_json(force=True) or {}
+    # 발신 계정 — 저장된 것 또는 인라인
+    username = (p.get("username") or "").strip().lstrip("@")
+    password = (p.get("password") or "").strip()
+    name = (p.get("name") or "").strip()
+    if p.get("account_id"):
+        acc = next((a for a in _load_sender_accounts() if a.get("id") == p["account_id"]), None)
+        if not acc:
+            return jsonify({"error": "저장된 계정을 찾을 수 없습니다."}), 400
+        username, password = acc["username"], acc["password"]
+        name = name or acc.get("name", "")
+    if not username or not password:
+        return jsonify({"error": "발신 계정을 선택하거나 입력하세요."}), 400
+    # 받는 사람 — 단일 또는 리스트
+    targets = p.get("targets")
+    if not targets:
+        targets = [{"id": p.get("target_id") or "", "name": p.get("target_name") or ""}]
+    message = (p.get("message") or "").strip()
+    if not message:
+        return jsonify({"error": "메시지를 입력하세요."}), 400
+    rows = [{"sender_id": username, "sender_pw": password, "sender_name": name,
+             "target_id": (t.get("id") or "").strip().lstrip("@"),
+             "target_name": (t.get("name") or "").strip(), "message": message}
+            for t in targets if (t.get("id") or "").strip()]
+    if not rows:
+        return jsonify({"error": "받는 사람 ID를 입력하세요."}), 400
+
+    def _i(k, d):
+        try:
+            return int(p.get(k) or d)
+        except Exception:
+            return d
+    opts = {"daily_limit": _i("daily_limit", 30), "batch_limit": _i("batch_limit", 10),
+            "gap_min": _i("gap_min", 60), "gap_max": _i("gap_max", 300),
+            "break_every": _i("break_every", 6)}
+    auto_follow = bool(p.get("auto_follow"))
+
+    job_id = uuid.uuid4().hex[:12]
+    DM_EXCEL_ROWS[job_id] = rows
+    DM_JOBS_STATE[job_id] = {
+        "id": job_id, "kind": "manual", "status": "running",
+        "total": len(rows), "sent": 0, "failed": 0, "held": 0, "current": None, "log": [],
+        "accounts": 1, "auto_follow": auto_follow, "opts": opts,
+        "started_at": datetime.now().isoformat(timespec="seconds"), "finished_at": None,
+    }
+
+    def run():
+        try:
+            from dm_sender import DMSender  # type: ignore
+            sender = DMSender(state=DM_JOBS_STATE[job_id], log_callback=_log_callback(job_id))
+            sender.run_excel_rows(rows, auto_follow=auto_follow, opts=opts)
+            DM_JOBS_STATE[job_id]["status"] = "done"
+        except Exception as e:  # noqa: BLE001
+            log.exception("DM manual job failed")
+            DM_JOBS_STATE[job_id]["status"] = "error"
+            DM_JOBS_STATE[job_id]["log"].append(f"❌ 에러: {e}")
+        finally:
+            DM_JOBS_STATE[job_id]["finished_at"] = datetime.now().isoformat(timespec="seconds")
+
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(rows)})
+
+
 def main():
     cfg = load_config()
     host = cfg.get("server", {}).get("host", "127.0.0.1")
