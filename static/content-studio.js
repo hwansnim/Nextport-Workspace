@@ -24,6 +24,7 @@
     }
     document.querySelectorAll(".cw-nav-item").forEach((b) => b.addEventListener("click", () => switchPane(b.dataset.pane)));
     $("toStudioBtn").addEventListener("click", () => switchPane("studio"));
+    $("studioBack").addEventListener("click", showStudioList);
 
     // 전체화면 드롭 (어느 화면이든)
     let depth = 0;
@@ -80,9 +81,9 @@
     document.querySelectorAll(".cw-pane").forEach((p) => p.classList.toggle("active", p.id === "pane-" + name));
     if (name === "products") { resetProductForm(); loadProducts(); }
     if (name === "library") loadLibrary();
-    if (name === "productions") loadProductions();
     if (name === "perf") loadMeta();
     if (name === "shoot") renderShoot();
+    if (name === "studio") showStudioList();
     if (name === "analyzer" || name === "studio") renderStudio();
   }
 
@@ -325,8 +326,29 @@
     });
   }
 
-  /* ─── 제작 관리 (누적·공유) ─── */
+  /* ─── 기획안 스튜디오 = 제작 관리 목록 ↔ 항목별 생성기 ─── */
   const PM_CAT = { shoot: "촬영", noshoot: "미촬영" };
+  function showStudioList() {
+    state.studioEntry = null;
+    if ($("studioDetail")) $("studioDetail").hidden = true;
+    if ($("studioList")) $("studioList").hidden = false;
+    loadProductions();
+  }
+  function openEntry(id) {
+    const r = state.productions.find((x) => x.id === id); if (!r) return;
+    state.studioEntry = id;
+    $("studioList").hidden = true; $("studioDetail").hidden = false;
+    $("detailTitle").textContent = r.title || "기획안";
+    $("detailMeta").textContent = [r.brand, r.product, PM_CAT[r.category] || "", r.date, r.user].filter(Boolean).join(" · ");
+    // 제품 자동 세팅
+    if (r.product_id && [...$("prodPick").options].some((o) => o.value === r.product_id)) {
+      $("prodPick").value = r.product_id; pickProduct(r.product_id);
+    } else if (r.product) {
+      state.product = { id: "", name: r.product, features: "", brand: r.brand || "", op_type: "own", appeals: [] };
+      $("prodPick").value = ""; $("prodName").value = r.product; $("prodFeatures").value = ""; updateLearnNote(); refreshGen();
+    }
+    renderStudio();
+  }
   async function loadProductions() {
     renderPmProductPick();
     try { const r = await fetch("/api/content/productions"); const j = await r.json(); state.productions = j.rows || []; renderProductions(); }
@@ -340,7 +362,7 @@
   function renderProductions() {
     const root = $("pmList"); if (!root) return;
     if (!state.productions.length) { root.innerHTML = `<div class="empty">아직 항목이 없습니다 — 위에서 추가하세요</div>`; return; }
-    const rows = state.productions.map((r) => `<tr>
+    const rows = state.productions.map((r) => `<tr class="cw-pm-row" data-open="${esc(r.id)}">
       <td><b>${esc(r.title)}</b></td>
       <td class="cw-pm-date">${esc(r.date)}</td>
       <td>${esc(r.user)}</td>
@@ -349,41 +371,28 @@
       <td><span class="cw-cat cw-cat-${esc(r.category || "noshoot")}">${PM_CAT[r.category] || "미촬영"}</span></td>
       <td class="cw-pm-note">${esc(r.note)}</td>
       <td class="cw-pm-act">
-        <button class="btn-text" data-open="${esc(r.id)}">기획안</button>
         <button class="btn-text" data-pmedit="${esc(r.id)}">수정</button>
         <button class="btn-text" data-pmdel="${esc(r.id)}">삭제</button></td></tr>`).join("");
     root.innerHTML = `<div style="overflow-x:auto"><table class="cw-tbl cw-pm-tbl"><thead><tr>
       <th>제목</th><th>날짜</th><th>사용자</th><th>브랜드</th><th>제품</th><th>분류</th><th>비고</th><th></th>
       </tr></thead><tbody>${rows}</tbody></table></div>`;
-    root.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => openInStudio(b.dataset.open)));
-    root.querySelectorAll("[data-pmedit]").forEach((b) => b.addEventListener("click", () => editPm(b.dataset.pmedit)));
-    root.querySelectorAll("[data-pmdel]").forEach((b) => b.addEventListener("click", () => deletePm(b.dataset.pmdel)));
-  }
-  function openInStudio(id) {
-    const r = state.productions.find((x) => x.id === id); if (!r) return;
-    switchPane("studio");
-    if (r.product_id) {
-      const sel = $("prodPick");
-      if ([...sel.options].some((o) => o.value === r.product_id)) { sel.value = r.product_id; pickProduct(r.product_id); }
-    } else if (r.product) {
-      state.product = { id: "", name: r.product, features: "", brand: r.brand || "", op_type: "own", appeals: [] };
-      $("prodName").value = r.product; refreshGen();
-    }
-    toast("기획안 스튜디오 — 레퍼런스 영상을 올리고 생성하세요");
+    root.querySelectorAll(".cw-pm-row").forEach((tr) => tr.addEventListener("click", (e) => { if (e.target.closest("[data-pmedit],[data-pmdel]")) return; openEntry(tr.dataset.open); }));
+    root.querySelectorAll("[data-pmedit]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); editPm(b.dataset.pmedit); }));
+    root.querySelectorAll("[data-pmdel]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); deletePm(b.dataset.pmdel); }));
   }
   function editPm(id) {
     const r = state.productions.find((x) => x.id === id); if (!r) return;
     $("pmTitle").value = r.title || ""; $("pmDate").value = r.date || ""; $("pmUser").value = r.user || "";
     $("pmBrand").value = r.brand || ""; $("pmProduct").value = r.product || ""; $("pmCategory").value = r.category || "noshoot"; $("pmNote").value = r.note || "";
     $("pmProductPick").value = r.product_id && [...$("pmProductPick").options].some((o) => o.value === r.product_id) ? r.product_id : "";
-    $("pmSave").dataset.editId = id; $("pmFormTitle").textContent = "항목 수정"; $("pmReset").hidden = false;
+    $("pmSave").dataset.editId = id; $("pmSave").textContent = "저장"; $("pmReset").hidden = false;
+    $("pmTitle").focus();
   }
   function resetPmForm() {
     ["pmTitle", "pmDate", "pmUser", "pmBrand", "pmProduct", "pmNote"].forEach((id) => { if ($(id)) $(id).value = ""; });
     if ($("pmCategory")) $("pmCategory").value = "noshoot";
     if ($("pmProductPick")) $("pmProductPick").value = "";
-    if ($("pmSave")) delete $("pmSave").dataset.editId;
-    if ($("pmFormTitle")) $("pmFormTitle").textContent = "새 항목 추가";
+    if ($("pmSave")) { delete $("pmSave").dataset.editId; $("pmSave").textContent = "+ 추가"; }
     if ($("pmReset")) $("pmReset").hidden = true;
   }
   async function savePm() {

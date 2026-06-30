@@ -20,7 +20,10 @@
 .cw-pane { display: none; flex: 1; min-height: 0; }
 .cw-pane.active { display: flex; flex-direction: column; }
 #pane-products, #pane-shoot, #pane-perf { overflow-y: auto; padding: 26px 30px; }
-#pane-studio { padding: 16px 18px; }
+#pane-analyzer { padding: 16px 18px; }
+#pane-studio { padding: 0; }
+#studioList { flex: 1; min-height: 0; overflow-y: auto; padding: 22px 26px; }
+#studioDetail { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px 18px; }
 .cw-pane-head h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
 .cw-pane-head .page-sub { margin: 2px 0 18px; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
@@ -228,6 +231,22 @@ td.cw-ts:hover { background: var(--accent-soft); border-radius: 4px; }
 .cw-cat { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 980px; }
 .cw-cat-shoot { background: #fff1e6; color: #c2410c; }
 .cw-cat-noshoot { background: var(--hover); color: var(--muted); }
+
+/* 기획안 스튜디오 목록: 한 줄 입력 바 */
+.cw-pm-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.cw-pm-bar input, .cw-pm-bar select { padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 12.5px; background: #fff; min-width: 0; }
+.cw-pm-bar input:focus, .cw-pm-bar select:focus { outline: none; border-color: var(--accent); }
+.cw-pm-bar #pmTitle { flex: 2; min-width: 150px; }
+.cw-pm-bar #pmNote { flex: 1.4; min-width: 110px; }
+.cw-pm-bar #pmUser, .cw-pm-bar #pmBrand, .cw-pm-bar #pmProduct { width: 96px; }
+.cw-pm-bar #pmDate { width: 138px; }
+.cw-pm-row { cursor: pointer; transition: background .1s; }
+.cw-pm-row:hover { background: var(--accent-soft); }
+
+/* 상세(생성기) 헤더 */
+.cw-detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.cw-detail-head b { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+.cw-detail-meta { font-size: 12px; }
 
 /* 효율 분석 (메타 연동) */
 .cw-meta-conn { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 0 16px; }
