@@ -1,7 +1,7 @@
 /*
- * 콘텐츠 스튜디오 — 레퍼런스 분석 + 기획안 생성 + 확정 누적 학습.
- * 상단 세그먼트(자사/대행/전체) + 브랜드 칩으로 맥락 구분. 기획안 확정 → 제품별 라이브러리 적재 →
- * 신규 기획안 생성 시 같은 제품 확정본을 자동 학습.
+ * 콘텐츠 스튜디오 — 레퍼런스 분석기 + 기획안 스튜디오 + 확정 누적 학습.
+ * 레퍼런스 분석(좌측 별도 탭) → 기획안 스튜디오(제품 입혀 생성) → 확정 라이브러리(같은 제품 자동 학습).
+ * 진행률 1%씩 끝까지 차오름 · 화면 이동해도 백그라운드 작업표시 유지.
  */
 (function () {
   "use strict";
@@ -9,10 +9,8 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
   const OP_LABEL = { own: "자사", agency: "대행" };
   const state = {
-    projects: [], active: 0, products: [], plans: [],
-    product: { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [], hook_angle: "" },
-    appealCandidates: [], pfAppeals: [],
-    opType: "own", brand: "",
+    projects: [], active: 0, products: [], plans: [], pfAppeals: [],
+    product: { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [] },
     edit: { analysis: false, plan: false },
   };
 
@@ -24,11 +22,9 @@
       document.addEventListener("click", () => { wd.hidden = true; });
     }
     document.querySelectorAll(".cw-nav-item").forEach((b) => b.addEventListener("click", () => switchPane(b.dataset.pane)));
+    $("toStudioBtn").addEventListener("click", () => switchPane("studio"));
 
-    // 상단 세그먼트 (자사/대행/전체)
-    $("opSeg").querySelectorAll(".cw-seg-btn").forEach((b) => b.addEventListener("click", () => setOp(b.dataset.op)));
-
-    // 전체화면 드롭
+    // 전체화면 드롭 (어느 화면이든)
     let depth = 0;
     const fs = $("fsDrop");
     const hasFiles = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files");
@@ -39,7 +35,7 @@
       if (!hasFiles(e)) return;
       e.preventDefault(); depth = 0; fs.classList.remove("show");
       const vids = [...e.dataTransfer.files].filter((f) => f.type.startsWith("video/"));
-      if (vids.length) { switchPane("studio"); handleVideos(vids); }
+      if (vids.length) { switchPane("analyzer"); handleVideos(vids); }
     });
 
     $("videoFile").addEventListener("change", (e) => { handleVideos([...e.target.files]); e.target.value = ""; });
@@ -55,54 +51,13 @@
     $("uspFileBtn").addEventListener("click", () => $("uspFile").click());
     $("uspFile").addEventListener("change", () => { if ($("uspFile").files[0]) extractFile($("uspFile").files[0]); $("uspFile").value = ""; });
 
-    // 후킹 앵글 + 프리셋
-    $("hookAngle").addEventListener("input", (e) => { state.product.hook_angle = e.target.value; });
-    $("hookPresets").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { $("hookAngle").value = b.dataset.h; state.product.hook_angle = b.dataset.h; }));
-
     // 제품 정보 등록 (+ 소구점 칩)
     $("pfSave").addEventListener("click", saveProduct);
     $("pfReset").addEventListener("click", resetProductForm);
     $("pfAppealInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPfAppeal(e.target.value); e.target.value = ""; } });
 
-    setOp("own");
     loadProducts();
     renderStudio();
-    renderPlanAppeals();
-  }
-
-  /* ─── 운영구분(자사/대행) 맥락 ─── */
-  function setOp(op) {
-    state.opType = op; state.brand = "";
-    $("cwMain").dataset.op = op;
-    $("opSeg").querySelectorAll(".cw-seg-btn").forEach((b) => b.classList.toggle("active", b.dataset.op === op));
-    // 제품 등록폼 기본 운영구분 = 현재 맥락
-    if ($("pfOpType") && !$("pfSave").dataset.editId) $("pfOpType").value = (op === "agency" ? "agency" : "own");
-    renderBrandChips(); renderProdPicker(); renderProducts(); renderLibrary();
-  }
-  function setBrand(b) {
-    state.brand = (state.brand === b ? "" : b);
-    renderBrandChips(); renderProdPicker(); renderProducts(); renderLibrary();
-  }
-  function opMatch(item) { return state.opType === "all" || (item.op_type || "own") === state.opType; }
-  function brandsForOp() {
-    const seen = new Map();
-    state.products.filter(opMatch).forEach((p) => {
-      const b = (p.brand || "").trim(); if (!b) return;
-      if (!seen.has(b)) seen.set(b, { name: b, op: p.op_type || "own", n: 0 });
-      seen.get(b).n++;
-    });
-    return [...seen.values()];
-  }
-  function renderBrandChips() {
-    const root = $("brandChips"); if (!root) return;
-    const brands = brandsForOp();
-    if (!brands.length) { root.innerHTML = `<span class="cw-chip-empty">등록된 브랜드 없음 — [제품 정보]에서 추가</span>`; return; }
-    root.innerHTML = `<button class="cw-chip ${state.brand === "" ? "active" : ""}" data-b="">전체 브랜드</button>` +
-      brands.map((b) => `<button class="cw-chip cw-chip-${esc(b.op)} ${state.brand === b.name ? "active" : ""}" data-b="${esc(b.name)}">${esc(b.name)} <span class="cw-chip-n">${b.n}</span></button>`).join("");
-    root.querySelectorAll(".cw-chip").forEach((c) => c.addEventListener("click", () => setBrand(c.dataset.b)));
-  }
-  function filteredProducts() {
-    return state.products.filter((p) => opMatch(p) && (!state.brand || (p.brand || "") === state.brand));
   }
 
   function switchPane(name) {
@@ -110,6 +65,7 @@
     document.querySelectorAll(".cw-pane").forEach((p) => p.classList.toggle("active", p.id === "pane-" + name));
     if (name === "products") { resetProductForm(); loadProducts(); }
     if (name === "library") loadLibrary();
+    if (name === "analyzer" || name === "studio") renderStudio();
   }
 
   function activeProj() { return state.projects[state.active]; }
@@ -117,7 +73,7 @@
   /* ─── 영상 → 프로젝트 + 병렬 분석 ─── */
   function handleVideos(files) {
     files.filter((f) => f.type.startsWith("video/")).forEach((file) => {
-      const proj = { id: Math.random().toString(36).slice(2), name: "기획안 " + String.fromCharCode(65 + state.projects.length), file, url: URL.createObjectURL(file), analysis: [], plan: [], draft: [], status: "analyzing", progress: 0, error: "", timer: null };
+      const proj = { id: Math.random().toString(36).slice(2), name: "기획안 " + String.fromCharCode(65 + state.projects.length), file, url: URL.createObjectURL(file), analysis: [], plan: [], draft: [], why_watch: "", why_buy: "", status: "analyzing", progress: 0, error: "", timer: null };
       state.projects.push(proj);
       state.active = state.projects.length - 1;
       analyzeProject(proj);
@@ -125,21 +81,25 @@
     renderStudio();
   }
 
-  function simProgress(proj, to, ms) {
+  // 진행률: 빠르게 차오른 뒤 1%씩 99까지 계속 (멈추지 않음). 완료 시 100.
+  function simProgress(proj) {
     clearInterval(proj.timer);
-    const step = 150, inc = (to - proj.progress) / (ms / step);
     proj.timer = setInterval(() => {
-      proj.progress = Math.min(to, proj.progress + inc + Math.random() * 0.6);
-      if (proj.progress >= to) { proj.progress = to; clearInterval(proj.timer); }
+      const cur = proj.progress;
+      let inc;
+      if (cur < 60) inc = Math.random() * 4 + 2;
+      else if (cur < 90) inc = Math.random() * 1.2 + 0.4;
+      else inc = Math.max(0.15, (99 - cur) * 0.05); // 90%부터 1%씩 천천히 creep
+      proj.progress = Math.min(99, cur + inc);
       if (proj === activeProj()) (proj.status === "planning" ? renderPlanPane() : renderAnalyzePane());
-      renderProjTabs();
-    }, step);
+      renderProjTabs(); renderJobs();
+    }, 400);
   }
 
   async function analyzeProject(proj, feedback) {
     proj.status = "analyzing"; proj.error = ""; proj.progress = 0;
-    renderProjTabs(); renderAnalyzePane();
-    simProgress(proj, 95, 25000);
+    renderProjTabs(); renderAnalyzePane(); renderJobs();
+    simProgress(proj);
     try {
       const fd = new FormData();
       fd.append("video", proj.file, proj.file.name);
@@ -153,23 +113,25 @@
       proj.status = "idle"; proj.error = e.message; proj.progress = 0;
     }
     clearInterval(proj.timer);
-    renderProjTabs(); if (proj === activeProj()) { renderAnalyzePane(); refreshGen(); }
+    renderProjTabs(); renderJobs(); if (proj === activeProj()) { renderAnalyzePane(); refreshGen(); }
   }
 
   function renderProjTabs() {
-    const root = $("projTabs");
-    if (!state.projects.length) { root.innerHTML = ""; return; }
-    root.innerHTML = state.projects.map((p, i) => {
+    const roots = document.querySelectorAll(".cw-proj-tabs");
+    const html = !state.projects.length ? "" : (state.projects.map((p, i) => {
       const working = p.status === "analyzing" || p.status === "planning";
       const dot = working ? "working" : (p.status === "analyzed" || p.plan.length ? "done" : "");
       const pct = working ? ` <span class="cw-proj-pct">(${Math.floor(p.progress)}%)</span>` : "";
       return `<div class="cw-proj ${i === state.active ? "active" : ""} ${working ? "working" : ""}" data-i="${i}">
         <span class="cw-proj-dot ${dot}"></span><span>${esc(p.name)}</span>${pct}
         <button class="cw-proj-x" data-del="${i}" title="삭제">×</button></div>`;
-    }).join("") + `<button class="cw-proj-add" id="projAdd" title="영상 추가">+</button>`;
-    root.querySelectorAll(".cw-proj").forEach((el) => el.addEventListener("click", (e) => { if (e.target.dataset.del != null) return; state.active = +el.dataset.i; renderStudio(); }));
-    root.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); delProject(+b.dataset.del); }));
-    $("projAdd")?.addEventListener("click", () => $("videoFile").click());
+    }).join("") + `<button class="cw-proj-add" title="영상 추가">+</button>`);
+    roots.forEach((root) => {
+      root.innerHTML = html;
+      root.querySelectorAll(".cw-proj").forEach((el) => el.addEventListener("click", (e) => { if (e.target.dataset.del != null) return; state.active = +el.dataset.i; renderStudio(); }));
+      root.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); delProject(+b.dataset.del); }));
+      root.querySelector(".cw-proj-add")?.addEventListener("click", () => $("videoFile").click());
+    });
   }
 
   function delProject(i) {
@@ -177,17 +139,33 @@
     clearInterval(state.projects[i]?.timer);
     state.projects.splice(i, 1);
     state.active = Math.max(0, Math.min(state.active, state.projects.length - 1));
-    renderStudio();
+    renderStudio(); renderJobs();
+  }
+
+  // 글로벌 작업표시 — 어느 화면에 있든 진행 중인 분석/기획 보여줌
+  function renderJobs() {
+    let el = $("cwJobs");
+    if (!el) { el = document.createElement("div"); el.id = "cwJobs"; el.className = "cw-jobs"; document.body.appendChild(el); }
+    const working = state.projects.filter((p) => p.status === "analyzing" || p.status === "planning");
+    if (!working.length) { el.classList.remove("show"); el.innerHTML = ""; return; }
+    el.classList.add("show");
+    el.innerHTML = working.map((p) => {
+      const label = p.status === "analyzing" ? "분석" : "기획";
+      return `<div class="cw-job" data-go="${p.id}"><span class="cw-job-spin"></span><span>${esc(p.name)} ${label} 중</span> <b>${Math.floor(p.progress)}%</b></div>`;
+    }).join("");
+    el.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
+      const i = state.projects.findIndex((p) => p.id === b.dataset.go);
+      if (i >= 0) { state.active = i; switchPane(state.projects[i].status === "planning" ? "studio" : "analyzer"); }
+    }));
   }
 
   /* ─── 스튜디오 렌더 ─── */
   function renderStudio() {
     const p = activeProj();
     const vb = $("vidBox");
-    if (p && p.url) {
-      vb.innerHTML = `<video src="${esc(p.url)}" id="refVideo" controls playsinline></video>`;
-    } else {
-      vb.innerHTML = `<div class="cw-vid-empty">레퍼런스 영상을<br>드래그하세요</div>`;
+    if (vb) {
+      if (p && p.url) vb.innerHTML = `<video src="${esc(p.url)}" id="refVideo" controls playsinline></video>`;
+      else vb.innerHTML = `<div class="cw-vid-empty">레퍼런스 영상을<br>드래그하세요</div>`;
     }
     renderProjTabs(); renderAnalyzePane(); renderPlanPane(); refreshGen();
   }
@@ -238,13 +216,14 @@
   /* ─── 분석 pane ─── */
   function renderAnalyzePane() {
     const root = $("analyzeWrap"), p = activeProj();
+    if (!root) return;
     if (!p) {
       root.innerHTML = `<div class="cw-drop" id="dropInline"><div class="cw-drop-ico">🎞️</div><div><b>분석할 레퍼런스 영상</b>을 화면 어디든 끌어다 놓으세요</div><button class="btn-primary" id="dropPick" style="margin-top:14px">파일 선택하기</button></div>`;
       $("dropPick").addEventListener("click", () => $("videoFile").click());
       return;
     }
-    if (p.status === "analyzing") { root.innerHTML = progressCard(p.progress, "분석 중...", "데이터를 추출하는 중입니다"); return; }
-    if (p.error) { root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot"></span> 분석 결과</div><div class="empty" style="color:#e0245e">❌ ${esc(p.error)}</div>`; return; }
+    if (p.status === "analyzing") { root.innerHTML = progressCard(p.progress, "분석 중...", "데이터를 추출하는 중입니다 · 다른 화면으로 이동해도 계속됩니다"); return; }
+    if (p.error) { root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot"></span> 분석 결과</div><div class="empty" style="color:#e0245e">❌ ${esc(p.error)}<br><button class="btn-secondary" id="reTry" style="margin-top:12px">다시 분석</button></div>`; $("reTry")?.addEventListener("click", () => { if (p.file) analyzeProject(p); }); return; }
     root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot"></span> 분석 결과 ${toolbar("analysis")}</div>
       <div class="cw-sp-body">${dataTable("analysis", p.analysis)}</div>
       <div class="cw-rebox">
@@ -259,11 +238,12 @@
   /* ─── 기획안 pane ─── */
   function renderPlanPane() {
     const root = $("planWrap"), p = activeProj();
+    if (!root) return;
     if (!p || (!p.plan.length && p.status !== "planning")) {
-      root.innerHTML = `<div class="empty cw-plan-empty">기획안 생성 대기 중<br><span class="hint">제품 정보 입력 후 좌측 [신규 기획안 생성]</span></div>`;
+      root.innerHTML = `<div class="empty cw-plan-empty">기획안 생성 대기 중<br><span class="hint">레퍼런스 분석 후, 제품 정보 입력하고 좌측 [신규 기획안 생성]</span></div>`;
       return;
     }
-    if (p.status === "planning") { root.innerHTML = progressCard(p.progress, "기획안 생성 중...", "레퍼런스 구조에 제품을 입히는 중"); return; }
+    if (p.status === "planning") { root.innerHTML = progressCard(p.progress, "기획안 생성 중...", "레퍼런스 플로우에 제품을 입히는 중 · 다른 화면 이동 가능"); return; }
     const why = (p.why_watch || p.why_buy)
       ? `<div class="cw-why"><div class="cw-why-col"><b>👀 왜 볼까</b><span>${esc(p.why_watch || "-")}</span></div><div class="cw-why-col cw-why-buy"><b>💳 왜 살까</b><span>${esc(p.why_buy || "-")}</span></div></div>`
       : "";
@@ -292,7 +272,7 @@
   }
 
   function seekVideo(ts) {
-    const v = $("refVideo"); if (!v || !ts) return;
+    const v = $("refVideo"); if (!v || !ts) { switchPane("analyzer"); return; }
     const m = ts.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
     if (!m) return;
     const sec = m[3] ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : (+m[1]) * 60 + (+m[2]);
@@ -323,44 +303,27 @@
   }
   function pickProduct(id) {
     const prod = state.products.find((x) => x.id === id);
-    if (!prod) {
-      state.product = { id: "", name: "", features: "", brand: "", op_type: state.opType === "agency" ? "agency" : "own", appeals: [], hook_angle: $("hookAngle").value || "" };
-      state.appealCandidates = []; renderPlanAppeals(); updateLearnNote(); refreshGen(); return;
-    }
+    if (!prod) { state.product = { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [] }; updateLearnNote(); refreshGen(); return; }
     state.product = {
       id: prod.id,
       name: prod.product || prod.brand || "",
       features: [prod.usp, prod.notes ? "[특이사항] " + prod.notes : ""].filter(Boolean).join("\n"),
-      brand: prod.brand || "", op_type: prod.op_type || "own",
-      appeals: [...(prod.appeals || [])], hook_angle: $("hookAngle").value || "",
+      brand: prod.brand || "", op_type: prod.op_type || "own", appeals: [...(prod.appeals || [])],
     };
-    state.appealCandidates = [...(prod.appeals || [])];
     $("prodName").value = state.product.name; $("prodFeatures").value = state.product.features;
-    renderPlanAppeals(); updateLearnNote(); refreshGen();
-  }
-  function renderPlanAppeals() {
-    const root = $("planAppeals"); if (!root) return;
-    if (!state.appealCandidates.length) { root.innerHTML = `<span class="hint">제품 선택 시 자동 표시 (제품 정보에서 소구점 등록)</span>`; return; }
-    root.innerHTML = state.appealCandidates.map((a) => `<button type="button" class="cw-aptog ${state.product.appeals.includes(a) ? "on" : ""}" data-a="${esc(a)}">${esc(a)}</button>`).join("");
-    root.querySelectorAll(".cw-aptog").forEach((b) => b.addEventListener("click", () => {
-      const a = b.dataset.a, i = state.product.appeals.indexOf(a);
-      if (i >= 0) state.product.appeals.splice(i, 1); else state.product.appeals.push(a);
-      renderPlanAppeals();
-    }));
+    updateLearnNote(); refreshGen();
   }
   async function updateLearnNote() {
     const el = $("learnNote"); if (!el) return;
     if (!state.product.id) {
-      el.hidden = false;
-      el.className = "cw-learn cw-learn-muted";
+      el.hidden = false; el.className = "cw-learn cw-learn-muted";
       el.innerHTML = `💡 <b>등록된 제품을 선택</b>하면 확정본이 누적·학습됩니다.`;
       return;
     }
     try {
       const r = await fetch("/api/content/plans?product_id=" + encodeURIComponent(state.product.id));
       const j = await r.json(); const n = (j.plans || []).length;
-      el.hidden = false;
-      el.className = "cw-learn" + (n ? " cw-learn-on" : " cw-learn-muted");
+      el.hidden = false; el.className = "cw-learn" + (n ? " cw-learn-on" : " cw-learn-muted");
       el.innerHTML = n
         ? `📚 <b>${esc(state.product.name)}</b> 확정본 <b>${n}개</b> 누적 — 신규 생성 시 자동 학습 ✓`
         : `📭 <b>${esc(state.product.name)}</b> 확정본 0개 — 확정할수록 완성도가 쌓여요.`;
@@ -387,7 +350,8 @@
   /* ─── 기획안 생성/수정/확정 ─── */
   async function genPlan() {
     const p = activeProj(); if (!p || !p.analysis.length || !state.product.name.trim()) return;
-    p.status = "planning"; p.progress = 0; renderProjTabs(); renderPlanPane(); simProgress(p, 95, 12000);
+    switchPane("studio");
+    p.status = "planning"; p.progress = 0; renderProjTabs(); renderPlanPane(); renderJobs(); simProgress(p);
     try {
       const r = await fetch("/api/content/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysis: p.analysis, product: state.product, product_id: state.product.id }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error || "생성 실패");
@@ -395,7 +359,7 @@
       p.why_watch = j.why_watch || ""; p.why_buy = j.why_buy || ""; p.status = "analyzed"; p.progress = 100;
       if (j.learned_from) toast(`확정본 ${j.learned_from}개 학습 반영됨`);
     } catch (e) { p.status = "analyzed"; alert(e.message); }
-    clearInterval(p.timer); renderProjTabs(); renderPlanPane();
+    clearInterval(p.timer); renderProjTabs(); renderPlanPane(); renderJobs();
   }
   async function refine(feedback) {
     const p = activeProj(); if (!p || !feedback) return;
@@ -408,15 +372,14 @@
   async function confirmPlan() {
     const p = activeProj(); if (!p || !p.plan.length) return;
     if (!state.product.id) {
-      if (!confirm("등록된 제품을 선택하지 않아 '학습'에는 반영되지 않습니다.\n그래도 라이브러리에 저장할까요?\n\n(좌측에서 제품을 선택하면 같은 제품 학습에 쌓입니다)")) return;
+      if (!confirm("등록된 제품을 선택하지 않아 '학습'에는 반영되지 않습니다.\n그래도 라이브러리에 저장할까요?")) return;
     }
     const btn = $("confirmBtn"); btn.disabled = true; btn.textContent = "저장 중…";
     try {
       const body = {
         product_id: state.product.id, product_name: state.product.name,
         brand: state.product.brand, op_type: state.product.op_type,
-        appeals: state.product.appeals, hook_angle: state.product.hook_angle,
-        why_watch: p.why_watch || "", why_buy: p.why_buy || "",
+        appeals: state.product.appeals, why_watch: p.why_watch || "", why_buy: p.why_buy || "",
         title: p.name, reference: p.analysis, draft: p.draft, final: p.plan,
         note: ($("confirmNote").value || "").trim(),
       };
@@ -434,13 +397,11 @@
   }
   function renderLibrary() {
     const root = $("libList"); if (!root) return;
-    let plans = state.plans.filter((x) => state.opType === "all" || (x.op_type || "own") === state.opType);
-    if (state.brand) plans = plans.filter((x) => (x.brand || "") === state.brand);
+    const plans = state.plans;
     if (!plans.length) {
       root.innerHTML = `<div class="empty">확정된 기획안이 없습니다.<br><span class="hint">기획안 스튜디오에서 멘트를 다듬고 <b>[기획안 확정]</b>을 누르면 여기에 쌓여요.</span></div>`;
       return;
     }
-    // 제품별 그룹
     const groups = {};
     plans.forEach((p) => { const k = p.product_name || p.brand || "(미지정)"; (groups[k] = groups[k] || []).push(p); });
     root.innerHTML = Object.entries(groups).map(([name, list]) => {
@@ -478,23 +439,22 @@
     try { await fetch("/api/content/plans/" + id, { method: "DELETE" }); loadLibrary(); updateLearnNote(); } catch (e) {}
   }
 
-  /* ─── 제품 정보 등록 ─── */
+  /* ─── 제품 정보 등록 (소구점 칩 포함) ─── */
   async function loadProducts() {
-    try { const r = await fetch("/api/content/products"); const j = await r.json(); state.products = j.products || []; renderProducts(); renderProdPicker(); renderBrandChips(); }
+    try { const r = await fetch("/api/content/products"); const j = await r.json(); state.products = j.products || []; renderProducts(); renderProdPicker(); }
     catch (e) {}
   }
   function renderProdPicker() {
     const sel = $("prodPick"); if (!sel) return;
     const cur = sel.value;
     sel.innerHTML = `<option value="">— 등록된 제품 선택 (또는 직접 입력) —</option>` +
-      filteredProducts().map((p) => `<option value="${p.id}">${esc(p.brand ? p.brand + " · " : "")}${esc(p.product || "")}</option>`).join("");
+      state.products.map((p) => `<option value="${p.id}">${esc(p.brand ? p.brand + " · " : "")}${esc(p.product || "")}</option>`).join("");
     sel.value = cur;
   }
   function renderProducts() {
     const root = $("prodList"); if (!root) return;
-    const list = filteredProducts();
-    if (!list.length) { root.innerHTML = `<div class="empty">${state.products.length ? "이 맥락에 등록된 제품 없음" : "등록된 제품 없음 — 왼쪽에서 추가하세요"}</div>`; return; }
-    root.innerHTML = list.map((p) => {
+    if (!state.products.length) { root.innerHTML = `<div class="empty">등록된 제품 없음 — 왼쪽에서 추가하세요</div>`; return; }
+    root.innerHTML = state.products.map((p) => {
       const op = p.op_type || "own";
       return `<div class="cw-prodrow">
         <div class="cw-prodrow-main"><b><span class="cw-badge cw-badge-${esc(op)}">${OP_LABEL[op] || "자사"}</span> ${esc(p.brand || "")}${p.brand && p.product ? " · " : ""}${esc(p.product || "")}</b>
@@ -524,10 +484,12 @@
     $("pfSave").dataset.editId = id; $("prodFormTitle").textContent = "제품 수정"; $("pfReset").hidden = false;
   }
   function resetProductForm() {
-    ["pfBrand", "pfProduct", "pfUsp", "pfNotes"].forEach((id) => $(id).value = "");
-    if ($("pfOpType")) $("pfOpType").value = (state.opType === "agency" ? "agency" : "own");
+    ["pfBrand", "pfProduct", "pfUsp", "pfNotes"].forEach((id) => { if ($(id)) $(id).value = ""; });
+    if ($("pfOpType")) $("pfOpType").value = "own";
     state.pfAppeals = []; renderPfAppeals();
-    delete $("pfSave").dataset.editId; $("prodFormTitle").textContent = "새 제품 등록"; $("pfReset").hidden = true;
+    if ($("pfSave")) { delete $("pfSave").dataset.editId; }
+    if ($("prodFormTitle")) $("prodFormTitle").textContent = "새 제품 등록";
+    if ($("pfReset")) $("pfReset").hidden = true;
   }
   async function saveProduct() {
     const body = { op_type: $("pfOpType") ? $("pfOpType").value : "own", brand: $("pfBrand").value.trim(), product: $("pfProduct").value.trim(), usp: $("pfUsp").value.trim(), notes: $("pfNotes").value.trim(), appeals: state.pfAppeals };
