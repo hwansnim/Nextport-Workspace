@@ -17,8 +17,15 @@ from typing import Any
 
 log = logging.getLogger("content_studio")
 
-FLASH_MODEL = "gemini-2.5-flash"   # 분석·USP
-PRO_MODEL = "gemini-2.5-pro"       # 기획안 생성
+# 원본(AI Studio) 모델 우선, 키가 지원 안 하면 다음 후보로 자동 폴백
+ANALYZE_MODELS = ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.0-flash-exp"]
+PLAN_MODELS = ["gemini-3-pro-preview", "gemini-2.5-pro", "gemini-2.5-flash"]
+USP_MODELS = ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.0-flash-exp"]
+FLASH_MODEL = ANALYZE_MODELS[0]
+PRO_MODEL = PLAN_MODELS[0]
+
+_FALLBACK_HINTS = ("not found", "404", "not supported", "permission", "unavailable",
+                   "does not exist", "invalid model", "is not found", "user location")
 
 
 def _configure(config: dict[str, Any]):
@@ -28,6 +35,21 @@ def _configure(config: dict[str, Any]):
         raise ValueError("Gemini API key 미설정 (설정 > Gemini)")
     genai.configure(api_key=api_key)
     return genai
+
+
+def _try_models(genai, models: list[str], call):
+    """후보 모델을 순서대로 시도. 모델 미지원/권한 오류면 다음 후보로 폴백."""
+    last = None
+    for m in models:
+        try:
+            return call(genai.GenerativeModel(m))
+        except Exception as e:  # noqa: BLE001
+            last = e
+            if any(h in str(e).lower() for h in _FALLBACK_HINTS):
+                log.info(f"모델 {m} 폴백 → 다음 후보 ({str(e)[:60]})")
+                continue
+            raise
+    raise last if last else RuntimeError("사용 가능한 Gemini 모델 없음")
 
 
 def _parse_json(text: str):
@@ -131,11 +153,8 @@ def analyze_video(config: dict, video_bytes: bytes, mime_type: str, feedback: st
                 break
             time.sleep(2)
             f = genai.get_file(f.name)
-        model = genai.GenerativeModel(FLASH_MODEL)
-        resp = model.generate_content(
-            [f, prompt],
-            generation_config={"response_mime_type": "application/json"},
-        )
+        resp = _try_models(genai, ANALYZE_MODELS, lambda mdl: mdl.generate_content(
+            [f, prompt], generation_config={"response_mime_type": "application/json"}))
         data = _parse_json(resp.text)
         try:
             genai.delete_file(f.name)
@@ -159,8 +178,8 @@ def generate_plan(config: dict, analysis: list[dict], product: dict,
     fb = f"\n[피드백 반영]: {feedback}\n" if feedback else ""
     prompt = PLAN_PROMPT.format(name=product.get("name", ""), features=product.get("features", ""),
                                 context=context, feedback=fb)
-    model = genai.GenerativeModel(PRO_MODEL)
-    resp = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+    resp = _try_models(genai, PLAN_MODELS, lambda mdl: mdl.generate_content(
+        prompt, generation_config={"response_mime_type": "application/json"}))
     data = _parse_json(resp.text)
     return data if isinstance(data, list) else []
 
@@ -181,17 +200,14 @@ def extract_usp_url(config: dict, url: str) -> dict:
         body = text[:8000]
     except Exception as e:
         raise ValueError(f"URL 내용을 가져오지 못했습니다: {e}")
-    model = genai.GenerativeModel(FLASH_MODEL)
-    resp = model.generate_content(USP_PROMPT_TEXT.format(body=body),
-                                  generation_config={"response_mime_type": "application/json"})
+    resp = _try_models(genai, USP_MODELS, lambda mdl: mdl.generate_content(
+        USP_PROMPT_TEXT.format(body=body), generation_config={"response_mime_type": "application/json"}))
     return _parse_json(resp.text)
 
 
 def extract_usp_file(config: dict, file_bytes: bytes, mime_type: str) -> dict:
     genai = _configure(config)
-    model = genai.GenerativeModel(FLASH_MODEL)
-    resp = model.generate_content(
+    resp = _try_models(genai, USP_MODELS, lambda mdl: mdl.generate_content(
         [{"mime_type": mime_type or "application/pdf", "data": file_bytes}, USP_PROMPT_FILE],
-        generation_config={"response_mime_type": "application/json"},
-    )
+        generation_config={"response_mime_type": "application/json"}))
     return _parse_json(resp.text)

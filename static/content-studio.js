@@ -207,23 +207,73 @@
   function renderPlan() {
     const p = activeProj();
     const body = $("planBody"), refine = $("refineBox");
-    if (!p || !p.plan.length) { body.innerHTML = `<div class="empty">아직 생성된 기획안이 없습니다. 제품 정보 입력 후 [기획안 생성]을 누르세요.</div>`; if (refine) refine.hidden = true; return; }
+    if (!p || !p.plan.length) {
+      body.innerHTML = `<div class="empty">아직 생성된 기획안이 없습니다. 제품 정보 입력 후 [기획안 생성]을 누르세요.</div>`;
+      if (refine) refine.hidden = true; return;
+    }
+    const edit = !!state.planEdit;
+    const cell = (i, f, cls) => edit
+      ? `<td class="${cls}"><textarea class="cw-pedit" data-i="${i}" data-f="${f}">${esc(p.plan[i][f])}</textarea></td>`
+      : `<td class="${cls}">${esc(p.plan[i][f])}</td>`;
     const rows = p.plan.map((a, i) => `<tr>
       <td class="cw-no">${esc(a.no)}</td>
-      <td data-pedit data-i="${i}" data-f="narration">${esc(a.narration)}</td>
-      <td data-pedit data-i="${i}" data-f="caption">${esc(a.caption)}</td>
-      <td data-pedit data-i="${i}" data-f="direction">${esc(a.direction)}</td>
+      ${cell(i, "narration", "cw-pl-narr")}
+      ${cell(i, "caption", "cw-pl-cap")}
+      ${cell(i, "direction", "cw-pl-dir")}
     </tr>`).join("");
-    body.innerHTML = `<div class="cw-plan-actions"><button class="btn-text" id="planCopy">📋 복사</button></div>
-      <table class="cw-tbl"><thead><tr><th>No</th><th>나레이션</th><th>자막</th><th>연출 방향</th></tr></thead><tbody>${rows}</tbody></table>`;
-    if (refine) refine.hidden = false;
-    document.querySelectorAll("#planBody [data-pedit]").forEach((td) => { td.contentEditable = "true"; td.addEventListener("blur", () => { p.plan[+td.dataset.i][td.dataset.f] = td.innerText; }); });
-    $("planCopy")?.addEventListener("click", () => copyPlan(p));
+    body.innerHTML = `
+      <div class="cw-plan-actions">
+        <button class="btn-text" id="planEditToggle">${edit ? "💾 변경사항 저장" : "✏️ 직접 수정"}</button>
+        ${edit ? "" : `<button class="btn-text" id="planCopyNotion">📋 노션용 복사</button>
+        <button class="btn-text" id="planCopyNarr">나레이션 복사</button>
+        <button class="btn-text" id="planCopyCap">자막 복사</button>`}
+      </div>
+      <table class="cw-tbl cw-plan-tbl">
+        <thead><tr><th style="width:34px">No</th><th style="width:35%">신규 나레이션</th><th style="width:35%">신규 자막</th><th>연출</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    if (refine) refine.hidden = edit;
+    $("planEditToggle")?.addEventListener("click", () => togglePlanEdit(p));
+    $("planCopyNotion")?.addEventListener("click", () => copyNotion(p));
+    $("planCopyNarr")?.addEventListener("click", () => copyColumn(p, "narration", "나레이션"));
+    $("planCopyCap")?.addEventListener("click", () => copyColumn(p, "caption", "자막"));
   }
 
-  function copyPlan(p) {
-    const txt = p.plan.map((a) => `[${a.no}]\n나레이션: ${a.narration}\n자막: ${a.caption}\n연출: ${a.direction}`).join("\n\n");
-    navigator.clipboard.writeText(txt).then(() => { const b = $("planCopy"); if (b) { b.textContent = "✅ 복사됨"; setTimeout(() => b.textContent = "📋 복사", 1500); } });
+  function togglePlanEdit(p) {
+    if (state.planEdit) {
+      document.querySelectorAll("#planBody .cw-pedit").forEach((ta) => { p.plan[+ta.dataset.i][ta.dataset.f] = ta.value; });
+    }
+    state.planEdit = !state.planEdit;
+    renderPlan();
+  }
+
+  function copyColumn(p, field, label) {
+    const text = p.plan.map((a) => a[field]).filter((t) => t && t.trim()).join("\n");
+    navigator.clipboard.writeText(text).then(() => toast(`신규 ${label} 복사됨`));
+  }
+
+  // 노션용 복사 — 원본처럼 빨간 글씨 HTML 표
+  async function copyNotion(p) {
+    const rows = p.plan.map((e) => `<tr>` +
+      [e.narration, e.caption, e.direction].map((v) =>
+        `<td style="border:1px solid #eeeeee;padding:8px;color:#ff0000;">${esc(v).replace(/\n/g, "<br>")}</td>`).join("") +
+      `</tr>`).join("");
+    const html = `<table style="border-collapse:collapse;width:100%;font-family:sans-serif;">${rows}</table>`;
+    const plain = p.plan.map((e) => `${e.narration}\t${e.caption}\t${e.direction}`).join("\n");
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/plain": new Blob([plain], { type: "text/plain" }),
+        "text/html": new Blob([html], { type: "text/html" }),
+      })]);
+      toast("노션용(빨간 글씨)으로 복사됨");
+    } catch (e) { navigator.clipboard.writeText(plain); toast("텍스트로 복사됨"); }
+  }
+
+  function toast(msg) {
+    let t = document.getElementById("cwToast");
+    if (!t) { t = document.createElement("div"); t.id = "cwToast"; t.className = "cw-toast"; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();

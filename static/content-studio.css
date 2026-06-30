@@ -89,3 +89,15 @@
 @keyframes cwspin { to { transform: rotate(360deg); } }
 
 .cw-soon { padding: 50px 30px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+/* 기획안 표 — 원본(ParaphraseDisplay) 스타일 */
+.cw-plan-tbl td.cw-pl-narr { font-weight: 700; color: var(--text); }
+.cw-plan-tbl td.cw-pl-cap { font-weight: 800; color: var(--accent); }
+.cw-plan-tbl td.cw-pl-dir { font-size: 11.5px; color: var(--text2); }
+.cw-plan-tbl td.cw-pl-dir:not(:has(textarea)) { background: var(--accent-soft); }
+.cw-pedit { width: 100%; min-height: 70px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 9px; font-family: inherit; font-size: 12.5px; resize: vertical; color: var(--text); }
+.cw-pedit:focus { outline: none; border-color: var(--accent); }
+.cw-plan-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px 4px; }
+/* 토스트 */
+.cw-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1d1d1f; color: #fff; padding: 11px 20px; border-radius: 980px; font-size: 13px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,.3); opacity: 0; pointer-events: none; transition: all .25s; z-index: 9999; }
+.cw-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
