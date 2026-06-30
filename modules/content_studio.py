@@ -24,8 +24,13 @@ USP_MODELS = ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.0-flash-ex
 FLASH_MODEL = ANALYZE_MODELS[0]
 PRO_MODEL = PLAN_MODELS[0]
 
-_FALLBACK_HINTS = ("not found", "404", "not supported", "permission", "unavailable",
-                   "does not exist", "invalid model", "is not found", "user location")
+# 모델 미지원/권한 오류 → 다음 후보로 폴백
+_MODEL_HINTS = ("not found", "404", "not supported", "permission", "unavailable",
+                "does not exist", "invalid model", "is not found", "user location")
+# 할당량/레이트리밋(429) → 다음 후보로 폴백 (무료 티어에서 gemini-3-pro 등 limit:0 대응)
+_QUOTA_HINTS = ("429", "quota", "exceeded", "resource_exhausted", "resource exhausted",
+                "exhausted", "rate limit", "rate_limit", "too many requests")
+_FALLBACK_HINTS = _MODEL_HINTS + _QUOTA_HINTS
 
 
 def _configure(config: dict[str, Any]):
@@ -37,18 +42,39 @@ def _configure(config: dict[str, Any]):
     return genai
 
 
+# 마지막으로 성공한 모델 기억 (무료 티어에서 죽은 후보 반복 호출 방지 → 속도↑·레이트리밋↓)
+_GOOD_MODEL: dict[str, str] = {}
+
+
 def _try_models(genai, models: list[str], call):
-    """후보 모델을 순서대로 시도. 모델 미지원/권한 오류면 다음 후보로 폴백."""
+    """후보 모델을 순서대로 시도. 모델 미지원/권한/할당량(429) 오류면 다음 후보로 폴백.
+    한 번 성공한 모델은 다음 호출 때 맨 앞에서 먼저 시도한다."""
+    key = ",".join(models)
+    ordered = models
+    pref = _GOOD_MODEL.get(key)
+    if pref and pref in models:
+        ordered = [pref] + [m for m in models if m != pref]
     last = None
-    for m in models:
+    for m in ordered:
         try:
-            return call(genai.GenerativeModel(m))
+            log.info(f"Gemini 모델 시도 → {m}")
+            resp = call(genai.GenerativeModel(m))
+            _GOOD_MODEL[key] = m
+            return resp
         except Exception as e:  # noqa: BLE001
             last = e
             if any(h in str(e).lower() for h in _FALLBACK_HINTS):
-                log.info(f"모델 {m} 폴백 → 다음 후보 ({str(e)[:60]})")
+                log.info(f"모델 {m} 폴백 → 다음 후보 ({str(e)[:80]})")
                 continue
             raise
+    # 모든 후보 실패 → 마지막 오류가 할당량 문제면 친절한 메시지로 변환
+    msg = str(last) if last else ""
+    if any(h in msg.lower() for h in _QUOTA_HINTS):
+        raise RuntimeError(
+            "Gemini 무료 할당량을 모두 초과했습니다(분당 한도 또는 무료 미지원 모델). "
+            "1~2분 뒤 다시 시도하거나, 설정에서 유료 결제된 API 키로 바꾸면 "
+            "gemini-3 / 2.5-pro 고품질 모델로 동작합니다."
+        )
     raise last if last else RuntimeError("사용 가능한 Gemini 모델 없음")
 
 
