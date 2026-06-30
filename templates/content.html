@@ -171,8 +171,20 @@
       </section>
 
       <section class="cw-pane" id="pane-shoot">
-        <div class="cw-pane-head"><h1>촬영기획안 생성</h1><p class="page-sub">기획안 → 컷별 촬영 콘티/샷리스트 (촬영 필요한 소재만)</p></div>
-        <div id="shootWrap"><div class="empty">기획안 스튜디오에서 <b>[📹 촬영 기획안]</b> 버튼을 누르면 여기에 컷별 콘티가 나옵니다.</div></div>
+        <div class="cw-pane-head"><h1>촬영기획안 생성</h1><p class="page-sub">확정 기획안(여러 편 선택 가능) → 장소별 동선 촬영 스케줄 → 워드(.docx) 다운로드</p></div>
+        <div class="card cw-prod-form" style="margin-bottom:16px">
+          <div class="cw-card-h">소스 선택 <span class="hint">(기획안 스튜디오에서 [📹 촬영 기획안]으로 바로 생성도 가능)</span></div>
+          <div style="padding:0 16px 14px">
+            <label class="cw-field">제품
+              <select id="shootProduct"><option value="">— 제품 선택 (확정 기획안 묶음) —</option></select>
+            </label>
+            <div class="cw-field">포함할 확정 기획안 <span class="hint">(여러 편 선택 시 한 동선으로 통합)</span>
+              <div id="shootPlanPick"><span class="hint">제품을 먼저 선택하세요</span></div>
+            </div>
+            <button class="btn-primary" id="shootGen" disabled>🎬 촬영 스케줄 생성</button>
+          </div>
+        </div>
+        <div id="shootWrap"><div class="empty">제품·기획안을 고르고 <b>[촬영 스케줄 생성]</b>을 누르세요. (또는 기획안 스튜디오 상세에서 [📹 촬영 기획안])</div></div>
       </section>
 
       <section class="cw-pane" id="pane-perf">

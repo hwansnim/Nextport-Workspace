@@ -66,6 +66,10 @@
       if (prod) { $("pmBrand").value = prod.brand || ""; $("pmProduct").value = prod.product || ""; }
     });
 
+    // 촬영기획안 (자체 생성)
+    $("shootProduct").addEventListener("change", (e) => loadShootPlans(e.target.value));
+    $("shootGen").addEventListener("click", shootGenFromPicks);
+
     // 효율 분석 (메타)
     $("metaSaveToken").addEventListener("click", saveMetaToken);
     $("metaVerify").addEventListener("click", verifyMeta);
@@ -82,7 +86,7 @@
     if (name === "products") { resetProductForm(); loadProducts(); }
     if (name === "library") loadLibrary();
     if (name === "perf") loadMeta();
-    if (name === "shoot") renderShoot();
+    if (name === "shoot") { loadShootSources(); renderShoot(); }
     if (name === "studio") showStudioList();
     if (name === "analyzer" || name === "studio") renderStudio();
   }
@@ -285,45 +289,85 @@
     $("shootBtn").addEventListener("click", () => genShoot());
   }
 
-  /* ─── 촬영 기획안 생성 ─── */
+  /* ─── 촬영 기획안 = 장소별 동선 스케줄 + .docx ─── */
+  let shootState = { schedule: null, meta: {}, filename: "촬영스케줄", busy: false };
+
+  // (1) 스튜디오 연결: 현재 기획안 → 단일 편 스케줄
   async function genShoot() {
     const p = activeProj(); if (!p || !p.plan.length) return;
-    p.shootLoading = true; switchPane("shoot"); renderShoot();
+    switchPane("shoot");
+    await runSchedule([{ label: state.product.name || "기획안", rows: p.plan }], state.product, (state.product.name || p.name) + "_촬영스케줄");
+  }
+  async function runSchedule(plans, product, filename) {
+    shootState.busy = true; shootState.filename = filename || "촬영스케줄";
+    $("shootWrap").innerHTML = progressCard(55, "촬영 스케줄 생성 중...", "장소별 동선으로 컷을 재배치하는 중");
     try {
-      const r = await fetch("/api/content/shoot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: p.plan, product: state.product }) });
+      const r = await fetch("/api/content/shoot/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plans, product }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error || "생성 실패");
-      p.shoot = j.shots || [];
-    } catch (e) { alert(e.message); }
-    p.shootLoading = false; renderShoot();
+      shootState.schedule = j; shootState.meta = { title: j.title, brand: product.brand || "", product: product.name || "" };
+      shootState.busy = false; renderShoot();
+    } catch (e) { shootState.busy = false; shootState.schedule = null; $("shootWrap").innerHTML = `<div class="empty" style="color:#e0245e">❌ ${esc(e.message)}</div>`; }
   }
   function renderShoot() {
-    const root = $("shootWrap"); if (!root) return;
-    const p = activeProj();
-    if (p && p.shootLoading) { root.innerHTML = progressCard(60, "촬영 콘티 생성 중...", "기획안을 컷별 샷 리스트로 변환하는 중"); return; }
-    if (!p || !(p.shoot && p.shoot.length)) {
-      root.innerHTML = `<div class="empty">기획안 스튜디오에서 <b>[📹 촬영 기획안]</b> 버튼을 누르면 여기에 컷별 콘티가 나옵니다.</div>`;
+    const root = $("shootWrap"); if (!root || shootState.busy) return;
+    const sc = shootState.schedule;
+    if (!sc || !(sc.locations && sc.locations.length)) {
+      if (!root.querySelector(".cw-loc")) root.innerHTML = `<div class="empty">제품·기획안을 고르고 <b>[촬영 스케줄 생성]</b>을 누르세요. (또는 기획안 스튜디오 상세에서 [📹 촬영 기획안])</div>`;
       return;
     }
-    const rows = p.shoot.map((s, i) => `<tr>
-      <td class="cw-no">${esc(s.scene || (i + 1))}</td>
-      <td class="cw-narr">${esc(s.visual)}</td>
-      <td class="cw-dir">${esc(s.shot)}</td>
-      <td class="cw-dir">${esc(s.setup)}</td>
-      <td class="cw-cap">${esc(s.caption)}</td>
-      <td>${esc(s.narration)}</td>
-      <td class="cw-dir">${esc(s.note)}</td></tr>`).join("");
-    root.innerHTML = `<div class="card"><div class="cw-card-h">📹 ${esc(p.name)} 촬영 콘티 <span class="hint">${state.product.name ? "· " + esc(state.product.name) : ""}</span>
-      <button class="cw-tb-btn" id="shootCopy" style="float:right">📋 노션용 복사</button></div>
-      <div style="overflow-x:auto"><table class="cw-tbl"><thead><tr>
-      <th class="cw-no">컷</th><th>화면 구성</th><th>샷·앵글</th><th>소품·세팅</th><th>자막</th><th>나레이션</th><th>비고</th>
-      </tr></thead><tbody>${rows}</tbody></table></div></div>`;
-    $("shootCopy").addEventListener("click", () => {
-      const fields = ["scene", "visual", "shot", "setup", "caption", "narration", "note"];
-      const plain = p.shoot.map((s) => fields.map((f) => s[f] || "").join("\t")).join("\n");
-      const tr = p.shoot.map((s) => `<tr>` + fields.map((f) => `<td style="border:1px solid #eee;padding:6px;">${esc(s[f]).replace(/\n/g, "<br>")}</td>`).join("") + `</tr>`).join("");
-      const html = `<table style="border-collapse:collapse">${tr}</table>`;
-      navigator.clipboard.write([new ClipboardItem({ "text/plain": new Blob([plain], { type: "text/plain" }), "text/html": new Blob([html], { type: "text/html" }) })]).then(() => toast("촬영 콘티 복사됨")).catch(() => { navigator.clipboard.writeText(plain); toast("복사됨"); });
-    });
+    const locs = sc.locations.map((loc) => {
+      const cuts = (loc.cuts || []).map((c, i) => `<div class="cw-cut">
+        <div class="cw-cut-tag">#${i + 1} <span>${esc(c.tag || "")}</span></div>
+        <div class="cw-cut-action">${esc(c.action)}</div>
+        <div class="cw-cut-narr">🎙 ${esc(c.narration)}</div></div>`).join("");
+      return `<div class="cw-loc">
+        <div class="cw-loc-h">■ ${esc(loc.location)} <span class="cw-loc-n">${(loc.cuts || []).length}컷</span></div>
+        <div class="cw-loc-info">복장: ${esc(loc.wardrobe || "-")} &nbsp;|&nbsp; 셋업: ${esc(loc.setup || "-")}</div>
+        <div class="cw-cuts">${cuts}</div></div>`;
+    }).join("");
+    root.innerHTML = `<div class="cw-shoot-head"><b>${esc(sc.title || "촬영 스케줄")}</b>
+      <button class="btn-primary" id="shootDocx">📄 워드(.docx) 다운로드</button></div>${locs}`;
+    $("shootDocx").addEventListener("click", downloadDocx);
+  }
+  async function downloadDocx() {
+    if (!shootState.schedule) return;
+    const btn = $("shootDocx"); btn.disabled = true; btn.textContent = "생성 중…";
+    try {
+      const r = await fetch("/api/content/shoot/docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ schedule: shootState.schedule, meta: shootState.meta, filename: shootState.filename }) });
+      if (!r.ok) throw new Error("생성 실패");
+      const blob = await r.blob(); const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = shootState.filename + ".docx"; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url); toast("워드 파일 다운로드됨");
+    } catch (e) { alert(e.message); } finally { btn.disabled = false; btn.textContent = "📄 워드(.docx) 다운로드"; }
+  }
+  // (2) 자체 생성: 제품 → 확정 기획안 묶음 선택 → 스케줄
+  async function loadShootSources() {
+    const sel = $("shootProduct"); if (!sel) return;
+    if (!state.products.length) { try { const r = await fetch("/api/content/products"); state.products = (await r.json()).products || []; } catch (e) {} }
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">— 제품 선택 (확정 기획안 묶음) —</option>` +
+      state.products.map((p) => `<option value="${p.id}">${esc(p.brand ? p.brand + " · " : "")}${esc(p.product || "")}</option>`).join("");
+    sel.value = cur;
+  }
+  async function loadShootPlans(productId) {
+    const root = $("shootPlanPick");
+    if (!productId) { root.innerHTML = `<span class="hint">제품을 먼저 선택하세요</span>`; $("shootGen").disabled = true; return; }
+    try {
+      const r = await fetch("/api/content/plans?product_id=" + encodeURIComponent(productId));
+      const plans = (await r.json()).plans || [];
+      if (!plans.length) { root.innerHTML = `<span class="hint">이 제품의 확정 기획안이 없습니다 (기획안 스튜디오에서 확정하세요)</span>`; $("shootGen").disabled = true; return; }
+      root.innerHTML = plans.map((p, i) => `<label class="cw-shoot-plan"><input type="checkbox" data-plan="${esc(p.id)}" ${i === 0 ? "checked" : ""}/> ${esc(p.title || "기획안")} <span class="hint">${(p.final || []).length}컷 · ${esc((p.created_at || "").slice(0, 10))}</span></label>`).join("");
+      state._shootPlans = plans; $("shootGen").disabled = false;
+    } catch (e) {}
+  }
+  async function shootGenFromPicks() {
+    const ids = [...document.querySelectorAll('#shootPlanPick input[data-plan]:checked')].map((c) => c.dataset.plan);
+    const picked = (state._shootPlans || []).filter((p) => ids.includes(p.id));
+    if (!picked.length) { alert("기획안을 1개 이상 선택하세요."); return; }
+    const prod = state.products.find((x) => x.id === $("shootProduct").value) || {};
+    const product = { name: prod.product || prod.brand || "", features: prod.usp || "", brand: prod.brand || "" };
+    const plans = picked.map((p, i) => ({ label: picked.length > 1 ? `${i + 1}편` : (p.title || "기획안"), rows: p.final || [] }));
+    await runSchedule(plans, product, (prod.product || "촬영") + "_촬영스케줄");
   }
 
   /* ─── 기획안 스튜디오 = 제작 관리 목록 ↔ 항목별 생성기 ─── */

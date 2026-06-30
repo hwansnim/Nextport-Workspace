@@ -333,6 +333,51 @@ def generate_shoot_plan(config: dict, plan: list[dict], product: dict) -> list[d
     return data if isinstance(data, list) else []
 
 
+SCHEDULE_PROMPT = """당신은 광고 촬영 PD입니다. 아래 여러 [기획안]을 받아 **'장소별 동선 촬영 스케줄'**을 작성하십시오.
+목표: 같은 장소에서 찍을 컷들을 한데 묶어, 한 번 세팅했을 때 여러 편의 컷을 몰아 찍도록 **촬영 동선을 최적화**하는 것입니다.
+
+[규칙]
+1. 모든 기획안의 모든 컷을 '촬영 장소' 기준으로 재배치하십시오. 같은 장소·세팅이면 여러 편의 컷을 한 장소에 모으십시오.
+2. 장소 순서는 **복장/세팅 변경이 최소화**되도록 동선을 짜십시오(같은 복장끼리 인접 배치).
+3. 각 장소(location)마다: 장소명, wardrobe(복장), setup(소품·세팅·연출 노트), cuts[].
+4. 각 컷(cut): tag(어느 편 몇 번째인지 "1편#3" 형식, 단일 기획안이면 "#1"), action(화면/동작을 '주체 동작• 카메라/디테일' 식 개조식으로 구체적으로), narration(그 컷의 나레이션 음성).
+5. 컷의 나레이션·내용은 기획안에서 그대로 가져오되, 촬영용으로 화면 동작을 덧붙이십시오. 막연하지 않게 현장에서 바로 찍을 수준으로.
+
+[제품] {name} / 특징: {features}
+
+[기획안들]
+{plans}
+
+반드시 아래 형식의 유효한 JSON 객체로만 응답하십시오 (다른 설명 X):
+{{"title":"촬영 스케줄 제목","locations":[
+ {{"location":"장소 1: 공장 외부 — 건물 앞","wardrobe":"일상 의상(깔끔한 캐주얼)","setup":"공장 전경 배경, 제품 소품",
+   "cuts":[{{"tag":"1편#1","action":"배우 풀샷 등장• 공장 전경 + 걸어오며 등장","narration":"..."}}]}}
+]}}
+"""
+
+
+def generate_shoot_schedule(config: dict, plans: list[dict], product: dict) -> dict:
+    """여러 기획안(편) → 장소별 동선 촬영 스케줄.
+    plans: [{"label":"1편","rows":[{narration,caption,direction}...]}, ...]"""
+    genai = _configure(config)
+    blocks = []
+    for pl in (plans or []):
+        label = pl.get("label") or "기획안"
+        rows = pl.get("rows") or []
+        body = "\n".join(
+            f"  {label}#{i+1} 나레이션:{r.get('narration','')} / 자막:{r.get('caption','')} / 연출:{r.get('direction','')}"
+            for i, r in enumerate(rows))
+        blocks.append(f"[{label}]\n{body}")
+    prompt = SCHEDULE_PROMPT.format(name=product.get("name", ""), features=product.get("features", ""),
+                                    plans="\n\n".join(blocks))
+    resp = _try_models(genai, PLAN_MODELS, lambda mdl: mdl.generate_content(
+        prompt, generation_config={"response_mime_type": "application/json"}))
+    data = _parse_json(resp.text)
+    if isinstance(data, dict):
+        return {"title": data.get("title", ""), "locations": data.get("locations") or []}
+    return {"title": "", "locations": []}
+
+
 def extract_usp_url(config: dict, url: str) -> dict:
     """URL 상세페이지 → 제품명·USP. 서버에서 본문 받아 Gemini 분석."""
     genai = _configure(config)

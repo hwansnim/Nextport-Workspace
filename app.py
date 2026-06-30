@@ -5442,6 +5442,37 @@ def api_content_shoot():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/content/shoot/schedule", methods=["POST"])
+def api_content_shoot_schedule():
+    """여러 기획안 → 장소별 동선 촬영 스케줄."""
+    p = request.get_json(force=True) or {}
+    try:
+        from modules import content_studio
+        sched = content_studio.generate_shoot_schedule(load_config(), p.get("plans") or [], p.get("product") or {})
+        return jsonify(sched)
+    except Exception as e:  # noqa: BLE001
+        log.exception("content shoot schedule failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/content/shoot/docx", methods=["POST"])
+def api_content_shoot_docx():
+    """촬영 스케줄(JSON) → Word(.docx) 다운로드."""
+    p = request.get_json(force=True) or {}
+    try:
+        from modules import shoot_docx
+        data = shoot_docx.build_docx(p.get("schedule") or {}, p.get("meta") or {})
+        fname = (p.get("filename") or "촬영스케줄") + ".docx"
+        resp = make_response(data)
+        resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        from urllib.parse import quote
+        resp.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{quote(fname)}"
+        return resp
+    except Exception as e:  # noqa: BLE001
+        log.exception("content shoot docx failed")
+        return jsonify({"error": str(e)}), 500
+
+
 # ─── 제작 관리 (제목·날짜·사용자·브랜드·제품·분류·비고, 누적·공유) ───
 CONTENT_PRODUCTIONS_FILE = DATA_DIR / "content_productions.json"
 
