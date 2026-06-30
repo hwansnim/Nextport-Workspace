@@ -66,7 +66,18 @@
               <select id="prodPick"><option value="">— 등록된 제품 선택 (또는 직접 입력) —</option></select>
             </label>
             <label class="cw-field">제품명<input type="text" id="prodName" placeholder="제품명을 입력하세요" /></label>
-            <label class="cw-field">핵심 특징 (USP)<textarea id="prodFeatures" rows="6" placeholder="제품의 핵심 특징"></textarea></label>
+            <div class="cw-field">이번 소구점 <span class="hint">(광고 플로우 중심 · 토글)</span>
+              <div class="cw-appeal-toggles" id="planAppeals"><span class="hint">제품 선택 시 자동 표시</span></div>
+            </div>
+            <label class="cw-field">후킹 앵글 <span class="hint">(비우면 소구점에서 자동 도출)</span>
+              <input type="text" id="hookAngle" placeholder="예: 만성 염증러 / 맘카페 / 해외 틱톡" />
+            </label>
+            <div class="cw-hook-presets" id="hookPresets">
+              <button type="button" data-h="만성 OO러들">만성 OO러</button>
+              <button type="button" data-h="맘카페에서 난리난">맘카페</button>
+              <button type="button" data-h="해외 유명 틱톡에서 난리난">해외 틱톡</button>
+            </div>
+            <label class="cw-field">핵심 특징 (USP)<textarea id="prodFeatures" rows="5" placeholder="제품의 핵심 특징·성분·효능"></textarea></label>
             <div class="cw-usp">
               <div class="cw-usp-h">AI 자동 추출 (URL/PDF/이미지) <span class="hint" id="uspStatus"></span></div>
               <div class="cw-usp-row">
@@ -102,7 +113,21 @@
             </label>
             <label class="cw-field">브랜드<input type="text" id="pfBrand" placeholder="예: 하루픽스 / 이브노프 / 듀먼 / 굽네몰" /></label>
             <label class="cw-field">제품<input type="text" id="pfProduct" placeholder="예: 마린콜라겐" /></label>
-            <label class="cw-field">소구점 (USP)<textarea id="pfUsp" rows="5" placeholder="핵심 강점·차별점"></textarea></label>
+            <div class="cw-field">소구점 (여러 개 — 광고 플로우의 중심)
+              <div class="cw-chipinput" id="pfAppealsBox">
+                <span id="pfAppealsTags"></span>
+                <input type="text" id="pfAppealInput" list="appealPresets" placeholder="염증 입력 후 Enter" />
+              </div>
+              <datalist id="appealPresets">
+                <option value="염증"></option><option value="리프팅·탄력"></option><option value="주름"></option>
+                <option value="보습·건조"></option><option value="미백·잡티"></option><option value="모공"></option>
+                <option value="트러블·여드름"></option><option value="다크서클"></option><option value="장 건강"></option>
+                <option value="면역력"></option><option value="피로·활력"></option><option value="수면"></option>
+                <option value="다이어트·체지방"></option><option value="관절"></option><option value="혈행"></option>
+                <option value="눈 건강"></option><option value="갱년기"></option>
+              </datalist>
+            </div>
+            <label class="cw-field">핵심 강점 (USP)<textarea id="pfUsp" rows="4" placeholder="성분·효능·차별점"></textarea></label>
             <label class="cw-field">특이사항<textarea id="pfNotes" rows="3" placeholder="주의사항·톤·금지어 등"></textarea></label>
             <div class="cw-prod-form-btns">
               <button class="btn-primary" id="pfSave">저장</button>

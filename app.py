@@ -5368,10 +5368,11 @@ def api_content_plan():
         pid = (p.get("product_id") or "").strip()
         if pid:
             history = [x for x in _load_content_plans() if x.get("product_id") == pid]
-        rows = content_studio.generate_plan(
+        result = content_studio.generate_plan(
             load_config(), p.get("analysis") or [], p.get("product") or {},
             p.get("feedback") or "", history=history)
-        return jsonify({"plan": rows, "learned_from": len(history)})
+        return jsonify({"plan": result.get("plan") or [], "why_watch": result.get("why_watch", ""),
+                        "why_buy": result.get("why_buy", ""), "learned_from": len(history)})
     except Exception as e:  # noqa: BLE001
         log.exception("content plan failed")
         return jsonify({"error": str(e)}), 500
@@ -5394,10 +5395,14 @@ def api_content_plans():
             "brand": (p.get("brand") or "").strip(),
             "op_type": p.get("op_type") if p.get("op_type") in ("own", "agency") else "own",
             "title": (p.get("title") or "").strip(),
+            "appeals": p.get("appeals") or [],
+            "hook_angle": (p.get("hook_angle") or "").strip(),
             "reference": p.get("reference") or [],
             "draft": p.get("draft") or [],
             "final": final,
             "note": (p.get("note") or "").strip(),
+            "why_watch": (p.get("why_watch") or "").strip(),
+            "why_buy": (p.get("why_buy") or "").strip(),
             "created_at": datetime.now().isoformat(timespec="seconds"),
         }
         items.append(rec)
@@ -5455,6 +5460,11 @@ def api_content_products():
         for k in ("brand", "product", "usp", "notes", "op_type"):
             if k in p:
                 rec[k] = (p.get(k) or "").strip()
+        if "appeals" in p:  # 소구점(여러 개)
+            ap = p.get("appeals") or []
+            if isinstance(ap, str):
+                ap = ap.replace(",", "\n").split("\n")
+            rec["appeals"] = [a.strip() for a in ap if a and a.strip()]
         if rec.get("op_type") not in ("own", "agency"):
             rec["op_type"] = "own"
         if not rec.get("product") and not rec.get("brand"):

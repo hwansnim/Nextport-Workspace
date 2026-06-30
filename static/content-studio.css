@@ -183,3 +183,31 @@ td.cw-ts:hover { background: var(--accent-soft); border-radius: 4px; }
 .cw-lib-note { font-size: 11.5px; color: #c2410c; margin-top: 5px; }
 .cw-lib-btns { display: flex; gap: 2px; flex-shrink: 0; }
 .cw-lib-body { border-top: 1px solid var(--line); padding: 4px 8px 8px; overflow-x: auto; }
+
+/* 소구점 칩 입력 (제품 폼) */
+.cw-chipinput { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 6px 8px; background: #fff; }
+.cw-chipinput:focus-within { border-color: var(--ctx, var(--accent)); }
+.cw-chipinput input { border: none; outline: none; flex: 1; min-width: 90px; font-family: inherit; font-size: 12.5px; padding: 3px 2px; }
+#pfAppealsTags { display: contents; }
+.cw-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--accent-soft); color: var(--accent); font-size: 11.5px; font-weight: 700; padding: 3px 4px 3px 9px; border-radius: 980px; }
+.cw-tag button { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; opacity: .7; }
+.cw-tag button:hover { opacity: 1; }
+.cw-tag-sm { display: inline-block; background: var(--hover); color: var(--text2); font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 980px; margin: 2px 3px 0 0; }
+
+/* 이번 소구점 토글 (스튜디오) */
+.cw-appeal-toggles { display: flex; flex-wrap: wrap; gap: 5px; }
+.cw-aptog { border: 1px solid var(--border-strong); background: #fff; font-family: inherit; font-size: 11.5px; font-weight: 700; color: var(--muted); padding: 5px 11px; border-radius: 980px; cursor: pointer; transition: all .12s; }
+.cw-aptog:hover { border-color: var(--ctx); }
+.cw-aptog.on { background: var(--ctx, var(--accent)); border-color: var(--ctx, var(--accent)); color: #fff; }
+
+/* 후킹 앵글 프리셋 */
+.cw-hook-presets { display: flex; gap: 5px; flex-wrap: wrap; margin: -6px 0 12px; }
+.cw-hook-presets button { border: 1px dashed var(--border-strong); background: #fff; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--text2); padding: 4px 10px; border-radius: 980px; cursor: pointer; }
+.cw-hook-presets button:hover { border-color: var(--ctx); color: var(--ctx); }
+
+/* 왜 볼까 / 왜 살까 박스 */
+.cw-why { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
+.cw-why-col { background: #f5faff; padding: 9px 12px; font-size: 11px; line-height: 1.5; }
+.cw-why-col.cw-why-buy { background: #fff7ef; }
+.cw-why-col b { display: block; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+.cw-why-col span { color: var(--text2); }

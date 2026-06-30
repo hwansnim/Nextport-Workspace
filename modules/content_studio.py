@@ -128,19 +128,64 @@ ANALYZE_PROMPT = """당신은 광고 영상 데이터 추출의 절대적인 전
 [{{"no":"1","timestamp":"00:00","narration":"...","caption":"...","visual":"..."}}, ...]
 """
 
-PLAN_PROMPT = """카피라이터로서 레퍼런스의 구조를 유지하며 우리 제품의 기획안을 작성하십시오.
+# 광고/콘텐츠 기획 헌법 — "왜 볼까? 왜 살까?" (사용자 지침 영구 내장, 모든 기획에 반영)
+DOCTRINE = """[왜 볼까? — 시청 유도 / 최소 1개 이상 충족]
+a) 뻔하지 않은 내용: 이미 소비된 메시지 금지. 호기심·재정의 키워드로 (예: "성인 여드름은 지속형·후발형 두 부류").
+b) 시청의 실익: 보면 얻는 즉각/미래 이득, '모르면 손해' 구조.
+c) 시각적 차별화: Before&After·OSV(ASMR)·맛있어 보임 — 단 아직 신선할 것.
+d) 형식 몰입: 빠른 템포·GIF·언박싱·중독성 — 진부하지 않게.
 
-[필수 작성 규칙]
-1. 자막 구분자: 순차적으로 자막이 바뀔 때만 '<>'를 단독 행(앞뒤 줄바꿈 1회)으로 사용하십시오. 첫 행에는 넣지 마십시오.
-2. 연출 방향: 반드시 '~함', '~임' 식의 개조식으로 간결하게 작성하십시오.
-3. 음성/자막 분리: 나레이션(음성)과 자막(텍스트)을 철저히 분리하십시오.
+[왜 살까? — 구매 전환]
+a) '사도 된다' 신뢰도: 실사용 후기·전문가/권위·논문/인증(식약처·FDA)·대세감·논리적 모순 없음·광고 같지 않음·디테일. (흐름 해치지 않는 선에서 다다익선)
+b) 배타적 차별성: '우리 제품만 당신 문제를 해결' → 비교 차단(성분비·고함량 등, 안 되면 '느낌'이라도).
+c) 효용 구체화: 제품이 아니라 '변화된 나'를 그려줌 (살 빠진 나, 건강한 아이).
+d) 손실회피: "지금 안 사면 손해"(시간/장소/희소) — 마지막에 반드시 1개 장치.
+※ 설명형이면 인과·흐름 논리에 모순이 없어야 하고, 항상 소비자 관점으로 점검."""
+
+PLAN_PROMPT = """당신은 성과가 검증된 숏폼 광고를 '리스킨'하는 전문 카피라이터입니다.
+[레퍼런스 광고]의 **설득 흐름(플로우)과 말투·문장 구조를 그대로 유지**한 채, 제품만 우리 제품으로 바꿔치기하십시오.
+완전히 새로운 광고를 창작하지 마십시오. 레퍼런스를 '리스킨'하는 것이 목표입니다.
+
+[규칙 1 — 광고 플로우 1:1 보존 (가장 중요)]
+- 레퍼런스의 줄 수와 순서를 그대로 따르고, 각 줄을 1:1로 대응 변환하십시오. 줄을 합치거나 빼거나 새로 추가하지 마십시오.
+- 각 줄에서 다음 3가지는 '절대 유지': ①설득 기능(후킹/문제제기/성분·효능/사회적 증거/가격·긴급성/환불보장/CTA 등 그 줄의 역할) ②말투·문장 패턴·리듬·길이감 ③구조적 장치(후킹 공식·비유·긴급성 표현).
+- 각 줄에서 '제품 고유 정보'(제품명·성분·소구점·타겟)만 우리 것으로 치환하십시오.
+
+[규칙 2 — 후킹 공식 사수 (가장 자주 망가지는 부분)]
+- 레퍼런스가 "[특정 집단]들 사이에서 난리 난 [제품]" 형태면, 반드시 같은 공식을 유지하고 [집단]만 우리 타겟/소구로 교체하십시오.
+- 절대 "매일 거울 보며 한숨 쉬던 당신을 위해" 같은 '개인 고민형 일반 문장'으로 바꾸지 마십시오 (이러면 광고가 완전히 망가집니다).
+- 후킹 집단 앵글: {hook_angle}
+- 예) 소구=염증 → "만성 염증러들 사이에서 난리 난 {name}"
+
+[규칙 3 — 이번 기획의 소구점(중심 메시지)]
+{appeals}
+
+[규칙 4 — 우리 제품 / USP]
+제품명: {name}
+USP·특징: {features}
+USP는 레퍼런스에서 '성분·효능'을 말하는 줄에만 자연스럽게 녹이고, 다른 줄의 플로우를 USP 때문에 깨뜨리지 마십시오.
+
+[규칙 5 — '왜 볼까? 왜 살까?' 기획 헌법 (반드시 반영하고, 끝에 충족 요소를 명시)]
+{doctrine}
+
+[변환 예시 — 이 패턴을 그대로 따르십시오]
+레퍼런스: "뉴욕 워킹맘들 사이에서 난리 난 노른자 크림"
+→ (소구=염증) "만성 염증러들 사이에서 난리 난 {name}"   (후킹 공식 유지, 집단만 교체)
+레퍼런스: "10년 더 늙어 보이는 불독살도 쫙 끌어올려 주고 벨트로 묶은 것처럼 리프팅 고정해 주는 노른자 크림"
+→ 같은 '과장된 문제 묘사 + 강한 비유 + 해결' 구조로, 우리 소구점·효능에 맞춰 치환
+
+[자막·연출 규칙]
+1. 자막 구분자 '<>': 한 장면 안에서 자막이 순차적으로 바뀔 때만 단독 행(앞뒤 줄바꿈 1회)으로. 첫 행엔 금지.
+2. 연출(direction): '~함','~임' 식 개조식.
+3. 나레이션(음성)과 자막(텍스트)을 철저히 분리.
 {history}
-[제품 정보] 명: {name}, 특징: {features}
-[레퍼런스 데이터]
+[레퍼런스 광고 — 이 흐름을 그대로 리스킨할 대상]
 {context}
 {feedback}
-반드시 아래 형식의 유효한 JSON 배열로만 응답하십시오 (다른 설명 X):
-[{{"no":"1","narration":"...","caption":"...","direction":"..."}}, ...]
+반드시 아래 형식의 '유효한 JSON 객체'로만 응답하십시오 (다른 설명 X). plan은 레퍼런스와 같은 줄 수로:
+{{"plan":[{{"no":"1","narration":"...","caption":"...","direction":"..."}}, ...],
+"why_watch":"이 기획이 '왜 볼까'의 어떤 요소를 어떻게 충족하는지 1~2문장",
+"why_buy":"이 기획이 '왜 살까'의 어떤 요소(신뢰/차별성/효용/손실회피)를 어떻게 충족하는지 1~2문장"}}
 """
 
 USP_PROMPT_TEXT = """다음은 제품 상세페이지/소개 내용입니다. 제품명과 핵심 특징(USP)을 추출하십시오.
@@ -215,20 +260,44 @@ def _history_block(history: list[dict] | None, limit: int = 5) -> str:
     return "\n".join(out) + "\n"
 
 
+def _appeals_text(product: dict) -> str:
+    ap = product.get("appeals") or []
+    if isinstance(ap, str):
+        ap = [x for x in ap.replace(",", "\n").split("\n")]
+    ap = [a.strip() for a in ap if a and a.strip()]
+    if ap:
+        return ("이번 광고의 핵심 소구점은 다음과 같습니다. 이 소구를 중심으로 레퍼런스의 각 줄을 우리 것으로 치환하십시오:\n· "
+                + "\n· ".join(ap))
+    return "지정된 소구점이 없으면 제품 USP/핵심 효능을 중심 소구로 삼으십시오."
+
+
+def _hook_text(product: dict) -> str:
+    h = (product.get("hook_angle") or "").strip()
+    if h:
+        return f"'{h}'를 후킹 집단으로 사용하십시오 (예: \"{h} 사이에서 난리 난 [제품]\" 형태)."
+    return "소구점/타겟에서 자연스럽게 도출 (예: '만성 OO러들 사이에서', '맘카페에서', '해외 유명 틱톡에서' 난리 난 ~)."
+
+
 def generate_plan(config: dict, analysis: list[dict], product: dict,
-                  feedback: str = "", history: list[dict] | None = None) -> list[dict]:
+                  feedback: str = "", history: list[dict] | None = None) -> dict:
     genai = _configure(config)
     context = "\n".join(
         f"[{a.get('no','')}] 나레이션: {a.get('narration','')}, 자막: {a.get('caption','')}, 연출: {a.get('visual','')}"
         for a in (analysis or [])
     )
     fb = f"\n[피드백 반영]: {feedback}\n" if feedback else ""
-    prompt = PLAN_PROMPT.format(name=product.get("name", ""), features=product.get("features", ""),
-                                context=context, feedback=fb, history=_history_block(history))
+    prompt = PLAN_PROMPT.format(
+        name=product.get("name", ""), features=product.get("features", ""),
+        appeals=_appeals_text(product), hook_angle=_hook_text(product), doctrine=DOCTRINE,
+        context=context, feedback=fb, history=_history_block(history))
     resp = _try_models(genai, PLAN_MODELS, lambda mdl: mdl.generate_content(
         prompt, generation_config={"response_mime_type": "application/json"}))
     data = _parse_json(resp.text)
-    return data if isinstance(data, list) else []
+    if isinstance(data, list):
+        return {"plan": data, "why_watch": "", "why_buy": ""}
+    if isinstance(data, dict):
+        return {"plan": data.get("plan") or [], "why_watch": data.get("why_watch", ""), "why_buy": data.get("why_buy", "")}
+    return {"plan": [], "why_watch": "", "why_buy": ""}
 
 
 def extract_usp_url(config: dict, url: str) -> dict:

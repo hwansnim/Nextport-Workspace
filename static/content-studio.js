@@ -10,7 +10,8 @@
   const OP_LABEL = { own: "자사", agency: "대행" };
   const state = {
     projects: [], active: 0, products: [], plans: [],
-    product: { id: "", name: "", features: "", brand: "", op_type: "own" },
+    product: { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [], hook_angle: "" },
+    appealCandidates: [], pfAppeals: [],
     opType: "own", brand: "",
     edit: { analysis: false, plan: false },
   };
@@ -54,13 +55,19 @@
     $("uspFileBtn").addEventListener("click", () => $("uspFile").click());
     $("uspFile").addEventListener("change", () => { if ($("uspFile").files[0]) extractFile($("uspFile").files[0]); $("uspFile").value = ""; });
 
-    // 제품 정보 등록
+    // 후킹 앵글 + 프리셋
+    $("hookAngle").addEventListener("input", (e) => { state.product.hook_angle = e.target.value; });
+    $("hookPresets").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { $("hookAngle").value = b.dataset.h; state.product.hook_angle = b.dataset.h; }));
+
+    // 제품 정보 등록 (+ 소구점 칩)
     $("pfSave").addEventListener("click", saveProduct);
     $("pfReset").addEventListener("click", resetProductForm);
+    $("pfAppealInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPfAppeal(e.target.value); e.target.value = ""; } });
 
     setOp("own");
     loadProducts();
     renderStudio();
+    renderPlanAppeals();
   }
 
   /* ─── 운영구분(자사/대행) 맥락 ─── */
@@ -257,7 +264,11 @@
       return;
     }
     if (p.status === "planning") { root.innerHTML = progressCard(p.progress, "기획안 생성 중...", "레퍼런스 구조에 제품을 입히는 중"); return; }
+    const why = (p.why_watch || p.why_buy)
+      ? `<div class="cw-why"><div class="cw-why-col"><b>👀 왜 볼까</b><span>${esc(p.why_watch || "-")}</span></div><div class="cw-why-col cw-why-buy"><b>💳 왜 살까</b><span>${esc(p.why_buy || "-")}</span></div></div>`
+      : "";
     root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot done"></span> 신규 기획안 ${toolbar("plan")}</div>
+      ${why}
       <div class="cw-sp-body">${dataTable("plan", p.plan)}</div>
       <div class="cw-rebox">
         <div class="cw-rebox-h">✍️ 기획안 수정 요청</div>
@@ -312,15 +323,30 @@
   }
   function pickProduct(id) {
     const prod = state.products.find((x) => x.id === id);
-    if (!prod) { state.product = { id: "", name: "", features: "", brand: "", op_type: state.opType === "agency" ? "agency" : "own" }; updateLearnNote(); refreshGen(); return; }
+    if (!prod) {
+      state.product = { id: "", name: "", features: "", brand: "", op_type: state.opType === "agency" ? "agency" : "own", appeals: [], hook_angle: $("hookAngle").value || "" };
+      state.appealCandidates = []; renderPlanAppeals(); updateLearnNote(); refreshGen(); return;
+    }
     state.product = {
       id: prod.id,
       name: prod.product || prod.brand || "",
       features: [prod.usp, prod.notes ? "[특이사항] " + prod.notes : ""].filter(Boolean).join("\n"),
       brand: prod.brand || "", op_type: prod.op_type || "own",
+      appeals: [...(prod.appeals || [])], hook_angle: $("hookAngle").value || "",
     };
+    state.appealCandidates = [...(prod.appeals || [])];
     $("prodName").value = state.product.name; $("prodFeatures").value = state.product.features;
-    updateLearnNote(); refreshGen();
+    renderPlanAppeals(); updateLearnNote(); refreshGen();
+  }
+  function renderPlanAppeals() {
+    const root = $("planAppeals"); if (!root) return;
+    if (!state.appealCandidates.length) { root.innerHTML = `<span class="hint">제품 선택 시 자동 표시 (제품 정보에서 소구점 등록)</span>`; return; }
+    root.innerHTML = state.appealCandidates.map((a) => `<button type="button" class="cw-aptog ${state.product.appeals.includes(a) ? "on" : ""}" data-a="${esc(a)}">${esc(a)}</button>`).join("");
+    root.querySelectorAll(".cw-aptog").forEach((b) => b.addEventListener("click", () => {
+      const a = b.dataset.a, i = state.product.appeals.indexOf(a);
+      if (i >= 0) state.product.appeals.splice(i, 1); else state.product.appeals.push(a);
+      renderPlanAppeals();
+    }));
   }
   async function updateLearnNote() {
     const el = $("learnNote"); if (!el) return;
@@ -365,7 +391,8 @@
     try {
       const r = await fetch("/api/content/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysis: p.analysis, product: state.product, product_id: state.product.id }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error || "생성 실패");
-      p.plan = j.plan || []; p.draft = JSON.parse(JSON.stringify(p.plan)); p.status = "analyzed"; p.progress = 100;
+      p.plan = j.plan || []; p.draft = JSON.parse(JSON.stringify(p.plan));
+      p.why_watch = j.why_watch || ""; p.why_buy = j.why_buy || ""; p.status = "analyzed"; p.progress = 100;
       if (j.learned_from) toast(`확정본 ${j.learned_from}개 학습 반영됨`);
     } catch (e) { p.status = "analyzed"; alert(e.message); }
     clearInterval(p.timer); renderProjTabs(); renderPlanPane();
@@ -375,7 +402,7 @@
     $("refineBtn").disabled = true; $("refineBtn").textContent = "반영 중…";
     try {
       const r = await fetch("/api/content/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysis: p.analysis, product: state.product, product_id: state.product.id, feedback }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error); p.plan = j.plan || []; renderPlanPane();
+      const j = await r.json(); if (!r.ok) throw new Error(j.error); p.plan = j.plan || []; p.why_watch = j.why_watch || p.why_watch; p.why_buy = j.why_buy || p.why_buy; renderPlanPane();
     } catch (e) { alert(e.message); $("refineBtn").disabled = false; $("refineBtn").textContent = "수정 반영"; }
   }
   async function confirmPlan() {
@@ -388,6 +415,8 @@
       const body = {
         product_id: state.product.id, product_name: state.product.name,
         brand: state.product.brand, op_type: state.product.op_type,
+        appeals: state.product.appeals, hook_angle: state.product.hook_angle,
+        why_watch: p.why_watch || "", why_buy: p.why_buy || "",
         title: p.name, reference: p.analysis, draft: p.draft, final: p.plan,
         note: ($("confirmNote").value || "").trim(),
       };
@@ -435,6 +464,7 @@
       <div class="cw-lib-row">
         <div class="cw-lib-main"><div class="cw-lib-title">${esc(p.title || "기획안")} <span class="cw-lib-date">${esc(date)}</span></div>
           <div class="cw-lib-prev">${esc(narr).slice(0, 110)}${narr.length > 110 ? "…" : ""}</div>
+          ${(p.appeals && p.appeals.length) ? `<div class="cw-prodrow-appeals">${p.appeals.map((a) => `<span class="cw-tag-sm">${esc(a)}</span>`).join("")}</div>` : ""}
           ${p.note ? `<div class="cw-lib-note">📝 ${esc(p.note)}</div>` : ""}</div>
         <div class="cw-lib-btns"><button class="btn-text" data-libtoggle="${esc(p.id)}">펼치기</button><button class="btn-text" data-libdel="${esc(p.id)}">삭제</button></div>
       </div>
@@ -468,6 +498,7 @@
       const op = p.op_type || "own";
       return `<div class="cw-prodrow">
         <div class="cw-prodrow-main"><b><span class="cw-badge cw-badge-${esc(op)}">${OP_LABEL[op] || "자사"}</span> ${esc(p.brand || "")}${p.brand && p.product ? " · " : ""}${esc(p.product || "")}</b>
+        ${(p.appeals && p.appeals.length) ? `<div class="cw-prodrow-appeals">${p.appeals.map((a) => `<span class="cw-tag-sm">${esc(a)}</span>`).join("")}</div>` : ""}
         ${p.usp ? `<div class="cw-prodrow-usp">${esc(p.usp)}</div>` : ""}${p.notes ? `<div class="cw-prodrow-note">⚠ ${esc(p.notes)}</div>` : ""}</div>
         <div class="cw-prodrow-btns"><button class="btn-text" data-edit="${p.id}">수정</button><button class="btn-text" data-del="${p.id}">삭제</button></div>
       </div>`;
@@ -475,19 +506,31 @@
     root.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => editProduct(b.dataset.edit)));
     root.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => deleteProduct(b.dataset.del)));
   }
+  function addPfAppeal(v) {
+    v = (v || "").trim(); if (!v) return;
+    if (!state.pfAppeals.includes(v)) state.pfAppeals.push(v);
+    renderPfAppeals();
+  }
+  function renderPfAppeals() {
+    const root = $("pfAppealsTags"); if (!root) return;
+    root.innerHTML = state.pfAppeals.map((a) => `<span class="cw-tag">${esc(a)}<button data-x="${esc(a)}" title="삭제">×</button></span>`).join("");
+    root.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", () => { state.pfAppeals = state.pfAppeals.filter((x) => x !== b.dataset.x); renderPfAppeals(); }));
+  }
   function editProduct(id) {
     const p = state.products.find((x) => x.id === id); if (!p) return;
     if ($("pfOpType")) $("pfOpType").value = p.op_type || "own";
     $("pfBrand").value = p.brand || ""; $("pfProduct").value = p.product || ""; $("pfUsp").value = p.usp || ""; $("pfNotes").value = p.notes || "";
+    state.pfAppeals = [...(p.appeals || [])]; renderPfAppeals();
     $("pfSave").dataset.editId = id; $("prodFormTitle").textContent = "제품 수정"; $("pfReset").hidden = false;
   }
   function resetProductForm() {
     ["pfBrand", "pfProduct", "pfUsp", "pfNotes"].forEach((id) => $(id).value = "");
     if ($("pfOpType")) $("pfOpType").value = (state.opType === "agency" ? "agency" : "own");
+    state.pfAppeals = []; renderPfAppeals();
     delete $("pfSave").dataset.editId; $("prodFormTitle").textContent = "새 제품 등록"; $("pfReset").hidden = true;
   }
   async function saveProduct() {
-    const body = { op_type: $("pfOpType") ? $("pfOpType").value : "own", brand: $("pfBrand").value.trim(), product: $("pfProduct").value.trim(), usp: $("pfUsp").value.trim(), notes: $("pfNotes").value.trim() };
+    const body = { op_type: $("pfOpType") ? $("pfOpType").value : "own", brand: $("pfBrand").value.trim(), product: $("pfProduct").value.trim(), usp: $("pfUsp").value.trim(), notes: $("pfNotes").value.trim(), appeals: state.pfAppeals };
     if ($("pfSave").dataset.editId) body.id = $("pfSave").dataset.editId;
     if (!body.brand && !body.product) { alert("브랜드 또는 제품명을 입력하세요."); return; }
     try { const r = await fetch("/api/content/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const j = await r.json(); if (!r.ok) throw new Error(j.error); resetProductForm(); loadProducts(); toast("제품 저장됨"); }
