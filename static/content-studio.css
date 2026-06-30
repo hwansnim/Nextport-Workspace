@@ -130,3 +130,56 @@ td.cw-ts:hover { background: var(--accent-soft); border-radius: 4px; }
 .cw-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1d1d1f; color: #fff; padding: 11px 20px; border-radius: 980px; font-size: 13px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,.3); opacity: 0; pointer-events: none; transition: all .25s; z-index: 9999; }
 .cw-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 @keyframes dmPulse { 0% { box-shadow: 0 0 0 0 rgba(255,149,0,.5); } 70% { box-shadow: 0 0 0 6px rgba(255,149,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,149,0,0); } }
+
+/* ═══ 운영구분 맥락 색상 (자사=파랑 / 대행=보라 / 전체=먹색) ═══ */
+.cw-main { --ctx: #0071e3; --ctx-soft: rgba(0,113,227,.10); }
+.cw-main[data-op="own"]    { --ctx: #0071e3; --ctx-soft: rgba(0,113,227,.10); }
+.cw-main[data-op="agency"] { --ctx: #7c5cff; --ctx-soft: rgba(124,92,255,.12); }
+.cw-main[data-op="all"]    { --ctx: #1d1d1f; --ctx-soft: rgba(0,0,0,.06); }
+
+/* 상단 세그먼트 + 브랜드 칩 바 */
+.cw-topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+.cw-seg { display: inline-flex; background: var(--hover); border-radius: var(--radius-pill); padding: 3px; gap: 2px; }
+.cw-seg-btn { border: none; background: transparent; font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--text2); padding: 7px 16px; border-radius: var(--radius-pill); cursor: pointer; transition: all .12s; }
+.cw-seg-btn:hover { color: var(--text); }
+.cw-seg-btn.active { background: var(--ctx); color: #fff; box-shadow: var(--shadow-sm); }
+.cw-brandchips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.cw-chip { border: 1px solid var(--border-strong); background: #fff; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text2); padding: 6px 12px; border-radius: var(--radius-pill); cursor: pointer; transition: all .12s; }
+.cw-chip:hover { border-color: var(--ctx); color: var(--ctx); }
+.cw-chip.active { background: var(--ctx); border-color: var(--ctx); color: #fff; }
+.cw-chip-own.active { background: #0071e3; border-color: #0071e3; color: #fff; }
+.cw-chip-agency.active { background: #7c5cff; border-color: #7c5cff; color: #fff; }
+.cw-chip-n { opacity: .6; font-size: 10.5px; font-weight: 700; }
+.cw-chip-empty { font-size: 12px; color: var(--muted); }
+
+/* 운영구분 배지 */
+.cw-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 980px; color: #fff; vertical-align: middle; margin-right: 4px; }
+.cw-badge-own { background: #0071e3; }
+.cw-badge-agency { background: #7c5cff; }
+
+/* 학습 누적 안내 */
+.cw-learn { margin-top: 10px; padding: 9px 12px; border-radius: var(--radius-sm); font-size: 11.5px; line-height: 1.5; }
+.cw-learn-on { background: var(--ctx-soft); color: var(--ctx); border: 1px solid var(--ctx); }
+.cw-learn-muted { background: var(--hover); color: var(--muted); }
+
+/* 기획안 확정 바 */
+.cw-confirm { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); background: #fff; }
+.cw-confirm-note { flex: 1; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 9px 11px; font-family: inherit; font-size: 12px; }
+.cw-confirm-note:focus { outline: none; border-color: var(--ctx); }
+.cw-confirm-btn { border: none; background: var(--ctx); color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 800; padding: 0 18px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; }
+.cw-confirm-btn:disabled { opacity: .5; cursor: default; }
+
+/* 광고 라이브러리 */
+.cw-lib-group { margin-bottom: 22px; }
+.cw-lib-gh { display: flex; align-items: center; gap: 9px; padding: 8px 2px 12px; font-size: 15px; }
+.cw-lib-brand { font-size: 12px; color: var(--muted); font-weight: 600; }
+.cw-lib-count { margin-left: auto; font-size: 11.5px; color: var(--muted); font-weight: 700; }
+.cw-lib-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 10px; overflow: hidden; }
+.cw-lib-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 13px 16px; }
+.cw-lib-main { min-width: 0; }
+.cw-lib-title { font-size: 13.5px; font-weight: 700; }
+.cw-lib-date { font-size: 11px; color: var(--muted); font-weight: 500; margin-left: 6px; }
+.cw-lib-prev { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+.cw-lib-note { font-size: 11.5px; color: #c2410c; margin-top: 5px; }
+.cw-lib-btns { display: flex; gap: 2px; flex-shrink: 0; }
+.cw-lib-body { border-top: 1px solid var(--line); padding: 4px 8px 8px; overflow-x: auto; }

@@ -31,6 +31,7 @@
       <nav class="cw-nav">
         <div class="cw-nav-group">콘텐츠 도구</div>
         <button class="cw-nav-item active" data-pane="studio">🎬 기획안 스튜디오</button>
+        <button class="cw-nav-item" data-pane="library">📚 광고 라이브러리</button>
         <button class="cw-nav-item" data-pane="products">🏷 제품 정보</button>
         <button class="cw-nav-item" data-pane="shoot">📹 촬영기획안 생성</button>
         <button class="cw-nav-item" data-pane="perf">📈 효율 분석</button>
@@ -38,7 +39,17 @@
       <div class="cw-side-foot"><div class="hint">소재 기획안 AI 자동생성</div></div>
     </aside>
 
-    <main class="cw-main">
+    <main class="cw-main" id="cwMain" data-op="own">
+      <!-- 상단 운영구분 세그먼트 + 브랜드 칩 (전 화면 공통 맥락) -->
+      <div class="cw-topbar" id="cwTopbar">
+        <div class="cw-seg" id="opSeg">
+          <button class="cw-seg-btn active" data-op="own">🔵 자사</button>
+          <button class="cw-seg-btn" data-op="agency">🟣 대행</button>
+          <button class="cw-seg-btn" data-op="all">전체</button>
+        </div>
+        <div class="cw-brandchips" id="brandChips"></div>
+      </div>
+
       <!-- 기획안 스튜디오 (레퍼런스 분석 + 기획안 생성) -->
       <section class="cw-pane active" id="pane-studio">
         <div class="cw-studio">
@@ -48,6 +59,7 @@
               <div class="cw-vid-empty" id="vidEmpty">레퍼런스 영상을<br>드래그하세요</div>
             </div>
             <button class="btn-primary cw-gen-btn" id="genPlanBtn" disabled>✨ 신규 기획안 생성</button>
+            <div class="cw-learn" id="learnNote" hidden></div>
 
             <div class="cw-aside-h" style="margin-top:22px">PRODUCT INTELLIGENCE</div>
             <label class="cw-field">제품 선택
@@ -82,7 +94,13 @@
         <div class="cw-prod-grid">
           <div class="card cw-prod-form">
             <div class="cw-card-h" id="prodFormTitle">새 제품 등록</div>
-            <label class="cw-field">브랜드<input type="text" id="pfBrand" placeholder="예: 하루픽스" /></label>
+            <label class="cw-field">운영구분
+              <select id="pfOpType">
+                <option value="own">🔵 자사 (넥스트포트 · 건기식/영양제)</option>
+                <option value="agency">🟣 대행</option>
+              </select>
+            </label>
+            <label class="cw-field">브랜드<input type="text" id="pfBrand" placeholder="예: 하루픽스 / 이브노프 / 듀먼 / 굽네몰" /></label>
             <label class="cw-field">제품<input type="text" id="pfProduct" placeholder="예: 마린콜라겐" /></label>
             <label class="cw-field">소구점 (USP)<textarea id="pfUsp" rows="5" placeholder="핵심 강점·차별점"></textarea></label>
             <label class="cw-field">특이사항<textarea id="pfNotes" rows="3" placeholder="주의사항·톤·금지어 등"></textarea></label>
@@ -96,6 +114,15 @@
             <div id="prodList"><div class="empty">불러오는 중…</div></div>
           </div>
         </div>
+      </section>
+
+      <!-- 광고 라이브러리 (확정 기획안 누적) -->
+      <section class="cw-pane" id="pane-library">
+        <div class="cw-pane-head">
+          <h1>광고 라이브러리</h1>
+          <p class="page-sub">내가 <b>[기획안 확정]</b> 누른 광고가 제품별로 쌓입니다. 신규 기획안 생성 시 <b>같은 제품의 확정본을 자동으로 학습</b>해서 완성도가 누적돼요.</p>
+        </div>
+        <div id="libList"><div class="empty">불러오는 중…</div></div>
       </section>
 
       <section class="cw-pane" id="pane-shoot">

@@ -5341,18 +5341,87 @@ def api_content_analyze():
         return jsonify({"error": str(e)}), 500
 
 
+CONTENT_PLANS_FILE = DATA_DIR / "content_plans.json"
+
+
+def _load_content_plans() -> list[dict]:
+    if not CONTENT_PLANS_FILE.exists():
+        return []
+    try:
+        return json.loads(CONTENT_PLANS_FILE.read_text(encoding="utf-8")).get("plans", [])
+    except Exception:
+        return []
+
+
+def _save_content_plans(items: list[dict]) -> None:
+    CONTENT_PLANS_FILE.write_text(json.dumps({"plans": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 @app.route("/api/content/plan", methods=["POST"])
 def api_content_plan():
-    """레퍼런스 분석 + 제품(USP) → 새 기획안 생성."""
+    """레퍼런스 분석 + 제품(USP) → 새 기획안 생성.
+    product_id가 오면 그 제품의 '확정 기획안'들을 학습 참고로 함께 넣는다(누적 학습)."""
     p = request.get_json(force=True) or {}
     try:
         from modules import content_studio
+        history = []
+        pid = (p.get("product_id") or "").strip()
+        if pid:
+            history = [x for x in _load_content_plans() if x.get("product_id") == pid]
         rows = content_studio.generate_plan(
-            load_config(), p.get("analysis") or [], p.get("product") or {}, p.get("feedback") or "")
-        return jsonify({"plan": rows})
+            load_config(), p.get("analysis") or [], p.get("product") or {},
+            p.get("feedback") or "", history=history)
+        return jsonify({"plan": rows, "learned_from": len(history)})
     except Exception as e:  # noqa: BLE001
         log.exception("content plan failed")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/content/plans", methods=["GET", "POST"])
+def api_content_plans():
+    """확정 기획안 라이브러리 — 제품별로 '초안→최종' 누적 적재.
+    GET: ?product_id= / ?brand= / ?op_type= 필터. POST: 확정본 저장."""
+    items = _load_content_plans()
+    if request.method == "POST":
+        p = request.get_json(force=True) or {}
+        final = p.get("final") or []
+        if not final:
+            return jsonify({"error": "확정할 기획안이 비어 있습니다."}), 400
+        rec = {
+            "id": uuid.uuid4().hex[:8],
+            "product_id": (p.get("product_id") or "").strip(),
+            "product_name": (p.get("product_name") or "").strip(),
+            "brand": (p.get("brand") or "").strip(),
+            "op_type": p.get("op_type") if p.get("op_type") in ("own", "agency") else "own",
+            "title": (p.get("title") or "").strip(),
+            "reference": p.get("reference") or [],
+            "draft": p.get("draft") or [],
+            "final": final,
+            "note": (p.get("note") or "").strip(),
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        items.append(rec)
+        _save_content_plans(items)
+        return jsonify({"ok": True, "plan": rec})
+
+    pid = request.args.get("product_id")
+    brand = request.args.get("brand")
+    op = request.args.get("op_type")
+    out = items
+    if pid:
+        out = [x for x in out if x.get("product_id") == pid]
+    if brand:
+        out = [x for x in out if x.get("brand") == brand]
+    if op in ("own", "agency"):
+        out = [x for x in out if x.get("op_type") == op]
+    out = sorted(out, key=lambda x: x.get("created_at", ""), reverse=True)
+    return jsonify({"plans": out})
+
+
+@app.route("/api/content/plans/<plan_id>", methods=["DELETE"])
+def api_content_plan_item_delete(plan_id):
+    _save_content_plans([x for x in _load_content_plans() if x.get("id") != plan_id])
+    return jsonify({"ok": True})
 
 
 CONTENT_PRODUCTS_FILE = DATA_DIR / "content_products.json"
@@ -5380,11 +5449,14 @@ def api_content_products():
         pid = p.get("id")
         rec = next((x for x in items if x.get("id") == pid), None) if pid else None
         if not rec:
-            rec = {"id": uuid.uuid4().hex[:8], "created_at": datetime.now().isoformat(timespec="seconds")}
+            rec = {"id": uuid.uuid4().hex[:8], "op_type": "own",
+                   "created_at": datetime.now().isoformat(timespec="seconds")}
             items.append(rec)
-        for k in ("brand", "product", "usp", "notes"):
+        for k in ("brand", "product", "usp", "notes", "op_type"):
             if k in p:
                 rec[k] = (p.get(k) or "").strip()
+        if rec.get("op_type") not in ("own", "agency"):
+            rec["op_type"] = "own"
         if not rec.get("product") and not rec.get("brand"):
             return jsonify({"error": "브랜드 또는 제품명을 입력하세요."}), 400
         _save_content_products(items)

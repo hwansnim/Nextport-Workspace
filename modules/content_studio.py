@@ -134,7 +134,7 @@ PLAN_PROMPT = """카피라이터로서 레퍼런스의 구조를 유지하며 �
 1. 자막 구분자: 순차적으로 자막이 바뀔 때만 '<>'를 단독 행(앞뒤 줄바꿈 1회)으로 사용하십시오. 첫 행에는 넣지 마십시오.
 2. 연출 방향: 반드시 '~함', '~임' 식의 개조식으로 간결하게 작성하십시오.
 3. 음성/자막 분리: 나레이션(음성)과 자막(텍스트)을 철저히 분리하십시오.
-
+{history}
 [제품 정보] 명: {name}, 특징: {features}
 [레퍼런스 데이터]
 {context}
@@ -194,8 +194,29 @@ def analyze_video(config: dict, video_bytes: bytes, mime_type: str, feedback: st
             pass
 
 
+def _history_block(history: list[dict] | None, limit: int = 5) -> str:
+    """이 제품의 누적 확정 기획안 → 검증된 톤·구조를 학습 참고로 프롬프트에 주입.
+    토큰 관리를 위해 최근 limit개의 '최종 확정본'만 요약해서 넣는다."""
+    history = [h for h in (history or []) if h.get("final")]
+    if not history:
+        return ""
+    out = ["\n[이 제품의 누적 확정 기획안 — 사용자가 직접 검수·확정한 검증된 광고임. "
+           "아래의 톤·후킹·문장 호흡·금지어 회피 패턴을 최대한 계승하되, 문장을 그대로 복붙하지는 마십시오.]"]
+    for i, h in enumerate(history[-limit:], 1):
+        final = h.get("final") or []
+        narr = " / ".join((r.get("narration") or "").strip() for r in final if (r.get("narration") or "").strip())
+        cap = " / ".join((r.get("caption") or "").strip() for r in final if (r.get("caption") or "").strip())
+        out.append(f"· 확정본{i} 나레이션: {narr[:450]}")
+        if cap:
+            out.append(f"  자막: {cap[:300]}")
+        note = (h.get("note") or "").strip()
+        if note:
+            out.append(f"  └ 확정 메모(왜 이렇게 갔는지): {note[:200]}")
+    return "\n".join(out) + "\n"
+
+
 def generate_plan(config: dict, analysis: list[dict], product: dict,
-                  feedback: str = "") -> list[dict]:
+                  feedback: str = "", history: list[dict] | None = None) -> list[dict]:
     genai = _configure(config)
     context = "\n".join(
         f"[{a.get('no','')}] 나레이션: {a.get('narration','')}, 자막: {a.get('caption','')}, 연출: {a.get('visual','')}"
@@ -203,7 +224,7 @@ def generate_plan(config: dict, analysis: list[dict], product: dict,
     )
     fb = f"\n[피드백 반영]: {feedback}\n" if feedback else ""
     prompt = PLAN_PROMPT.format(name=product.get("name", ""), features=product.get("features", ""),
-                                context=context, feedback=fb)
+                                context=context, feedback=fb, history=_history_block(history))
     resp = _try_models(genai, PLAN_MODELS, lambda mdl: mdl.generate_content(
         prompt, generation_config={"response_mime_type": "application/json"}))
     data = _parse_json(resp.text)
