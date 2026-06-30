@@ -5506,6 +5506,8 @@ def api_content_productions():
                 rec[k] = (p.get(k) or "").strip()
         if "category" in p:
             rec["category"] = p.get("category") if p.get("category") in ("shoot", "noshoot") else "noshoot"
+        if "projects" in p and isinstance(p["projects"], list):  # 항목별 기획안(분석·플랜·탭) 영속 저장
+            rec["projects"] = p["projects"]
         if not rec.get("title"):
             return jsonify({"error": "제목을 입력하세요."}), 400
         rec.setdefault("category", "noshoot")
