@@ -5355,6 +5355,49 @@ def api_content_plan():
         return jsonify({"error": str(e)}), 500
 
 
+CONTENT_PRODUCTS_FILE = DATA_DIR / "content_products.json"
+
+
+def _load_content_products() -> list[dict]:
+    if not CONTENT_PRODUCTS_FILE.exists():
+        return []
+    try:
+        return json.loads(CONTENT_PRODUCTS_FILE.read_text(encoding="utf-8")).get("products", [])
+    except Exception:
+        return []
+
+
+def _save_content_products(items: list[dict]) -> None:
+    CONTENT_PRODUCTS_FILE.write_text(json.dumps({"products": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/content/products", methods=["GET", "POST"])
+def api_content_products():
+    """콘텐츠용 제품 정보 — 브랜드·제품·소구점(USP)·특이사항."""
+    items = _load_content_products()
+    if request.method == "POST":
+        p = request.get_json(force=True) or {}
+        pid = p.get("id")
+        rec = next((x for x in items if x.get("id") == pid), None) if pid else None
+        if not rec:
+            rec = {"id": uuid.uuid4().hex[:8], "created_at": datetime.now().isoformat(timespec="seconds")}
+            items.append(rec)
+        for k in ("brand", "product", "usp", "notes"):
+            if k in p:
+                rec[k] = (p.get(k) or "").strip()
+        if not rec.get("product") and not rec.get("brand"):
+            return jsonify({"error": "브랜드 또는 제품명을 입력하세요."}), 400
+        _save_content_products(items)
+        return jsonify({"ok": True, "product": rec})
+    return jsonify({"products": items})
+
+
+@app.route("/api/content/products/<pid>", methods=["DELETE"])
+def api_content_product_delete(pid):
+    _save_content_products([x for x in _load_content_products() if x.get("id") != pid])
+    return jsonify({"ok": True})
+
+
 @app.route("/api/content/usp", methods=["POST"])
 def api_content_usp():
     """상세페이지 URL 또는 파일(PDF/이미지) → 제품명·USP 자동추출."""

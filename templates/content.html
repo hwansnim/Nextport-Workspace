@@ -10,8 +10,10 @@
   <link rel="stylesheet" href="/static/content-studio.css?v={{ ver }}" />
 </head>
 <body class="cw-body">
+  <!-- 전체화면 드롭 오버레이 -->
+  <div class="cw-fsdrop" id="fsDrop"><div class="cw-fsdrop-card">🎬<br>레퍼런스 영상을 놓으세요</div></div>
+
   <div class="cw-shell">
-    <!-- 사이드바 -->
     <aside class="cw-side">
       <div class="cw-brand ws-trigger" id="wsBrand" title="워크스페이스 전환">
         <div class="cw-logo">N</div>
@@ -28,84 +30,87 @@
 
       <nav class="cw-nav">
         <div class="cw-nav-group">콘텐츠 도구</div>
-        <button class="cw-nav-item active" data-pane="analyze">📊 레퍼런스 분석</button>
-        <button class="cw-nav-item" data-pane="plan">📝 기획안 생성</button>
-        <button class="cw-nav-item" data-pane="shoot">🎬 촬영기획안 생성</button>
+        <button class="cw-nav-item active" data-pane="studio">🎬 기획안 스튜디오</button>
+        <button class="cw-nav-item" data-pane="products">🏷 제품 정보</button>
+        <button class="cw-nav-item" data-pane="shoot">📹 촬영기획안 생성</button>
         <button class="cw-nav-item" data-pane="perf">📈 효율 분석</button>
       </nav>
-
-      <div class="cw-side-foot">
-        <div class="hint">소재 기획안 AI 자동생성</div>
-      </div>
+      <div class="cw-side-foot"><div class="hint">소재 기획안 AI 자동생성</div></div>
     </aside>
 
-    <!-- 메인 -->
     <main class="cw-main">
-      <!-- 레퍼런스 분석 -->
-      <section class="cw-pane active" id="pane-analyze">
-        <div class="cw-pane-head">
-          <h1>레퍼런스 분석</h1>
-          <p class="page-sub">광고 영상을 올리면 자막·나레이션·연출을 표로 추출합니다.</p>
-        </div>
-        <div class="cw-proj-tabs" id="projTabs"></div>
-        <div class="cw-analyze-body" id="analyzeBody">
-          <div class="cw-drop" id="videoDrop">
-            <input type="file" id="videoFile" accept="video/*" multiple hidden />
-            <div class="cw-drop-ico">🎞️</div>
-            <div><b>레퍼런스 영상</b>을 끌어다 놓거나 <b>클릭해서 선택</b></div>
-            <div class="hint">올리면 자동으로 분석이 시작됩니다 (여러 개 가능)</div>
-          </div>
-        </div>
-      </section>
+      <!-- 기획안 스튜디오 (레퍼런스 분석 + 기획안 생성) -->
+      <section class="cw-pane active" id="pane-studio">
+        <div class="cw-studio">
+          <aside class="cw-studio-aside">
+            <div class="cw-aside-h">ACTIVE REFERENCE</div>
+            <div class="cw-vidbox" id="vidBox">
+              <div class="cw-vid-empty" id="vidEmpty">레퍼런스 영상을<br>드래그하세요</div>
+            </div>
+            <button class="btn-primary cw-gen-btn" id="genPlanBtn" disabled>✨ 신규 기획안 생성</button>
 
-      <!-- 기획안 생성 -->
-      <section class="cw-pane" id="pane-plan">
-        <div class="cw-pane-head">
-          <h1>기획안 생성</h1>
-          <p class="page-sub">분석한 레퍼런스 구조에 우리 제품을 입혀 새 기획안을 만듭니다.</p>
-        </div>
-        <div class="cw-plan-grid">
-          <div class="cw-product card">
-            <div class="cw-card-h">제품 정보</div>
-            <label class="cw-field">제품명<input type="text" id="prodName" placeholder="제품명" /></label>
-            <label class="cw-field">핵심 특징 (USP)<textarea id="prodFeatures" rows="7" placeholder="제품의 핵심 특징을 입력하거나, 아래에서 자동 추출"></textarea></label>
+            <div class="cw-aside-h" style="margin-top:22px">PRODUCT INTELLIGENCE</div>
+            <label class="cw-field">제품 선택
+              <select id="prodPick"><option value="">— 등록된 제품 선택 (또는 직접 입력) —</option></select>
+            </label>
+            <label class="cw-field">제품명<input type="text" id="prodName" placeholder="제품명을 입력하세요" /></label>
+            <label class="cw-field">핵심 특징 (USP)<textarea id="prodFeatures" rows="6" placeholder="제품의 핵심 특징"></textarea></label>
             <div class="cw-usp">
-              <div class="cw-usp-h">AI 자동 추출 <span class="hint" id="uspStatus"></span></div>
+              <div class="cw-usp-h">AI 자동 추출 (URL/PDF/이미지) <span class="hint" id="uspStatus"></span></div>
               <div class="cw-usp-row">
-                <input type="text" id="uspUrl" placeholder="상세페이지 URL 붙여넣고 Enter" />
+                <input type="text" id="uspUrl" placeholder="상세페이지 URL + Enter" />
                 <button class="btn-secondary" id="uspUrlBtn">추출</button>
                 <button class="btn-secondary" id="uspFileBtn">PDF/이미지</button>
                 <input type="file" id="uspFile" accept="image/*,application/pdf" hidden />
               </div>
             </div>
-            <button class="btn-primary cw-gen-btn" id="genPlanBtn" disabled>✨ 기획안 생성</button>
-            <div class="hint" id="genHint">먼저 레퍼런스 분석 탭에서 영상을 분석하세요.</div>
-          </div>
-          <div class="cw-plan card">
-            <div class="cw-card-h">생성된 기획안 <span class="hint" id="planRefName"></span></div>
-            <div id="planBody"><div class="empty">아직 생성된 기획안이 없습니다.</div></div>
-            <div class="cw-refine" id="refineBox" hidden>
-              <input type="text" id="refineInput" placeholder="수정 요청 (예: 더 자극적으로, 첫 3초 강하게)" />
-              <button class="btn-secondary" id="refineBtn">↻ 수정 반영</button>
+          </aside>
+
+          <div class="cw-studio-main">
+            <div class="cw-proj-tabs" id="projTabs"></div>
+            <div class="cw-studio-panes">
+              <section class="cw-spane" id="analyzeWrap"></section>
+              <section class="cw-spane" id="planWrap"></section>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- 촬영기획안 (자리) -->
-      <section class="cw-pane" id="pane-shoot">
-        <div class="cw-pane-head"><h1>촬영기획안 생성</h1><p class="page-sub">기획안 → 촬영용 콘티/샷리스트로 변환</p></div>
-        <div class="cw-soon card">🎬 준비 중 — 이 기능의 AI Studio 코드를 공유해주시면 그대로 이식합니다.</div>
+      <!-- 제품 정보 -->
+      <section class="cw-pane" id="pane-products">
+        <div class="cw-pane-head"><h1>제품 정보</h1><p class="page-sub">기획안 생성에 쓸 제품을 등록해두세요 (브랜드·제품·소구점·특이사항).</p></div>
+        <div class="cw-prod-grid">
+          <div class="card cw-prod-form">
+            <div class="cw-card-h" id="prodFormTitle">새 제품 등록</div>
+            <label class="cw-field">브랜드<input type="text" id="pfBrand" placeholder="예: 하루픽스" /></label>
+            <label class="cw-field">제품<input type="text" id="pfProduct" placeholder="예: 마린콜라겐" /></label>
+            <label class="cw-field">소구점 (USP)<textarea id="pfUsp" rows="5" placeholder="핵심 강점·차별점"></textarea></label>
+            <label class="cw-field">특이사항<textarea id="pfNotes" rows="3" placeholder="주의사항·톤·금지어 등"></textarea></label>
+            <div class="cw-prod-form-btns">
+              <button class="btn-primary" id="pfSave">저장</button>
+              <button class="btn-secondary" id="pfReset" hidden>새로 작성</button>
+            </div>
+          </div>
+          <div class="card cw-prod-list-card">
+            <div class="cw-card-h">등록된 제품</div>
+            <div id="prodList"><div class="empty">불러오는 중…</div></div>
+          </div>
+        </div>
       </section>
 
-      <!-- 효율 분석 (자리) -->
+      <section class="cw-pane" id="pane-shoot">
+        <div class="cw-pane-head"><h1>촬영기획안 생성</h1><p class="page-sub">기획안 → 촬영 콘티/샷리스트</p></div>
+        <div class="cw-soon card">🎬 준비 중 — 이 기능 코드를 공유해주시면 그대로 이식합니다.</div>
+      </section>
       <section class="cw-pane" id="pane-perf">
-        <div class="cw-pane-head"><h1>효율 분석</h1><p class="page-sub">소재별 퍼포먼스(조회·전환 등) 분석</p></div>
-        <div class="cw-soon card">📈 준비 중 — 효율 분석 기능 코드/원하는 지표를 공유해주시면 이식합니다.</div>
+        <div class="cw-pane-head"><h1>효율 분석</h1><p class="page-sub">소재별 퍼포먼스 분석</p></div>
+        <div class="cw-soon card">📈 준비 중 — 원하는 지표/코드를 공유해주시면 이식합니다.</div>
       </section>
     </main>
   </div>
 
+  <input type="file" id="videoFile" accept="video/*" multiple hidden />
+  <!-- 이미지 확대용 (없어도 됨) -->
   <script src="/static/content-studio.js?v={{ ver }}"></script>
 </body>
 </html>
