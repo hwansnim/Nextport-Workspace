@@ -9,7 +9,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
   const OP_LABEL = { own: "자사", agency: "대행" };
   const state = {
-    projects: [], active: 0, products: [], plans: [], pfAppeals: [],
+    projects: [], active: 0, products: [], plans: [], productions: [], pfAppeals: [],
     product: { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [] },
     edit: { analysis: false, plan: false },
   };
@@ -56,6 +56,14 @@
     $("pfReset").addEventListener("click", resetProductForm);
     $("pfAppealInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPfAppeal(e.target.value); e.target.value = ""; } });
 
+    // 제작 관리
+    $("pmSave").addEventListener("click", savePm);
+    $("pmReset").addEventListener("click", resetPmForm);
+    $("pmProductPick").addEventListener("change", (e) => {
+      const prod = state.products.find((x) => x.id === e.target.value);
+      if (prod) { $("pmBrand").value = prod.brand || ""; $("pmProduct").value = prod.product || ""; }
+    });
+
     loadProducts();
     renderStudio();
   }
@@ -65,6 +73,8 @@
     document.querySelectorAll(".cw-pane").forEach((p) => p.classList.toggle("active", p.id === "pane-" + name));
     if (name === "products") { resetProductForm(); loadProducts(); }
     if (name === "library") loadLibrary();
+    if (name === "productions") loadProductions();
+    if (name === "shoot") renderShoot();
     if (name === "analyzer" || name === "studio") renderStudio();
   }
 
@@ -257,11 +267,131 @@
       </div>
       <div class="cw-confirm">
         <input id="confirmNote" class="cw-confirm-note" placeholder="확정 메모(선택): 왜 이렇게 갔는지 — 다음 학습에 반영돼요" />
-        <button class="cw-confirm-btn" id="confirmBtn">✅ 기획안 확정 (라이브러리에 저장)</button>
+        <button class="cw-confirm-btn cw-shoot-btn" id="shootBtn">📹 촬영 기획안</button>
+        <button class="cw-confirm-btn" id="confirmBtn">✅ 기획안 확정</button>
       </div>`;
     wireTable(root, "plan", p.plan);
     $("refineBtn").addEventListener("click", () => refine($("refineInput").value.trim()));
     $("confirmBtn").addEventListener("click", () => confirmPlan());
+    $("shootBtn").addEventListener("click", () => genShoot());
+  }
+
+  /* ─── 촬영 기획안 생성 ─── */
+  async function genShoot() {
+    const p = activeProj(); if (!p || !p.plan.length) return;
+    p.shootLoading = true; switchPane("shoot"); renderShoot();
+    try {
+      const r = await fetch("/api/content/shoot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: p.plan, product: state.product }) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error || "생성 실패");
+      p.shoot = j.shots || [];
+    } catch (e) { alert(e.message); }
+    p.shootLoading = false; renderShoot();
+  }
+  function renderShoot() {
+    const root = $("shootWrap"); if (!root) return;
+    const p = activeProj();
+    if (p && p.shootLoading) { root.innerHTML = progressCard(60, "촬영 콘티 생성 중...", "기획안을 컷별 샷 리스트로 변환하는 중"); return; }
+    if (!p || !(p.shoot && p.shoot.length)) {
+      root.innerHTML = `<div class="empty">기획안 스튜디오에서 <b>[📹 촬영 기획안]</b> 버튼을 누르면 여기에 컷별 콘티가 나옵니다.</div>`;
+      return;
+    }
+    const rows = p.shoot.map((s, i) => `<tr>
+      <td class="cw-no">${esc(s.scene || (i + 1))}</td>
+      <td class="cw-narr">${esc(s.visual)}</td>
+      <td class="cw-dir">${esc(s.shot)}</td>
+      <td class="cw-dir">${esc(s.setup)}</td>
+      <td class="cw-cap">${esc(s.caption)}</td>
+      <td>${esc(s.narration)}</td>
+      <td class="cw-dir">${esc(s.note)}</td></tr>`).join("");
+    root.innerHTML = `<div class="card"><div class="cw-card-h">📹 ${esc(p.name)} 촬영 콘티 <span class="hint">${state.product.name ? "· " + esc(state.product.name) : ""}</span>
+      <button class="cw-tb-btn" id="shootCopy" style="float:right">📋 노션용 복사</button></div>
+      <div style="overflow-x:auto"><table class="cw-tbl"><thead><tr>
+      <th class="cw-no">컷</th><th>화면 구성</th><th>샷·앵글</th><th>소품·세팅</th><th>자막</th><th>나레이션</th><th>비고</th>
+      </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    $("shootCopy").addEventListener("click", () => {
+      const fields = ["scene", "visual", "shot", "setup", "caption", "narration", "note"];
+      const plain = p.shoot.map((s) => fields.map((f) => s[f] || "").join("\t")).join("\n");
+      const tr = p.shoot.map((s) => `<tr>` + fields.map((f) => `<td style="border:1px solid #eee;padding:6px;">${esc(s[f]).replace(/\n/g, "<br>")}</td>`).join("") + `</tr>`).join("");
+      const html = `<table style="border-collapse:collapse">${tr}</table>`;
+      navigator.clipboard.write([new ClipboardItem({ "text/plain": new Blob([plain], { type: "text/plain" }), "text/html": new Blob([html], { type: "text/html" }) })]).then(() => toast("촬영 콘티 복사됨")).catch(() => { navigator.clipboard.writeText(plain); toast("복사됨"); });
+    });
+  }
+
+  /* ─── 제작 관리 (누적·공유) ─── */
+  const PM_CAT = { shoot: "촬영", noshoot: "미촬영" };
+  async function loadProductions() {
+    renderPmProductPick();
+    try { const r = await fetch("/api/content/productions"); const j = await r.json(); state.productions = j.rows || []; renderProductions(); }
+    catch (e) {}
+  }
+  function renderPmProductPick() {
+    const sel = $("pmProductPick"); if (!sel) return;
+    sel.innerHTML = `<option value="">— 등록 제품 (브랜드·제품 자동 채움) —</option>` +
+      state.products.map((p) => `<option value="${p.id}">${esc(p.brand ? p.brand + " · " : "")}${esc(p.product || "")}</option>`).join("");
+  }
+  function renderProductions() {
+    const root = $("pmList"); if (!root) return;
+    if (!state.productions.length) { root.innerHTML = `<div class="empty">아직 항목이 없습니다 — 위에서 추가하세요</div>`; return; }
+    const rows = state.productions.map((r) => `<tr>
+      <td><b>${esc(r.title)}</b></td>
+      <td class="cw-pm-date">${esc(r.date)}</td>
+      <td>${esc(r.user)}</td>
+      <td>${esc(r.brand)}</td>
+      <td>${esc(r.product)}</td>
+      <td><span class="cw-cat cw-cat-${esc(r.category || "noshoot")}">${PM_CAT[r.category] || "미촬영"}</span></td>
+      <td class="cw-pm-note">${esc(r.note)}</td>
+      <td class="cw-pm-act">
+        <button class="btn-text" data-open="${esc(r.id)}">기획안</button>
+        <button class="btn-text" data-pmedit="${esc(r.id)}">수정</button>
+        <button class="btn-text" data-pmdel="${esc(r.id)}">삭제</button></td></tr>`).join("");
+    root.innerHTML = `<div style="overflow-x:auto"><table class="cw-tbl cw-pm-tbl"><thead><tr>
+      <th>제목</th><th>날짜</th><th>사용자</th><th>브랜드</th><th>제품</th><th>분류</th><th>비고</th><th></th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+    root.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => openInStudio(b.dataset.open)));
+    root.querySelectorAll("[data-pmedit]").forEach((b) => b.addEventListener("click", () => editPm(b.dataset.pmedit)));
+    root.querySelectorAll("[data-pmdel]").forEach((b) => b.addEventListener("click", () => deletePm(b.dataset.pmdel)));
+  }
+  function openInStudio(id) {
+    const r = state.productions.find((x) => x.id === id); if (!r) return;
+    switchPane("studio");
+    if (r.product_id) {
+      const sel = $("prodPick");
+      if ([...sel.options].some((o) => o.value === r.product_id)) { sel.value = r.product_id; pickProduct(r.product_id); }
+    } else if (r.product) {
+      state.product = { id: "", name: r.product, features: "", brand: r.brand || "", op_type: "own", appeals: [] };
+      $("prodName").value = r.product; refreshGen();
+    }
+    toast("기획안 스튜디오 — 레퍼런스 영상을 올리고 생성하세요");
+  }
+  function editPm(id) {
+    const r = state.productions.find((x) => x.id === id); if (!r) return;
+    $("pmTitle").value = r.title || ""; $("pmDate").value = r.date || ""; $("pmUser").value = r.user || "";
+    $("pmBrand").value = r.brand || ""; $("pmProduct").value = r.product || ""; $("pmCategory").value = r.category || "noshoot"; $("pmNote").value = r.note || "";
+    $("pmProductPick").value = r.product_id && [...$("pmProductPick").options].some((o) => o.value === r.product_id) ? r.product_id : "";
+    $("pmSave").dataset.editId = id; $("pmFormTitle").textContent = "항목 수정"; $("pmReset").hidden = false;
+  }
+  function resetPmForm() {
+    ["pmTitle", "pmDate", "pmUser", "pmBrand", "pmProduct", "pmNote"].forEach((id) => { if ($(id)) $(id).value = ""; });
+    if ($("pmCategory")) $("pmCategory").value = "noshoot";
+    if ($("pmProductPick")) $("pmProductPick").value = "";
+    if ($("pmSave")) delete $("pmSave").dataset.editId;
+    if ($("pmFormTitle")) $("pmFormTitle").textContent = "새 항목 추가";
+    if ($("pmReset")) $("pmReset").hidden = true;
+  }
+  async function savePm() {
+    const body = {
+      title: $("pmTitle").value.trim(), date: $("pmDate").value, user: $("pmUser").value.trim(),
+      brand: $("pmBrand").value.trim(), product: $("pmProduct").value.trim(),
+      product_id: $("pmProductPick").value || "", category: $("pmCategory").value, note: $("pmNote").value.trim(),
+    };
+    if ($("pmSave").dataset.editId) body.id = $("pmSave").dataset.editId;
+    if (!body.title) { alert("제목을 입력하세요."); return; }
+    try { const r = await fetch("/api/content/productions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const j = await r.json(); if (!r.ok) throw new Error(j.error); resetPmForm(); loadProductions(); toast("제작 항목 저장됨"); }
+    catch (e) { alert(e.message || "저장 실패"); }
+  }
+  async function deletePm(id) {
+    if (!confirm("이 항목을 삭제할까요?")) return;
+    try { await fetch("/api/content/productions/" + id, { method: "DELETE" }); loadProductions(); } catch (e) {}
   }
 
   function progressCard(pct, title, sub) {

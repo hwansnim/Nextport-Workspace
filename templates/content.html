@@ -32,9 +32,10 @@
         <div class="cw-nav-group">콘텐츠 도구</div>
         <button class="cw-nav-item active" data-pane="analyzer">🔍 레퍼런스 분석기</button>
         <button class="cw-nav-item" data-pane="studio">🎬 기획안 스튜디오</button>
+        <button class="cw-nav-item" data-pane="shoot">📹 촬영기획안 생성</button>
+        <button class="cw-nav-item" data-pane="productions">🗂 제작 관리</button>
         <button class="cw-nav-item" data-pane="library">📚 광고 라이브러리</button>
         <button class="cw-nav-item" data-pane="products">🏷 제품 정보</button>
-        <button class="cw-nav-item" data-pane="shoot">📹 촬영기획안 생성</button>
         <button class="cw-nav-item" data-pane="perf">📈 효율 분석</button>
       </nav>
       <div class="cw-side-foot"><div class="hint">소재 기획안 AI 자동생성</div></div>
@@ -144,8 +145,31 @@
       </section>
 
       <section class="cw-pane" id="pane-shoot">
-        <div class="cw-pane-head"><h1>촬영기획안 생성</h1><p class="page-sub">확정 기획안 → 촬영 콘티/샷리스트 (촬영 필요한 소재만)</p></div>
-        <div class="cw-soon card">📹 준비 중 — 다음 단계에서 [기획안 확정] → 촬영 기획안 자동 생성을 연결합니다.</div>
+        <div class="cw-pane-head"><h1>촬영기획안 생성</h1><p class="page-sub">기획안 → 컷별 촬영 콘티/샷리스트 (촬영 필요한 소재만)</p></div>
+        <div id="shootWrap"><div class="empty">기획안 스튜디오에서 <b>[📹 촬영 기획안]</b> 버튼을 누르면 여기에 컷별 콘티가 나옵니다.</div></div>
+      </section>
+
+      <!-- 제작 관리 (누적·공유) -->
+      <section class="cw-pane" id="pane-productions">
+        <div class="cw-pane-head"><h1>제작 관리</h1><p class="page-sub">제목·날짜·사용자·브랜드·제품·분류(촬영/미촬영)·비고로 누적 관리. (모두가 공유)</p></div>
+        <div class="card cw-prod-form" style="margin-bottom:16px">
+          <div class="cw-card-h" id="pmFormTitle">새 항목 추가</div>
+          <div class="cw-pm-form">
+            <label class="cw-field" style="grid-column:1/-1">제목<input type="text" id="pmTitle" placeholder="예: [하루픽스] 염증 후킹 A안" /></label>
+            <label class="cw-field">날짜<input type="date" id="pmDate" /></label>
+            <label class="cw-field">사용자<input type="text" id="pmUser" placeholder="작성자 이름" /></label>
+            <label class="cw-field">제품 선택<select id="pmProductPick"><option value="">— 등록 제품 (브랜드·제품 자동 채움) —</option></select></label>
+            <label class="cw-field">분류<select id="pmCategory"><option value="noshoot">미촬영</option><option value="shoot">촬영</option></select></label>
+            <label class="cw-field">브랜드<input type="text" id="pmBrand" placeholder="브랜드" /></label>
+            <label class="cw-field">제품<input type="text" id="pmProduct" placeholder="제품" /></label>
+            <label class="cw-field" style="grid-column:1/-1">비고<input type="text" id="pmNote" placeholder="비고" /></label>
+          </div>
+          <div class="cw-prod-form-btns">
+            <button class="btn-primary" id="pmSave">저장</button>
+            <button class="btn-secondary" id="pmReset" hidden>새로 작성</button>
+          </div>
+        </div>
+        <div class="card"><div id="pmList"><div class="empty">불러오는 중…</div></div></div>
       </section>
       <section class="cw-pane" id="pane-perf">
         <div class="cw-pane-head"><h1>효율 분석</h1><p class="page-sub">브랜드·제품 단위 광고관리자 연동 퍼포먼스</p></div>

@@ -214,6 +214,21 @@ td.cw-ts:hover { background: var(--accent-soft); border-radius: 4px; }
 .cw-why-col b { display: block; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
 .cw-why-col span { color: var(--text2); }
 
+/* 촬영 버튼 (확정 옆) */
+.cw-shoot-btn { background: #1d1d1f; }
+.cw-shoot-btn:hover { background: #333; }
+
+/* 제작 관리 폼 + 테이블 */
+.cw-pm-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; padding: 0 16px 4px; }
+.cw-pm-form .cw-field { padding-top: 12px; margin-bottom: 0; }
+.cw-pm-tbl td { vertical-align: middle; }
+.cw-pm-date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text2); }
+.cw-pm-note { color: var(--text2); }
+.cw-pm-act { white-space: nowrap; text-align: right; }
+.cw-cat { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 980px; }
+.cw-cat-shoot { background: #fff1e6; color: #c2410c; }
+.cw-cat-noshoot { background: var(--hover); color: var(--muted); }
+
 /* 글로벌 작업표시 (어느 화면에서도 진행 확인) */
 .cw-jobs { position: fixed; right: 22px; bottom: 22px; display: none; flex-direction: column; gap: 8px; z-index: 9500; }
 .cw-jobs.show { display: flex; }

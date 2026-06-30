@@ -300,6 +300,39 @@ def generate_plan(config: dict, analysis: list[dict], product: dict,
     return {"plan": [], "why_watch": "", "why_buy": ""}
 
 
+SHOOT_PROMPT = """당신은 숏폼 광고 촬영감독입니다. 아래 [기획안]을 바탕으로 현장에서 바로 찍을 수 있는
+'촬영 기획안(컷별 콘티 / 샷 리스트)'을 작성하십시오.
+
+[작성 규칙]
+- 기획안의 각 줄을 하나 이상의 '컷'으로 구체화하되, 흐름·순서는 유지하십시오.
+- 막연하지 않게, 실제 촬영팀이 그대로 찍을 수 있을 만큼 구체적으로 적으십시오.
+- shot(샷)은 샷 사이즈·앵글·카메라 무빙을 적으십시오 (예: 클로즈업/핸드헬드/부감/슬로우).
+- setup은 필요한 소품·장소·세팅·조명을 적으십시오.
+- caption(자막)·narration(나레이션)은 기획안 내용을 그대로 잇되 화면에 맞게 정리하십시오.
+
+[제품] {name} / 특징: {features}
+[기획안]
+{context}
+
+반드시 아래 형식의 유효한 JSON 배열로만 응답하십시오 (다른 설명 X):
+[{{"scene":"1","visual":"화면 구성(무엇을/누가/어떻게)","shot":"샷사이즈·앵글·무빙","setup":"소품·장소·세팅","caption":"자막","narration":"나레이션","note":"촬영 팁/주의"}}, ...]
+"""
+
+
+def generate_shoot_plan(config: dict, plan: list[dict], product: dict) -> list[dict]:
+    """확정/생성된 기획안 → 컷별 촬영 콘티(샷 리스트)."""
+    genai = _configure(config)
+    context = "\n".join(
+        f"[{p.get('no','')}] 나레이션: {p.get('narration','')}, 자막: {p.get('caption','')}, 연출: {p.get('direction','')}"
+        for p in (plan or [])
+    )
+    prompt = SHOOT_PROMPT.format(name=product.get("name", ""), features=product.get("features", ""), context=context)
+    resp = _try_models(genai, ANALYZE_MODELS, lambda mdl: mdl.generate_content(
+        prompt, generation_config={"response_mime_type": "application/json"}))
+    data = _parse_json(resp.text)
+    return data if isinstance(data, list) else []
+
+
 def extract_usp_url(config: dict, url: str) -> dict:
     """URL 상세페이지 → 제품명·USP. 서버에서 본문 받아 Gemini 분석."""
     genai = _configure(config)

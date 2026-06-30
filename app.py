@@ -5429,6 +5429,68 @@ def api_content_plan_item_delete(plan_id):
     return jsonify({"ok": True})
 
 
+@app.route("/api/content/shoot", methods=["POST"])
+def api_content_shoot():
+    """기획안 → 컷별 촬영 콘티(샷 리스트)."""
+    p = request.get_json(force=True) or {}
+    try:
+        from modules import content_studio
+        shots = content_studio.generate_shoot_plan(load_config(), p.get("plan") or [], p.get("product") or {})
+        return jsonify({"shots": shots})
+    except Exception as e:  # noqa: BLE001
+        log.exception("content shoot failed")
+        return jsonify({"error": str(e)}), 500
+
+
+# ─── 제작 관리 (제목·날짜·사용자·브랜드·제품·분류·비고, 누적·공유) ───
+CONTENT_PRODUCTIONS_FILE = DATA_DIR / "content_productions.json"
+
+
+def _load_content_productions() -> list[dict]:
+    if not CONTENT_PRODUCTIONS_FILE.exists():
+        return []
+    try:
+        return json.loads(CONTENT_PRODUCTIONS_FILE.read_text(encoding="utf-8")).get("rows", [])
+    except Exception:
+        return []
+
+
+def _save_content_productions(rows: list[dict]) -> None:
+    CONTENT_PRODUCTIONS_FILE.write_text(json.dumps({"rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/content/productions", methods=["GET", "POST"])
+def api_content_productions():
+    """제작 관리 테이블 — 제목/날짜/사용자/브랜드/제품/분류(shoot|noshoot)/비고."""
+    rows = _load_content_productions()
+    if request.method == "POST":
+        p = request.get_json(force=True) or {}
+        rid = p.get("id")
+        rec = next((x for x in rows if x.get("id") == rid), None) if rid else None
+        if not rec:
+            rec = {"id": uuid.uuid4().hex[:8], "created_at": datetime.now().isoformat(timespec="seconds")}
+            rows.append(rec)
+        for k in ("title", "date", "user", "brand", "product", "product_id", "note"):
+            if k in p:
+                rec[k] = (p.get(k) or "").strip()
+        if "category" in p:
+            rec["category"] = p.get("category") if p.get("category") in ("shoot", "noshoot") else "noshoot"
+        if not rec.get("title"):
+            return jsonify({"error": "제목을 입력하세요."}), 400
+        rec.setdefault("category", "noshoot")
+        rec.setdefault("date", datetime.now().strftime("%Y-%m-%d"))
+        _save_content_productions(rows)
+        return jsonify({"ok": True, "row": rec})
+    rows = sorted(rows, key=lambda x: (x.get("date", ""), x.get("created_at", "")), reverse=True)
+    return jsonify({"rows": rows})
+
+
+@app.route("/api/content/productions/<row_id>", methods=["DELETE"])
+def api_content_production_delete(row_id):
+    _save_content_productions([x for x in _load_content_productions() if x.get("id") != row_id])
+    return jsonify({"ok": True})
+
+
 CONTENT_PRODUCTS_FILE = DATA_DIR / "content_products.json"
 
 
