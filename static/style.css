@@ -93,8 +93,8 @@ body {
 }
 .brand-text { line-height: 1.25; }
 /* 워크스페이스 전환 드롭다운 */
-.ws-trigger { position: relative; cursor: pointer; border-radius: var(--radius-sm); padding: 4px; margin: -4px; transition: background .12s; }
-.ws-trigger:hover { background: rgba(0,0,0,.04); }
+.ws-trigger { position: relative; cursor: pointer; transition: background .12s; }
+.ws-trigger:hover { background: rgba(0,0,0,.03); }
 .ws-caret { font-size: 9px; color: var(--sidebar-muted); }
 .ws-dropdown {
   position: absolute; top: calc(100% + 6px); left: 0; min-width: 220px; z-index: 200;
