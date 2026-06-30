@@ -21,13 +21,26 @@
   <div class="app">
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
-      <div class="brand">
-        <a href="/content" class="brand-logo brand-logo-link" title="클릭 → 콘텐츠 워크스페이스로 전환">N</a>
+      <div class="brand ws-trigger" id="wsBrand" title="워크스페이스 전환">
+        <div class="brand-logo">N</div>
         <div class="brand-text">
-          <div class="brand-title">넥스트포트</div>
+          <div class="brand-title">넥스트포트 <span class="ws-caret">▾</span></div>
           <div class="brand-sub">공동구매 워크스페이스</div>
         </div>
+        <div class="ws-dropdown" id="wsDropdown" hidden>
+          <div class="ws-dd-head">넥스트포트</div>
+          <a href="/content" class="ws-dd-item">🎬 콘텐츠 워크스페이스</a>
+          <a href="/" class="ws-dd-item active">🛒 공동구매 워크스페이스 <span class="ws-dd-check">✓</span></a>
+        </div>
       </div>
+      <script>
+        (function(){
+          var b=document.getElementById('wsBrand'), d=document.getElementById('wsDropdown');
+          if(!b||!d) return;
+          b.addEventListener('click', function(e){ if(e.target.closest('.ws-dd-item')) return; e.stopPropagation(); d.hidden=!d.hidden; });
+          document.addEventListener('click', function(){ d.hidden=true; });
+        })();
+      </script>
 
       <div class="brand-switcher" id="brandSwitcher">
         <div class="bs-label">브랜드</div>

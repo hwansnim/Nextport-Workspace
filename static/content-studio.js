@@ -9,6 +9,12 @@
   const state = { projects: [], active: 0, product: { name: "", features: "" } };
 
   function init() {
+    // 워크스페이스 전환 드롭다운
+    const wb = $("wsBrand"), wd = $("wsDropdown");
+    if (wb && wd) {
+      wb.addEventListener("click", (e) => { if (e.target.closest(".ws-dd-item")) return; e.stopPropagation(); wd.hidden = !wd.hidden; });
+      document.addEventListener("click", () => { wd.hidden = true; });
+    }
     // 좌측 탭 전환
     document.querySelectorAll(".cw-nav-item").forEach((b) => b.addEventListener("click", () => switchPane(b.dataset.pane)));
     // 영상 업로드

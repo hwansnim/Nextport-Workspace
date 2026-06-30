@@ -13,17 +13,17 @@
   <div class="cw-shell">
     <!-- 사이드바 -->
     <aside class="cw-side">
-      <div class="cw-brand">
-        <a href="/" class="cw-logo" title="공동구매 워크스페이스로 전환">N</a>
+      <div class="cw-brand ws-trigger" id="wsBrand" title="워크스페이스 전환">
+        <div class="cw-logo">N</div>
         <div class="cw-brand-txt">
-          <div class="cw-brand-sw">워크스페이스 ▾</div>
-          <div class="cw-brand-name">콘텐츠</div>
+          <div class="cw-brand-sw">넥스트포트 ▾</div>
+          <div class="cw-brand-name">콘텐츠 워크스페이스</div>
         </div>
-      </div>
-
-      <div class="cw-ws-switch">
-        <a href="/" class="cw-ws-item">🛒 공동구매</a>
-        <a href="/content" class="cw-ws-item active">🎬 콘텐츠</a>
+        <div class="ws-dropdown" id="wsDropdown" hidden>
+          <div class="ws-dd-head">넥스트포트</div>
+          <a href="/content" class="ws-dd-item active">🎬 콘텐츠 워크스페이스 <span class="ws-dd-check">✓</span></a>
+          <a href="/" class="ws-dd-item">🛒 공동구매 워크스페이스</a>
+        </div>
       </div>
 
       <nav class="cw-nav">
