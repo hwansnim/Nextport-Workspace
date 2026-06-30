@@ -262,6 +262,39 @@ td.cw-ts:hover { background: var(--accent-soft); border-radius: 4px; }
 .cw-perf-tbl td { font-variant-numeric: tabular-nums; }
 .cw-perf-tbl tfoot td { font-weight: 800; border-top: 2px solid var(--line); background: var(--hover); }
 
+/* 통합 작업 표 (분석 ↔ 신규 기획안 같은 행 정렬) */
+#studioWork { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.cw-work-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); flex: none; }
+.cw-work-title { font-size: 13px; font-weight: 800; }
+.cw-pending-tag { color: #ea8a00; font-size: 11px; font-weight: 700; margin-left: 8px; }
+.cw-work-msg { padding: 40px 20px; text-align: center; }
+.cw-work-scroll { flex: 1; min-height: 0; overflow: auto; }
+.cw-combo { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.cw-combo th, .cw-combo td { border: 1px solid var(--line); padding: 8px 10px; vertical-align: top; text-align: left; }
+.cw-combo thead th { position: sticky; background: var(--hover); font-size: 10.5px; font-weight: 700; color: var(--muted); z-index: 1; }
+.cw-combo thead tr.cw-combo-grp th { top: 0; }
+.cw-combo thead tr:not(.cw-combo-grp) th { top: 30px; }
+.cw-combo .cw-grp-ref { text-align: center; background: #eef1f4; color: var(--text2); }
+.cw-combo .cw-grp-new { text-align: center; background: var(--accent-soft); color: var(--accent); }
+.cw-combo .cw-no { width: 40px; text-align: center; white-space: nowrap; color: var(--muted); font-weight: 700; }
+.cw-combo .cw-ts { width: 56px; white-space: nowrap; color: var(--accent); cursor: pointer; font-variant-numeric: tabular-nums; font-size: 11px; }
+.cw-combo td.cw-ts:hover { background: var(--accent-soft); }
+.cw-combo td.cw-ref { color: var(--text2); white-space: pre-wrap; }
+.cw-combo td.cw-ref-cap { color: #9a6a4f; }
+.cw-combo td.cw-new { background: #fbfdff; white-space: pre-wrap; }
+.cw-combo td.cw-narr { font-weight: 700; color: var(--text); border-left: 2px solid var(--accent); }
+.cw-combo td.cw-cap { color: #c2410c; font-weight: 700; }
+.cw-combo td.cw-dir { font-size: 11px; color: var(--text2); }
+.cw-combo .cw-pending { color: #c7c7cc; }
+.cw-combo .cw-cell-edit { width: 100%; min-height: 46px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 7px; font-family: inherit; font-size: 12px; resize: vertical; }
+.cw-combo .cw-cell-edit:focus { outline: none; border-color: var(--accent); }
+.cw-work-foot { flex: none; padding: 10px 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; background: #fff; }
+.cw-work-foot .cw-rebox-row { display: flex; gap: 8px; }
+.cw-work-foot .cw-rebox-row textarea { flex: 1; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-family: inherit; font-size: 12px; resize: none; }
+.cw-work-foot .cw-rebox-row textarea:focus { outline: none; border-color: var(--accent); }
+.cw-work-foot .cw-confirm { border: none; padding: 0; }
+.cw-work-foot .cw-why { margin: 2px 0 4px; border-radius: var(--radius-sm); overflow: hidden; }
+
 /* 촬영 스케줄 (장소별 동선) */
 .cw-shoot-plan { display: block; padding: 6px 0; font-size: 13px; cursor: pointer; }
 .cw-shoot-plan input { margin-right: 8px; }

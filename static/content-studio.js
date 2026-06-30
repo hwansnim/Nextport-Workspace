@@ -10,10 +10,15 @@
   const OP_LABEL = { own: "자사", agency: "대행" };
   const state = {
     projects: [], active: 0, products: [], plans: [], productions: [], pfAppeals: [],
+    entryProjects: {}, studioEntry: null, editWork: false,
     meta: { connected: false, accounts: [] },
     product: { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [] },
-    edit: { analysis: false, plan: false },
   };
+  let _pidc = 0;
+  function newProject(name) {
+    return { id: "pj" + (++_pidc), name: name || ("기획안 " + String.fromCharCode(65 + state.projects.length)), file: null, url: null, analysis: [], plan: [], draft: [], why_watch: "", why_buy: "", status: "idle", progress: 0, error: "", timer: null };
+  }
+  function addEmptyProject() { const pr = newProject(); state.projects.push(pr); state.active = state.projects.length - 1; renderStudio(); }
 
   function init() {
     // 워크스페이스 드롭다운
@@ -96,10 +101,12 @@
 
   /* ─── 영상 → 프로젝트 + 병렬 분석 ─── */
   function handleVideos(files) {
-    files.filter((f) => f.type.startsWith("video/")).forEach((file) => {
-      const proj = { id: Math.random().toString(36).slice(2), name: "기획안 " + String.fromCharCode(65 + state.projects.length), file, url: URL.createObjectURL(file), analysis: [], plan: [], draft: [], why_watch: "", why_buy: "", status: "analyzing", progress: 0, error: "", timer: null };
-      state.projects.push(proj);
-      state.active = state.projects.length - 1;
+    files.filter((f) => f.type.startsWith("video/")).forEach((file, idx) => {
+      let proj;
+      const cur = activeProj();
+      if (idx === 0 && cur && !cur.file && !cur.analysis.length) proj = cur;          // 빈 탭이면 그 탭에 채움
+      else { proj = newProject(); state.projects.push(proj); state.active = state.projects.length - 1; }
+      proj.file = file; proj.url = URL.createObjectURL(file);
       analyzeProject(proj);
     });
     renderStudio();
@@ -115,14 +122,14 @@
       else if (cur < 90) inc = Math.random() * 1.2 + 0.4;
       else inc = Math.max(0.15, (99 - cur) * 0.05); // 90%부터 1%씩 천천히 creep
       proj.progress = Math.min(99, cur + inc);
-      if (proj === activeProj()) (proj.status === "planning" ? renderPlanPane() : renderAnalyzePane());
+      if (proj === activeProj()) renderStudioWork();
       renderProjTabs(); renderJobs();
     }, 400);
   }
 
   async function analyzeProject(proj, feedback) {
     proj.status = "analyzing"; proj.error = ""; proj.progress = 0;
-    renderProjTabs(); renderAnalyzePane(); renderJobs();
+    renderProjTabs(); renderStudioWork(); renderJobs();
     simProgress(proj);
     try {
       const fd = new FormData();
@@ -137,7 +144,7 @@
       proj.status = "idle"; proj.error = e.message; proj.progress = 0;
     }
     clearInterval(proj.timer);
-    renderProjTabs(); renderJobs(); if (proj === activeProj()) { renderAnalyzePane(); refreshGen(); }
+    renderProjTabs(); renderJobs(); if (proj === activeProj()) { renderStudioWork(); refreshGen(); }
   }
 
   function renderProjTabs() {
@@ -154,11 +161,12 @@
       root.innerHTML = html;
       root.querySelectorAll(".cw-proj").forEach((el) => el.addEventListener("click", (e) => { if (e.target.dataset.del != null) return; state.active = +el.dataset.i; renderStudio(); }));
       root.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); delProject(+b.dataset.del); }));
-      root.querySelector(".cw-proj-add")?.addEventListener("click", () => $("videoFile").click());
+      root.querySelector(".cw-proj-add")?.addEventListener("click", () => addEmptyProject());
     });
   }
 
   function delProject(i) {
+    if (state.projects.length <= 1) { toast("최소 1개의 기획안은 남겨야 합니다"); return; }
     if (!confirm("이 기획안을 삭제할까요?")) return;
     clearInterval(state.projects[i]?.timer);
     state.projects.splice(i, 1);
@@ -179,7 +187,7 @@
     }).join("");
     el.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
       const i = state.projects.findIndex((p) => p.id === b.dataset.go);
-      if (i >= 0) { state.active = i; switchPane(state.projects[i].status === "planning" ? "studio" : "analyzer"); }
+      if (i >= 0) { state.active = i; renderStudio(); }
     }));
   }
 
@@ -191,103 +199,92 @@
       if (p && p.url) vb.innerHTML = `<video src="${esc(p.url)}" id="refVideo" controls playsinline></video>`;
       else vb.innerHTML = `<div class="cw-vid-empty">레퍼런스 영상을<br>드래그하세요</div>`;
     }
-    renderProjTabs(); renderAnalyzePane(); renderPlanPane(); refreshGen();
+    renderProjTabs(); renderStudioWork(); refreshGen();
   }
 
-  /* ─── 공용 표 (분석/기획안) ─── */
-  function dataTable(kind, rows) {
-    const editing = state.edit[kind];
-    const isAnalysis = kind === "analysis";
-    const cols = isAnalysis
-      ? [["timestamp", "TIME", "cw-ts"], ["narration", "나레이션", "cw-narr"], ["caption", "자막", "cw-cap"], ["visual", "연출", "cw-dir"]]
-      : [["narration", "신규 나레이션", "cw-narr"], ["caption", "신규 자막", "cw-cap"], ["direction", "연출", "cw-dir"]];
-    const th = `<th class="cw-no">NO</th>` + cols.map(([f, label]) => `<th${f === "timestamp" ? ' class="cw-ts"' : ""}>${label}</th>`).join("");
-    const trs = rows.map((a, i) => {
-      const cells = cols.map(([f, label, cls]) => {
-        if (editing) return `<td class="${cls}"><textarea class="cw-cell-edit" data-kind="${kind}" data-i="${i}" data-f="${f}">${esc(a[f])}</textarea></td>`;
-        if (f === "timestamp") return `<td class="cw-ts" data-seek="${esc(a[f])}" title="클릭하면 그 지점 재생">${esc(a[f])}</td>`;
-        return `<td class="${cls}">${esc(a[f])}</td>`;
-      }).join("");
-      return `<tr><td class="cw-no">${esc(a.no)}</td>${cells}</tr>`;
-    }).join("");
-    return `<table class="cw-tbl cw-${kind}-tbl"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
-  }
-
-  function toolbar(kind) {
-    const editing = state.edit[kind];
-    return `<div class="cw-tb-actions">
-      <button class="cw-tb-btn" data-tb="edit" data-kind="${kind}">${editing ? "💾 변경사항 저장" : "✏️ 수동 수정"}</button>
-      ${editing ? "" : `<button class="cw-tb-btn" data-tb="notion" data-kind="${kind}">📋 노션용 복사</button>
-      <button class="cw-tb-btn" data-tb="narr" data-kind="${kind}">나레이션 복사</button>
-      <button class="cw-tb-btn" data-tb="cap" data-kind="${kind}">자막 복사</button>`}
-    </div>`;
-  }
-
-  function wireTable(scope, kind, rows) {
-    scope.querySelectorAll(".cw-cell-edit").forEach((ta) => ta.addEventListener("blur", () => { rows[+ta.dataset.i][ta.dataset.f] = ta.value; }));
-    scope.querySelectorAll("[data-seek]").forEach((td) => td.addEventListener("click", () => seekVideo(td.dataset.seek)));
-    scope.querySelectorAll("[data-tb]").forEach((b) => b.addEventListener("click", () => {
-      const k = b.dataset.kind;
-      if (b.dataset.tb === "edit") {
-        if (state.edit[k]) scope.querySelectorAll(".cw-cell-edit").forEach((ta) => { rows[+ta.dataset.i][ta.dataset.f] = ta.value; });
-        state.edit[k] = !state.edit[k]; (k === "analysis" ? renderAnalyzePane() : renderPlanPane());
-      } else if (b.dataset.tb === "notion") copyNotion(rows, kind);
-      else if (b.dataset.tb === "narr") copyCol(rows, "narration", "나레이션");
-      else if (b.dataset.tb === "cap") copyCol(rows, "caption", "자막");
-    }));
-  }
-
-  /* ─── 분석 pane ─── */
-  function renderAnalyzePane() {
-    const root = $("analyzeWrap"), p = activeProj();
-    if (!root) return;
-    if (!p) {
-      root.innerHTML = `<div class="cw-drop" id="dropInline"><div class="cw-drop-ico">🎞️</div><div><b>분석할 레퍼런스 영상</b>을 화면 어디든 끌어다 놓으세요</div><button class="btn-primary" id="dropPick" style="margin-top:14px">파일 선택하기</button></div>`;
+  /* ─── 통합 작업 표 (분석 ↔ 신규 기획안 같은 행 정렬) ─── */
+  function renderStudioWork() {
+    const root = $("studioWork"); if (!root) return;
+    const p = activeProj();
+    if (!p) { root.innerHTML = `<div class="cw-drop"><div class="cw-drop-ico">🎬</div><div>기획안 탭이 없습니다. 상단 <b>+</b>로 추가하세요.</div></div>`; return; }
+    if (p.status === "analyzing") { root.innerHTML = progressCard(p.progress, "분석 중...", "레퍼런스를 추출하는 중 · 다른 화면 이동해도 계속됩니다"); return; }
+    if (p.error) {
+      root.innerHTML = `<div class="cw-work-msg" style="color:#e0245e">❌ ${esc(p.error)}<br><button class="btn-secondary" id="reTry" style="margin-top:12px">다시 분석</button></div>`;
+      $("reTry")?.addEventListener("click", () => { if (p.file) analyzeProject(p); else $("videoFile").click(); });
+      return;
+    }
+    if (!p.analysis.length) {
+      root.innerHTML = `<div class="cw-drop" id="dropInline"><div class="cw-drop-ico">🎞️</div><div><b>레퍼런스 영상</b>을 화면 어디든 끌어다 놓으세요</div><button class="btn-primary" id="dropPick" style="margin-top:14px">파일 선택하기</button></div>`;
       $("dropPick").addEventListener("click", () => $("videoFile").click());
       return;
     }
-    if (p.status === "analyzing") { root.innerHTML = progressCard(p.progress, "분석 중...", "데이터를 추출하는 중입니다 · 다른 화면으로 이동해도 계속됩니다"); return; }
-    if (p.error) { root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot"></span> 분석 결과</div><div class="empty" style="color:#e0245e">❌ ${esc(p.error)}<br><button class="btn-secondary" id="reTry" style="margin-top:12px">다시 분석</button></div>`; $("reTry")?.addEventListener("click", () => { if (p.file) analyzeProject(p); }); return; }
-    root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot"></span> 분석 결과 ${toolbar("analysis")}</div>
-      <div class="cw-sp-body">${dataTable("analysis", p.analysis)}</div>
-      <div class="cw-rebox">
-        <div class="cw-rebox-h">🔄 데이터 재분석 요청 <span class="hint">AI 추출에 문제 있으면 피드백 주세요</span></div>
-        <div class="cw-rebox-row"><textarea id="reInput" rows="2" placeholder="예: '나레이션과 자막이 바뀌었어', '고정배너를 자막이랑 분리해줘'"></textarea>
-        <button class="cw-rebtn" id="reBtn">재분석 실행</button></div>
-      </div>`;
-    wireTable(root, "analysis", p.analysis);
-    $("reBtn").addEventListener("click", () => { if (p.file) analyzeProject(p, $("reInput").value.trim()); });
-  }
-
-  /* ─── 기획안 pane ─── */
-  function renderPlanPane() {
-    const root = $("planWrap"), p = activeProj();
-    if (!root) return;
-    if (!p || (!p.plan.length && p.status !== "planning")) {
-      root.innerHTML = `<div class="empty cw-plan-empty">기획안 생성 대기 중<br><span class="hint">레퍼런스 분석 후, 제품 정보 입력하고 좌측 [신규 기획안 생성]</span></div>`;
-      return;
+    const editing = state.editWork, hasPlan = p.plan.length > 0, planning = p.status === "planning";
+    const n = Math.max(p.analysis.length, p.plan.length);
+    const cell = (val, side, i, f) => editing
+      ? `<textarea class="cw-cell-edit" data-side="${side}" data-i="${i}" data-f="${f}">${esc(val || "")}</textarea>`
+      : esc(val || "");
+    let body = "";
+    for (let i = 0; i < n; i++) {
+      const a = p.analysis[i] || {}, pl = p.plan[i] || {};
+      body += `<tr>
+        <td class="cw-no">${esc(a.no || (i + 1))}</td>
+        <td class="cw-ts" data-seek="${esc(a.timestamp || "")}" title="클릭=그 지점 재생">${esc(a.timestamp || "")}</td>
+        <td class="cw-ref">${cell(a.narration, "a", i, "narration")}</td>
+        <td class="cw-ref cw-ref-cap">${cell(a.caption, "a", i, "caption")}</td>
+        <td class="cw-new cw-narr">${hasPlan ? cell(pl.narration, "p", i, "narration") : '<span class="cw-pending">·</span>'}</td>
+        <td class="cw-new cw-cap">${hasPlan ? cell(pl.caption, "p", i, "caption") : ""}</td>
+        <td class="cw-new cw-dir">${hasPlan ? cell(pl.direction, "p", i, "direction") : ""}</td>
+      </tr>`;
     }
-    if (p.status === "planning") { root.innerHTML = progressCard(p.progress, "기획안 생성 중...", "레퍼런스 플로우에 제품을 입히는 중 · 다른 화면 이동 가능"); return; }
     const why = (p.why_watch || p.why_buy)
       ? `<div class="cw-why"><div class="cw-why-col"><b>👀 왜 볼까</b><span>${esc(p.why_watch || "-")}</span></div><div class="cw-why-col cw-why-buy"><b>💳 왜 살까</b><span>${esc(p.why_buy || "-")}</span></div></div>`
       : "";
-    root.innerHTML = `<div class="cw-sp-head"><span class="cw-dot done"></span> 신규 기획안 ${toolbar("plan")}</div>
-      ${why}
-      <div class="cw-sp-body">${dataTable("plan", p.plan)}</div>
-      <div class="cw-rebox">
-        <div class="cw-rebox-h">✍️ 기획안 수정 요청</div>
-        <div class="cw-rebox-row"><textarea id="refineInput" rows="2" placeholder="예: 더 신뢰감 있는 톤으로, 첫 3초 강하게"></textarea>
-        <button class="cw-rebtn cw-rebtn-blue" id="refineBtn">수정 반영</button></div>
+    root.innerHTML = `
+      <div class="cw-work-head">
+        <div class="cw-work-title">📋 기획안 비교 ${planning ? '<span class="cw-pending-tag">⏳ 기획안 생성 중…</span>' : ""}</div>
+        <div class="cw-tb-actions">
+          <button class="cw-tb-btn" data-act="edit">${editing ? "💾 저장" : "✏️ 수동 수정"}</button>
+          ${hasPlan && !editing ? `<button class="cw-tb-btn" data-act="notion">📋 노션용 복사</button>
+          <button class="cw-tb-btn" data-act="narr">나레이션 복사</button>
+          <button class="cw-tb-btn" data-act="cap">자막 복사</button>` : ""}
+        </div>
       </div>
-      <div class="cw-confirm">
-        <input id="confirmNote" class="cw-confirm-note" placeholder="확정 메모(선택): 왜 이렇게 갔는지 — 다음 학습에 반영돼요" />
-        <button class="cw-confirm-btn cw-shoot-btn" id="shootBtn">📹 촬영 기획안</button>
-        <button class="cw-confirm-btn" id="confirmBtn">✅ 기획안 확정</button>
+      <div class="cw-work-scroll">
+        <table class="cw-tbl cw-combo">
+          <thead>
+            <tr class="cw-combo-grp"><th class="cw-no"></th><th class="cw-ts"></th>
+              <th colspan="2" class="cw-grp-ref">레퍼런스 분석</th>
+              <th colspan="3" class="cw-grp-new">신규 기획안</th></tr>
+            <tr><th class="cw-no">NO</th><th class="cw-ts">TIME</th>
+              <th>나레이션</th><th>자막</th><th>신규 나레이션</th><th>신규 자막</th><th>연출</th></tr>
+          </thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+      ${why}
+      <div class="cw-work-foot">
+        <div class="cw-rebox-row"><textarea id="reInput" rows="1" placeholder="🔄 분석 수정요청: 예) 나레이션과 자막이 바뀌었어 / 고정배너 분리해줘"></textarea><button class="cw-rebtn" id="reBtn">재분석</button></div>
+        <div class="cw-rebox-row"><textarea id="refineInput" rows="1" placeholder="✍️ 기획안 수정요청: 예) 더 신뢰감 있게, 첫 3초 강하게"></textarea><button class="cw-rebtn cw-rebtn-blue" id="refineBtn" ${hasPlan ? "" : "disabled"}>수정 반영</button></div>
+        <div class="cw-confirm">
+          <input id="confirmNote" class="cw-confirm-note" placeholder="확정 메모(선택): 왜 이렇게 갔는지 — 다음 학습에 반영" />
+          <button class="cw-confirm-btn cw-shoot-btn" id="shootBtn" ${hasPlan ? "" : "disabled"}>📹 촬영 기획안</button>
+          <button class="cw-confirm-btn" id="confirmBtn" ${hasPlan ? "" : "disabled"}>✅ 기획안 확정</button>
+        </div>
       </div>`;
-    wireTable(root, "plan", p.plan);
-    $("refineBtn").addEventListener("click", () => refine($("refineInput").value.trim()));
-    $("confirmBtn").addEventListener("click", () => confirmPlan());
-    $("shootBtn").addEventListener("click", () => genShoot());
+    root.querySelectorAll("[data-seek]").forEach((td) => td.addEventListener("click", () => seekVideo(td.dataset.seek)));
+    const flush = () => root.querySelectorAll(".cw-cell-edit").forEach((ta) => { const arr = ta.dataset.side === "a" ? p.analysis : p.plan; if (arr[+ta.dataset.i]) arr[+ta.dataset.i][ta.dataset.f] = ta.value; });
+    root.querySelectorAll(".cw-cell-edit").forEach((ta) => ta.addEventListener("blur", flush));
+    root.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
+      const act = b.dataset.act;
+      if (act === "edit") { if (state.editWork) flush(); state.editWork = !state.editWork; renderStudioWork(); }
+      else if (act === "notion") copyNotion(p.plan, "plan");
+      else if (act === "narr") copyCol(p.plan, "narration", "나레이션");
+      else if (act === "cap") copyCol(p.plan, "caption", "자막");
+    }));
+    $("reBtn")?.addEventListener("click", () => { if (p.file) analyzeProject(p, $("reInput").value.trim()); else $("videoFile").click(); });
+    $("refineBtn")?.addEventListener("click", () => refine($("refineInput").value.trim()));
+    $("confirmBtn")?.addEventListener("click", () => confirmPlan());
+    $("shootBtn")?.addEventListener("click", () => genShoot());
   }
 
   /* ─── 촬영 기획안 = 장소별 동선 스케줄 + .docx ─── */
@@ -382,6 +379,10 @@
   function openEntry(id) {
     const r = state.productions.find((x) => x.id === id); if (!r) return;
     state.studioEntry = id;
+    // 항목별 기획안 탭(최소 1개) — 세션 내 유지
+    if (!state.entryProjects[id] || !state.entryProjects[id].length) state.entryProjects[id] = [newProject("기획안 A")];
+    state.projects = state.entryProjects[id];
+    state.active = 0; state.editWork = false;
     $("studioList").hidden = true; $("studioDetail").hidden = false;
     $("detailTitle").textContent = r.title || "기획안";
     $("detailMeta").textContent = [r.brand, r.product, PM_CAT[r.category] || "", r.date, r.user].filter(Boolean).join(" · ");
@@ -542,8 +543,7 @@
   /* ─── 기획안 생성/수정/확정 ─── */
   async function genPlan() {
     const p = activeProj(); if (!p || !p.analysis.length || !state.product.name.trim()) return;
-    switchPane("studio");
-    p.status = "planning"; p.progress = 0; renderProjTabs(); renderPlanPane(); renderJobs(); simProgress(p);
+    p.status = "planning"; p.progress = 0; renderProjTabs(); renderStudioWork(); renderJobs(); simProgress(p);
     try {
       const r = await fetch("/api/content/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysis: p.analysis, product: state.product, product_id: state.product.id }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error || "생성 실패");
@@ -551,15 +551,15 @@
       p.why_watch = j.why_watch || ""; p.why_buy = j.why_buy || ""; p.status = "analyzed"; p.progress = 100;
       if (j.learned_from) toast(`확정본 ${j.learned_from}개 학습 반영됨`);
     } catch (e) { p.status = "analyzed"; alert(e.message); }
-    clearInterval(p.timer); renderProjTabs(); renderPlanPane(); renderJobs();
+    clearInterval(p.timer); renderProjTabs(); renderStudioWork(); renderJobs();
   }
   async function refine(feedback) {
     const p = activeProj(); if (!p || !feedback) return;
     $("refineBtn").disabled = true; $("refineBtn").textContent = "반영 중…";
     try {
       const r = await fetch("/api/content/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysis: p.analysis, product: state.product, product_id: state.product.id, feedback }) });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error); p.plan = j.plan || []; p.why_watch = j.why_watch || p.why_watch; p.why_buy = j.why_buy || p.why_buy; renderPlanPane();
-    } catch (e) { alert(e.message); $("refineBtn").disabled = false; $("refineBtn").textContent = "수정 반영"; }
+      const j = await r.json(); if (!r.ok) throw new Error(j.error); p.plan = j.plan || []; p.why_watch = j.why_watch || p.why_watch; p.why_buy = j.why_buy || p.why_buy; renderStudioWork();
+    } catch (e) { alert(e.message); $("refineBtn") && ($("refineBtn").disabled = false, $("refineBtn").textContent = "수정 반영"); }
   }
   async function confirmPlan() {
     const p = activeProj(); if (!p || !p.plan.length) return;
