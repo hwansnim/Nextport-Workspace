@@ -30,8 +30,8 @@
 
       <nav class="cw-nav">
         <div class="cw-nav-group">콘텐츠 도구</div>
-        <button class="cw-nav-item active" data-pane="analyzer">🔍 레퍼런스 분석기</button>
-        <button class="cw-nav-item" data-pane="studio">🎬 기획안 스튜디오</button>
+        <button class="cw-nav-item" data-pane="analyzer">🔍 레퍼런스 분석기</button>
+        <button class="cw-nav-item active" data-pane="studio">🎬 기획안 스튜디오</button>
         <button class="cw-nav-item" data-pane="shoot">📹 촬영기획안 생성</button>
         <button class="cw-nav-item" data-pane="library">📚 광고 라이브러리</button>
         <button class="cw-nav-item" data-pane="products">🏷 제품 정보</button>
@@ -41,28 +41,14 @@
     </aside>
 
     <main class="cw-main" id="cwMain">
-      <!-- 레퍼런스 분석기 -->
-      <section class="cw-pane active" id="pane-analyzer">
-        <div class="cw-studio">
-          <aside class="cw-studio-aside">
-            <div class="cw-aside-h">ACTIVE REFERENCE</div>
-            <div class="cw-vidbox" id="vidBox">
-              <div class="cw-vid-empty" id="vidEmpty">레퍼런스 영상을<br>드래그하세요</div>
-            </div>
-            <button class="btn-secondary cw-gen-btn" id="toStudioBtn">기획안 스튜디오로 →</button>
-            <div class="hint" style="margin-top:12px;line-height:1.6">영상을 <b>화면 어디든</b> 끌어다 놓으면 자동 분석됩니다.<br>여러 개 동시 분석 가능.</div>
-          </aside>
-          <div class="cw-studio-main">
-            <div class="cw-proj-tabs" id="projTabs"></div>
-            <div class="cw-studio-single">
-              <section class="cw-spane" id="analyzeWrap"></section>
-            </div>
-          </div>
-        </div>
+      <!-- 레퍼런스 분석기 (자리만 — 메타 광고 라이브러리 연동 예정) -->
+      <section class="cw-pane" id="pane-analyzer">
+        <div class="cw-pane-head"><h1>레퍼런스 분석기</h1><p class="page-sub">메타 광고 라이브러리에서 잘 되는 광고를 찾아 레퍼런스로 활용 (준비 중)</p></div>
+        <div class="cw-soon card">📚 준비 중 — <b>메타 광고 라이브러리 연동</b>으로 수많은 광고를 둘러보고 성과 좋은 레퍼런스를 찾는 도구가 들어올 자리입니다.</div>
       </section>
 
       <!-- 기획안 스튜디오 = 제작 관리 목록 → 항목별 생성기 -->
-      <section class="cw-pane" id="pane-studio">
+      <section class="cw-pane active" id="pane-studio">
         <!-- 목록 뷰 (노션식: 제목/날짜/사용자/브랜드/제품/분류/비고, 한 줄 입력) -->
         <div id="studioList">
           <div class="cw-pane-head"><h1>기획안 스튜디오</h1><p class="page-sub">항목을 추가하고, 행을 클릭하면 그 항목 전용 기획안 생성기가 열립니다. (모두 공유)</p></div>
@@ -90,7 +76,11 @@
           </div>
           <div class="cw-studio">
             <aside class="cw-studio-aside">
-              <div class="cw-aside-h">PRODUCT INTELLIGENCE</div>
+              <div class="cw-aside-h">ACTIVE REFERENCE</div>
+              <div class="cw-vidbox" id="vidBox">
+                <div class="cw-vid-empty" id="vidEmpty">레퍼런스 영상을<br>드래그하세요</div>
+              </div>
+              <div class="cw-aside-h" style="margin-top:18px">PRODUCT INTELLIGENCE</div>
               <label class="cw-field">제품 선택
                 <select id="prodPick"><option value="">— 등록된 제품 선택 (또는 직접 입력) —</option></select>
               </label>
@@ -106,12 +96,13 @@
                 </div>
               </div>
               <button class="btn-primary cw-gen-btn" id="genPlanBtn" disabled>✨ 신규 기획안 생성</button>
-              <div class="hint" style="margin-top:8px;line-height:1.6">레퍼런스는 <b>🔍 레퍼런스 분석기</b>에서 분석한 영상을 위 탭에서 선택해서 씁니다.</div>
+              <div class="hint" style="margin-top:8px;line-height:1.6">레퍼런스 영상을 <b>화면 어디든</b> 끌어다 놓으면 분석됩니다. 여러 개 동시 가능.</div>
               <div class="cw-learn" id="learnNote" hidden></div>
             </aside>
             <div class="cw-studio-main">
               <div class="cw-proj-tabs" id="projTabsStudio"></div>
-              <div class="cw-studio-single">
+              <div class="cw-studio-panes">
+                <section class="cw-spane" id="analyzeWrap"></section>
                 <section class="cw-spane" id="planWrap"></section>
               </div>
             </div>

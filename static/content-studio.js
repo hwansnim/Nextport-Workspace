@@ -23,7 +23,6 @@
       document.addEventListener("click", () => { wd.hidden = true; });
     }
     document.querySelectorAll(".cw-nav-item").forEach((b) => b.addEventListener("click", () => switchPane(b.dataset.pane)));
-    $("toStudioBtn").addEventListener("click", () => switchPane("studio"));
     $("studioBack").addEventListener("click", showStudioList);
 
     // 전체화면 드롭 (어느 화면이든)
@@ -37,7 +36,10 @@
       if (!hasFiles(e)) return;
       e.preventDefault(); depth = 0; fs.classList.remove("show");
       const vids = [...e.dataTransfer.files].filter((f) => f.type.startsWith("video/"));
-      if (vids.length) { switchPane("analyzer"); handleVideos(vids); }
+      if (!vids.length) return;
+      // 생성기(항목 상세)가 열려 있을 때만 분석. 아니면 목록으로 안내.
+      if (state.studioEntry && $("studioDetail") && !$("studioDetail").hidden) handleVideos(vids);
+      else { switchPane("studio"); toast("기획안 항목을 먼저 열고 영상을 올려주세요"); }
     });
 
     $("videoFile").addEventListener("change", (e) => { handleVideos([...e.target.files]); e.target.value = ""; });
@@ -77,7 +79,7 @@
     $("perfLoad").addEventListener("click", perfLoad);
 
     loadProducts();
-    renderStudio();
+    showStudioList();
   }
 
   function switchPane(name) {
@@ -88,7 +90,6 @@
     if (name === "perf") loadMeta();
     if (name === "shoot") { loadShootSources(); renderShoot(); }
     if (name === "studio") showStudioList();
-    if (name === "analyzer" || name === "studio") renderStudio();
   }
 
   function activeProj() { return state.projects[state.active]; }
