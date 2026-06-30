@@ -5491,6 +5491,73 @@ def api_content_production_delete(row_id):
     return jsonify({"ok": True})
 
 
+# ─── 효율 분석 (메타 마케팅 API 연동) ───
+# 토큰은 사용자가 직접 입력 → 이 파일에만 저장(.gitignore). 응답에 토큰 원문은 절대 노출 X.
+META_CONFIG_FILE = DATA_DIR / "meta_config.json"
+
+
+def _load_meta_config() -> dict:
+    if not META_CONFIG_FILE.exists():
+        return {"token": "", "accounts": []}
+    try:
+        d = json.loads(META_CONFIG_FILE.read_text(encoding="utf-8"))
+        return {"token": d.get("token", ""), "accounts": d.get("accounts", [])}
+    except Exception:
+        return {"token": "", "accounts": []}
+
+
+def _save_meta_config(cfg: dict) -> None:
+    META_CONFIG_FILE.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.route("/api/content/meta/config", methods=["GET", "POST"])
+def api_meta_config():
+    """메타 연결 설정. GET은 토큰 원문 대신 연결여부만 반환. POST로 토큰/계정 저장."""
+    cfg = _load_meta_config()
+    if request.method == "POST":
+        p = request.get_json(force=True) or {}
+        if "token" in p and (p.get("token") or "").strip():
+            cfg["token"] = p["token"].strip()  # 새 토큰 들어오면 교체
+        if p.get("clear_token"):
+            cfg["token"] = ""
+        if "accounts" in p and isinstance(p["accounts"], list):
+            cfg["accounts"] = [
+                {"id": (a.get("id") or "").strip().replace("act_", ""),
+                 "brand": (a.get("brand") or "").strip(),
+                 "name": (a.get("name") or "").strip()}
+                for a in p["accounts"] if (a.get("id") or "").strip()
+            ]
+        _save_meta_config(cfg)
+    return jsonify({"connected": bool(cfg.get("token")), "accounts": cfg.get("accounts", [])})
+
+
+@app.route("/api/content/meta/verify", methods=["POST"])
+def api_meta_verify():
+    """현재 저장된 토큰(또는 요청에 담긴 토큰)으로 접근 가능한 광고계정 목록 확인."""
+    from modules import meta_ads
+    p = request.get_json(force=True) or {}
+    token = (p.get("token") or "").strip() or _load_meta_config().get("token", "")
+    try:
+        return jsonify(meta_ads.verify_token(token))
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/content/perf", methods=["POST"])
+def api_content_perf():
+    """메타 광고 성과 조회 (지출·ROAS·CTR·구매·CPA 등)."""
+    from modules import meta_ads
+    p = request.get_json(force=True) or {}
+    cfg = _load_meta_config()
+    try:
+        rows = meta_ads.fetch_insights(
+            cfg.get("token", ""), p.get("account_id") or "",
+            p.get("date_preset") or "last_7d", p.get("level") or "campaign")
+        return jsonify({"rows": rows})
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"error": str(e)}), 400
+
+
 CONTENT_PRODUCTS_FILE = DATA_DIR / "content_products.json"
 
 

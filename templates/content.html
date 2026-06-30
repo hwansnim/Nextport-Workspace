@@ -172,8 +172,44 @@
         <div class="card"><div id="pmList"><div class="empty">불러오는 중…</div></div></div>
       </section>
       <section class="cw-pane" id="pane-perf">
-        <div class="cw-pane-head"><h1>효율 분석</h1><p class="page-sub">브랜드·제품 단위 광고관리자 연동 퍼포먼스</p></div>
-        <div class="cw-soon card">📈 준비 중 — 자사/대행 · 브랜드/제품 단위로 광고관리자 데이터를 모아보는 화면을 만듭니다.</div>
+        <div class="cw-pane-head"><h1>효율 분석</h1><p class="page-sub">메타 광고관리자 연동 — 광고계정(브랜드)별 성과</p></div>
+
+        <!-- 연결 설정 -->
+        <div class="card cw-prod-form" style="margin-bottom:16px">
+          <div class="cw-card-h">메타 연결 <span class="hint" id="metaStatus">확인 중…</span></div>
+          <div class="cw-meta-conn">
+            <label class="cw-field" style="flex:1;margin:0">액세스 토큰 <span class="hint">(직접 붙여넣기 · 서버에만 저장, 깃 제외)</span>
+              <input type="password" id="metaToken" placeholder="EAAB… (시스템 유저 토큰 권장)" autocomplete="off" />
+            </label>
+            <button class="btn-primary" id="metaSaveToken">토큰 저장</button>
+            <button class="btn-secondary" id="metaVerify">계정 확인</button>
+          </div>
+          <div class="cw-field" style="margin-top:14px">광고계정 (브랜드 매핑)
+            <div id="metaAccts"></div>
+            <div class="cw-meta-addrow">
+              <input type="text" id="metaAcctId" placeholder="광고계정 ID (숫자만)" />
+              <input type="text" id="metaAcctBrand" placeholder="브랜드명 (예: 하루픽스)" />
+              <button class="btn-secondary" id="metaAddAcct">계정 추가</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 성과 조회 -->
+        <div class="card">
+          <div class="cw-card-h">성과 조회
+            <span class="cw-perf-controls">
+              <select id="perfAccount"></select>
+              <select id="perfDate">
+                <option value="today">오늘</option><option value="yesterday">어제</option>
+                <option value="last_7d" selected>최근 7일</option><option value="last_14d">최근 14일</option>
+                <option value="last_30d">최근 30일</option><option value="this_month">이번 달</option><option value="last_month">지난 달</option>
+              </select>
+              <select id="perfLevel"><option value="campaign">캠페인별</option><option value="adset">광고세트별</option><option value="ad">광고별</option></select>
+              <button class="btn-primary" id="perfLoad">불러오기</button>
+            </span>
+          </div>
+          <div id="perfWrap"><div class="empty">토큰을 연결하고 광고계정·기간을 선택한 뒤 <b>[불러오기]</b>를 누르세요.</div></div>
+        </div>
       </section>
     </main>
   </div>

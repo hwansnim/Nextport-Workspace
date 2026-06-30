@@ -45,3 +45,6 @@ token.json
 # 인스타 발신 계정 비번 (로컬·드라이브만, git 금지)
 data/dm_sender_accounts.json
 data/dm_send_counts.json
+
+# 메타 마케팅 API 토큰 (절대 git 금지)
+data/meta_config.json

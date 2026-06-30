@@ -229,6 +229,19 @@ td.cw-ts:hover { background: var(--accent-soft); border-radius: 4px; }
 .cw-cat-shoot { background: #fff1e6; color: #c2410c; }
 .cw-cat-noshoot { background: var(--hover); color: var(--muted); }
 
+/* 효율 분석 (메타 연동) */
+.cw-meta-conn { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 0 16px; }
+.cw-meta-conn .cw-field input { min-width: 280px; }
+.cw-prod-form > .cw-field { padding: 0 16px; }
+.cw-meta-addrow { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.cw-meta-addrow input { flex: 1; min-width: 140px; padding: 8px 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; }
+.cw-meta-acct { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.cw-meta-acct .btn-text { margin-left: auto; }
+.cw-perf-controls { float: right; display: flex; gap: 6px; flex-wrap: wrap; }
+.cw-perf-controls select { padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: inherit; font-size: 12px; background: #fff; }
+.cw-perf-tbl td { font-variant-numeric: tabular-nums; }
+.cw-perf-tbl tfoot td { font-weight: 800; border-top: 2px solid var(--line); background: var(--hover); }
+
 /* 글로벌 작업표시 (어느 화면에서도 진행 확인) */
 .cw-jobs { position: fixed; right: 22px; bottom: 22px; display: none; flex-direction: column; gap: 8px; z-index: 9500; }
 .cw-jobs.show { display: flex; }

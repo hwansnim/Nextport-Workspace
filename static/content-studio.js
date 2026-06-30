@@ -10,6 +10,7 @@
   const OP_LABEL = { own: "자사", agency: "대행" };
   const state = {
     projects: [], active: 0, products: [], plans: [], productions: [], pfAppeals: [],
+    meta: { connected: false, accounts: [] },
     product: { id: "", name: "", features: "", brand: "", op_type: "own", appeals: [] },
     edit: { analysis: false, plan: false },
   };
@@ -64,6 +65,12 @@
       if (prod) { $("pmBrand").value = prod.brand || ""; $("pmProduct").value = prod.product || ""; }
     });
 
+    // 효율 분석 (메타)
+    $("metaSaveToken").addEventListener("click", saveMetaToken);
+    $("metaVerify").addEventListener("click", verifyMeta);
+    $("metaAddAcct").addEventListener("click", addMetaAcct);
+    $("perfLoad").addEventListener("click", perfLoad);
+
     loadProducts();
     renderStudio();
   }
@@ -74,6 +81,7 @@
     if (name === "products") { resetProductForm(); loadProducts(); }
     if (name === "library") loadLibrary();
     if (name === "productions") loadProductions();
+    if (name === "perf") loadMeta();
     if (name === "shoot") renderShoot();
     if (name === "analyzer" || name === "studio") renderStudio();
   }
@@ -631,6 +639,76 @@
   async function deleteProduct(id) {
     if (!confirm("이 제품을 삭제할까요?")) return;
     try { await fetch("/api/content/products/" + id, { method: "DELETE" }); loadProducts(); } catch (e) {}
+  }
+
+  /* ─── 효율 분석 (메타 마케팅 API) ─── */
+  async function loadMeta() {
+    try { const r = await fetch("/api/content/meta/config"); const j = await r.json(); state.meta.connected = !!j.connected; state.meta.accounts = j.accounts || []; } catch (e) {}
+    const st = $("metaStatus");
+    if (st) st.innerHTML = state.meta.connected ? '<span style="color:#34c759">● 연결됨</span>' : '<span style="color:#e0245e">● 토큰 필요</span>';
+    renderMetaAccts(); renderPerfAccountOptions();
+  }
+  function renderMetaAccts() {
+    const root = $("metaAccts"); if (!root) return;
+    if (!state.meta.accounts.length) { root.innerHTML = `<div class="hint" style="padding:6px 0">등록된 광고계정 없음 — 아래에서 추가</div>`; return; }
+    root.innerHTML = state.meta.accounts.map((a) => `<div class="cw-meta-acct"><b>${esc(a.brand || "(브랜드 미지정)")}</b> <span class="hint">act_${esc(a.id)}${a.name ? " · " + esc(a.name) : ""}</span><button class="btn-text" data-macctdel="${esc(a.id)}">삭제</button></div>`).join("");
+    root.querySelectorAll("[data-macctdel]").forEach((b) => b.addEventListener("click", () => delMetaAcct(b.dataset.macctdel)));
+  }
+  function renderPerfAccountOptions() {
+    const sel = $("perfAccount"); if (!sel) return;
+    sel.innerHTML = state.meta.accounts.length
+      ? state.meta.accounts.map((a) => `<option value="${esc(a.id)}">${esc(a.brand || ("act_" + a.id))}</option>`).join("")
+      : `<option value="">— 계정 등록 필요 —</option>`;
+  }
+  async function saveMetaToken() {
+    const t = $("metaToken").value.trim(); if (!t) { alert("토큰을 입력하세요."); return; }
+    try { await fetch("/api/content/meta/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: t }) }); $("metaToken").value = ""; toast("토큰 저장됨 (서버에만 보관)"); loadMeta(); }
+    catch (e) { alert("저장 실패"); }
+  }
+  async function verifyMeta() {
+    const t = $("metaToken").value.trim();
+    try {
+      const r = await fetch("/api/content/meta/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(t ? { token: t } : {}) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error);
+      if (!(j.accounts || []).length) { alert("접근 가능한 광고계정이 없습니다. 토큰 권한(ads_read)을 확인하세요."); return; }
+      alert("접근 가능한 광고계정:\n\n" + j.accounts.map((a) => `act_${a.id} · ${a.name} (${a.currency || ""})`).join("\n") + "\n\n→ 아래 '계정 추가'에 ID를 넣고 브랜드명을 매핑하세요.");
+    } catch (e) { alert(e.message || "확인 실패"); }
+  }
+  async function addMetaAcct() {
+    const id = $("metaAcctId").value.trim().replace("act_", ""); const brand = $("metaAcctBrand").value.trim();
+    if (!id) { alert("광고계정 ID(숫자)를 입력하세요."); return; }
+    const accts = [...state.meta.accounts.filter((a) => a.id !== id), { id, brand }];
+    try { await fetch("/api/content/meta/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accounts: accts }) }); $("metaAcctId").value = ""; $("metaAcctBrand").value = ""; toast("계정 추가됨"); loadMeta(); }
+    catch (e) { alert("추가 실패"); }
+  }
+  async function delMetaAcct(id) {
+    const accts = state.meta.accounts.filter((a) => a.id !== id);
+    try { await fetch("/api/content/meta/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accounts: accts }) }); loadMeta(); } catch (e) {}
+  }
+  async function perfLoad() {
+    const acct = $("perfAccount").value; if (!acct) { alert("광고계정을 등록·선택하세요."); return; }
+    $("perfWrap").innerHTML = progressCard(50, "성과 불러오는 중...", "메타 광고관리자 데이터 조회 중");
+    try {
+      const r = await fetch("/api/content/perf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ account_id: acct, date_preset: $("perfDate").value, level: $("perfLevel").value }) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error);
+      renderPerf(j.rows || []);
+    } catch (e) { $("perfWrap").innerHTML = `<div class="empty" style="color:#e0245e">❌ ${esc(e.message)}</div>`; }
+  }
+  function renderPerf(rows) {
+    const root = $("perfWrap"); if (!root) return;
+    if (!rows.length) { root.innerHTML = `<div class="empty">해당 기간 데이터가 없습니다.</div>`; return; }
+    const level = $("perfLevel").value;
+    const nameOf = (r) => level === "ad" ? r.ad : level === "adset" ? r.adset : r.campaign;
+    const won = (n) => n ? n.toLocaleString() + "원" : "-";
+    const sum = rows.reduce((a, r) => ({ spend: a.spend + r.spend, purchases: a.purchases + r.purchases }), { spend: 0, purchases: 0 });
+    const trs = rows.map((r) => `<tr><td class="cw-narr">${esc(nameOf(r))}</td>
+      <td>${won(r.spend)}</td><td>${r.impressions.toLocaleString()}</td><td>${r.clicks.toLocaleString()}</td>
+      <td>${r.ctr}%</td><td><b>${r.roas ? r.roas + "x" : "-"}</b></td><td>${r.purchases || "-"}</td><td>${won(r.cpa)}</td></tr>`).join("");
+    root.innerHTML = `<div style="overflow-x:auto"><table class="cw-tbl cw-perf-tbl"><thead><tr>
+      <th>${level === "ad" ? "광고" : level === "adset" ? "광고세트" : "캠페인"}</th><th>지출</th><th>노출</th><th>클릭</th><th>CTR</th><th>ROAS</th><th>구매</th><th>CPA</th>
+      </tr></thead><tbody>${trs}</tbody>
+      <tfoot><tr><td>합계 (${rows.length})</td><td>${won(sum.spend)}</td><td colspan="4"></td><td>${sum.purchases || "-"}</td><td>${won(sum.purchases ? Math.round(sum.spend / sum.purchases) : 0)}</td></tr></tfoot>
+      </table></div>`;
   }
 
   function toast(msg) {
