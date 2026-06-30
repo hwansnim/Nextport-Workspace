@@ -167,22 +167,21 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0  # 정적파일 장기 캐시 방지
 CORS(app)
 
 
-@app.route("/")
-def index():
-    # 정적파일 캐시 버스팅 — style.css/js 가 바뀌면 버전이 바뀌어 브라우저가 새로 받음
+def _asset_ver() -> str:
+    """정적파일 캐시 버스팅 — style.css/js 가 바뀌면 버전이 바뀌어 브라우저가 새로 받음."""
     try:
         static_dir = ROOT / "static"
-        latest = max(
-            (f.stat().st_mtime for f in static_dir.glob("*.css")),
-            default=0,
-        )
-        latest = max(
-            latest,
-            *(f.stat().st_mtime for f in static_dir.glob("*.js")),
-        ) if any(static_dir.glob("*.js")) else latest
-        ver = str(int(latest))
+        latest = max((f.stat().st_mtime for f in static_dir.glob("*.css")), default=0)
+        if any(static_dir.glob("*.js")):
+            latest = max(latest, *(f.stat().st_mtime for f in static_dir.glob("*.js")))
+        return str(int(latest))
     except Exception:
-        ver = "1"
+        return "1"
+
+
+@app.route("/")
+def index():
+    ver = _asset_ver()
     resp = make_response(render_template("index.html", ver=ver))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
@@ -5316,6 +5315,63 @@ def api_dm_status():
         "job": {k: job.get(k) for k in ("id", "kind", "status", "total", "sent",
                                         "failed", "held", "current", "started_at", "finished_at")},
     })
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎬 콘텐츠 워크스페이스 — 소재 기획안 AI 자동생성 (AI Studio 이식)
+# ═══════════════════════════════════════════════════════════
+@app.route("/content")
+def content_workspace():
+    return render_template("content.html", ver=_asset_ver())
+
+
+@app.route("/api/content/analyze", methods=["POST"])
+def api_content_analyze():
+    """광고영상 업로드 → 자막/나레이션/연출 표 추출."""
+    f = request.files.get("video")
+    if not f:
+        return jsonify({"error": "영상 파일을 올려주세요."}), 400
+    feedback = request.form.get("feedback") or ""
+    try:
+        from modules import content_studio
+        rows = content_studio.analyze_video(load_config(), f.read(), f.mimetype or "video/mp4", feedback)
+        return jsonify({"analysis": rows})
+    except Exception as e:  # noqa: BLE001
+        log.exception("content analyze failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/content/plan", methods=["POST"])
+def api_content_plan():
+    """레퍼런스 분석 + 제품(USP) → 새 기획안 생성."""
+    p = request.get_json(force=True) or {}
+    try:
+        from modules import content_studio
+        rows = content_studio.generate_plan(
+            load_config(), p.get("analysis") or [], p.get("product") or {}, p.get("feedback") or "")
+        return jsonify({"plan": rows})
+    except Exception as e:  # noqa: BLE001
+        log.exception("content plan failed")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/content/usp", methods=["POST"])
+def api_content_usp():
+    """상세페이지 URL 또는 파일(PDF/이미지) → 제품명·USP 자동추출."""
+    try:
+        from modules import content_studio
+        f = request.files.get("file")
+        if f:
+            info = content_studio.extract_usp_file(load_config(), f.read(), f.mimetype or "application/pdf")
+        else:
+            url = (request.get_json(silent=True) or {}).get("url") or request.form.get("url") or ""
+            if not url.startswith("http"):
+                return jsonify({"error": "URL 또는 파일을 입력하세요."}), 400
+            info = content_studio.extract_usp_url(load_config(), url)
+        return jsonify({"product": info})
+    except Exception as e:  # noqa: BLE001
+        log.exception("content usp failed")
+        return jsonify({"error": str(e)}), 500
 
 
 # ═══════════════════════════════════════════════════════════

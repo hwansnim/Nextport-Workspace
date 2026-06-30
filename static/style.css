@@ -91,6 +91,10 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 17px; font-weight: 700; color: #fff;
 }
+.brand-logo-link { text-decoration: none; cursor: pointer; transition: transform .12s, box-shadow .15s; position: relative; }
+.brand-logo-link:hover { transform: scale(1.06); box-shadow: 0 0 0 3px rgba(0,113,227,.25); }
+.brand-logo-link::after { content: "🎬"; position: absolute; bottom: -4px; right: -5px; font-size: 11px; opacity: 0; transition: opacity .15s; }
+.brand-logo-link:hover::after { opacity: 1; }
 .brand-text { line-height: 1.25; }
 .brand-title { font-size: 14px; font-weight: 600; color: var(--sidebar-text); letter-spacing: -.01em; }
 .brand-sub { font-size: 11px; color: var(--sidebar-muted); }
