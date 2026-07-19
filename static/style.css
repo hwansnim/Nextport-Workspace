@@ -185,8 +185,8 @@ body {
 .eg-cell:hover { background: var(--hover); }
 
 /* ─── 상단 브랜드 바 (전체/브랜드들, 노션식 가로 탭) ─── */
-.topbrands { padding: 12px 28px 0; background: var(--bg); position: sticky; top: 0; z-index: 20; }
-.tb-list { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding-bottom: 11px; border-bottom: 1px solid var(--hairline); scrollbar-width: none; }
+.topbrands { padding: 14px 28px 0; background: var(--bg); position: sticky; top: 0; z-index: 20; }
+.tb-list { display: flex; align-items: center; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 7px 2px 11px; border-bottom: 1px solid var(--hairline); scrollbar-width: none; }
 .tb-list::-webkit-scrollbar { display: none; }
 .tb-item { display: inline-flex; align-items: center; gap: 6px; flex: none; background: transparent; border: 1px solid transparent; color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; padding: 6px 13px; border-radius: 980px; cursor: pointer; white-space: nowrap; transition: background .12s, color .12s; }
 .tb-item:hover { background: var(--hover); }
