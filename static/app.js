@@ -188,12 +188,14 @@ function renderBrandSwitcher() {
   const items = [{ id: "", emoji: "📊", name: "전체", campaign_count: totalCount }, ...state.brands];
   root.innerHTML = items.map(b => {
     const active = state.activeBrandId === b.id ? "active" : "";
+    const edit = b.id ? `<span class="bs-edit" data-edit-brand="${escapeHtml(b.id)}" title="브랜드 편집">✎</span>` : "";
     return `<button class="bs-item ${active}" data-brand-id="${escapeHtml(b.id)}" title="${escapeHtml(b.name)}">
       <span class="bs-emoji">${b.emoji || "🏷️"}</span>
       <span class="bs-name">${escapeHtml(b.name)}</span>
+      ${edit}
       <span class="bs-count">${b.campaign_count || 0}</span>
     </button>`;
-  }).join("");
+  }).join("") + `<button class="bs-add" id="bsAdd" type="button">＋ 브랜드 추가</button>`;
 }
 
 function populateCampaignBrandSelect() {
@@ -216,9 +218,90 @@ async function switchBrand(brandId) {
 }
 
 document.addEventListener("click", (e) => {
+  const editEl = e.target.closest("[data-edit-brand]");
+  if (editEl) { e.stopPropagation(); openBrandEditor(state.brands.find(b => b.id === editEl.dataset.editBrand) || null); return; }
+  if (e.target.closest("#bsAdd")) { openBrandEditor(null); return; }
   const bs = e.target.closest(".bs-item[data-brand-id]");
-  if (bs) {
-    switchBrand(bs.dataset.brandId);
+  if (bs) { switchBrand(bs.dataset.brandId); return; }
+  // 팝오버 바깥 클릭 → 닫기
+  if (!e.target.closest("#brandPop")) closeBrandPop();
+});
+
+/* ─── 노션식 브랜드 추가/편집 + 이모지 피커 ─── */
+const EMOJI_CATS = {
+  "추천": ["🏷️","🌿","🌙","💊","🧴","✨","🔥","💧","🍃","🫧","🧬","🩹","🌸","🧡","💙","💜","🟢","🔵","🟣","🟠","⭐","🎯","🛒","📦"],
+  "표정": ["😀","😄","😊","🥰","😎","🤩","🤗","🤔","😴","🥳","😇","🙂","😌","😋","🤤","🥹","😏","🫶","👍","🙌","👏","💪","🫡","🤝"],
+  "자연": ["🌿","🍃","🌱","🌸","🌷","🌹","🌻","🌵","🍀","🌊","💧","🫧","🔥","☀️","🌙","⭐","🌈","❄️","🍎","🍊","🍋","🫐","🥑","🥦"],
+  "건강": ["💊","🧴","🩺","🧬","🦴","🫀","🧠","💪","🏃","🧘","🥗","🥤","🍵","🫖","🧃","🩹","🌡️","⚕️","😴","🛁","🧼","🪥","🦷","👁️"],
+  "뷰티": ["🧴","💄","💅","✨","🫧","🪞","💆","🧖","👩","🧑","🌟","💫","🎀","👗","👜","🕶️","💎","👑","🌺","🌼","💐","🍑","🍓","🧁"],
+  "사물": ["📦","🛒","🛍️","💳","🏷️","📱","💻","📷","🎥","🎬","🎙️","📢","📈","📊","📝","📌","📎","🔖","🎁","🏆","🥇","💰","🪄","🔔"],
+  "기호": ["⭐","🔥","✨","💥","⚡","💯","✅","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤"],
+};
+let brandEdit = { id: null, emoji: "🏷️" };
+
+function openBrandEditor(brand) {
+  const pop = $("#brandPop"); if (!pop) return;
+  brandEdit = brand ? { id: brand.id, emoji: brand.emoji || "🏷️" } : { id: null, emoji: "🏷️" };
+  $("#bpHead").textContent = brand ? "브랜드 편집" : "새 브랜드";
+  $("#bpEmoji").textContent = brandEdit.emoji;
+  $("#bpName").value = brand ? (brand.name || "") : "";
+  $("#bpNotes").value = brand ? (brand.notes || "") : "";
+  $("#bpDelete").hidden = !brand;
+  $("#emojiPick").hidden = true;
+  // 위치: 브랜드 스위처 아래
+  const anchor = $("#brandSwitcher").getBoundingClientRect();
+  pop.style.top = Math.round(anchor.bottom + 4) + "px";
+  pop.style.left = Math.round(anchor.left + 8) + "px";
+  pop.hidden = false;
+  setTimeout(() => $("#bpName").focus(), 30);
+}
+function closeBrandPop() { const p = $("#brandPop"); if (p && !p.hidden) { p.hidden = true; $("#emojiPick").hidden = true; } }
+
+function renderEmojiPicker(cat) {
+  cat = cat || "추천";
+  $("#emojiCats").innerHTML = Object.keys(EMOJI_CATS).map(c =>
+    `<button type="button" class="ec-tab ${c === cat ? "active" : ""}" data-ecat="${c}">${c}</button>`).join("");
+  $("#emojiGrid").innerHTML = (EMOJI_CATS[cat] || []).map(e =>
+    `<button type="button" class="eg-cell" data-emoji="${e}">${e}</button>`).join("");
+}
+function toggleEmojiPicker() {
+  const ep = $("#emojiPick");
+  ep.hidden = !ep.hidden;
+  if (!ep.hidden) { renderEmojiPicker("추천"); setTimeout(() => $("#emojiPaste").focus(), 20); }
+}
+function pickEmoji(e) { brandEdit.emoji = e; $("#bpEmoji").textContent = e; $("#emojiPick").hidden = true; }
+
+async function saveBrandFromEditor() {
+  const name = ($("#bpName").value || "").trim();
+  if (!name) { $("#bpName").focus(); return; }
+  const body = { name, emoji: brandEdit.emoji, notes: ($("#bpNotes").value || "").trim() };
+  try {
+    if (brandEdit.id) await api(`/api/brands/${brandEdit.id}`, { method: "PATCH", body: JSON.stringify(body) });
+    else await api("/api/brands", { method: "POST", body: JSON.stringify(body) });
+    closeBrandPop();
+    await loadBrands();
+  } catch (err) { alert("저장 실패: " + (err.message || err)); }
+}
+async function deleteBrandFromEditor() {
+  if (!brandEdit.id) return;
+  if (!confirm("이 브랜드를 삭제할까요? (연결된 캠페인은 그대로 남습니다)")) return;
+  try { await api(`/api/brands/${brandEdit.id}`, { method: "DELETE" }); closeBrandPop(); if (state.activeBrandId === brandEdit.id) state.activeBrandId = ""; await loadBrands(); }
+  catch (err) { alert("삭제 실패: " + (err.message || err)); }
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#bpEmoji")) { e.stopPropagation(); toggleEmojiPicker(); return; }
+  const tab = e.target.closest("[data-ecat]"); if (tab) { renderEmojiPicker(tab.dataset.ecat); return; }
+  const cell = e.target.closest("[data-emoji]"); if (cell) { pickEmoji(cell.dataset.emoji); return; }
+  if (e.target.closest("#bpSave")) { saveBrandFromEditor(); return; }
+  if (e.target.closest("#bpCancel")) { closeBrandPop(); return; }
+  if (e.target.closest("#bpDelete")) { deleteBrandFromEditor(); return; }
+});
+document.addEventListener("keydown", (e) => {
+  if ($("#brandPop") && !$("#brandPop").hidden) {
+    if (e.key === "Escape") closeBrandPop();
+    if (e.key === "Enter" && e.target.id === "bpName") saveBrandFromEditor();
+    if (e.key === "Enter" && e.target.id === "emojiPaste") { const v = (e.target.value || "").trim(); if (v) { pickEmoji([...v][0]); e.target.value = ""; } }
   }
 });
 
