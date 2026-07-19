@@ -888,71 +888,76 @@ function renderCalendar() {
     });
   }
 
-  // 캠페인 필터 + 정렬
+  // 주 단위로 분할
+  const weeks = [];
+  for (let i = 0; i < cellInfo.length; i += 7) weeks.push(cellInfo.slice(i, i + 7));
+
+  // 캠페인(공구) — 브랜드 필터 + 라이브 기간 있는 것
   let campaigns = (state.campaigns || []).filter(c => c.live_start && c.live_end);
   campaigns = filterByBrand(campaigns, campaignBrandId);
-  campaigns.sort((a, b) => (a.live_start || "").localeCompare(b.live_start || ""));
+  const brandById = {}; (state.brands || []).forEach(b => { brandById[b.id] = b; });
 
-  // 점 이벤트 grouping (Apple 목업: 작은 점만)
-  //  - calEvents (미팅/발송/마감 등) + 캠페인 라이브 기간 = 날짜별 라이브 점
-  const dotByDate = {};
-  const pushDot = (date, obj) => { (dotByDate[date] = dotByDate[date] || []).push(obj); };
+  // 단일일 이벤트(미팅/발송 등) — 날짜별
+  const evByDate = {};
   for (const ev of state.calEvents || []) {
-    if (!ev.date) continue;
-    if (ev.kind === "live_start" || ev.kind === "live_end") continue;
-    pushDot(ev.date, { type: "event", ev, kind: ev.kind || "other", title: ev.title });
+    if (!ev.date || ev.kind === "live_start" || ev.kind === "live_end") continue;
+    (evByDate[ev.date] = evByDate[ev.date] || []).push(ev);
   }
-  for (const c of campaigns) {
-    const cs = parseYmd(c.live_start), ce = parseYmd(c.live_end);
-    if (!cs || !ce) continue;
-    const label = `[${c.brand || ""}] ${c.seller_name} ${c.round}차 공구`;
-    for (let t = +cs; t <= +ce; t += 86400000) {
-      pushDot(ymdLocal(new Date(t)), { type: "camp", camp: c, kind: "live", title: `${label} (${c.live_start}~${c.live_end})` });
-    }
-  }
+  const statusMeta = (s) => {
+    s = s || "";
+    if (/진행/.test(s)) return { label: "진행중", cls: "go" };
+    if (/완료/.test(s)) return { label: "완료", cls: "done" };
+    if (/취소|보류|중단|드랍|홀드/.test(s)) return { label: s, cls: "off" };
+    return { label: "예정", cls: "plan" };
+  };
 
-  // 헤더 (일요일 시작)
   const dows = ["일", "월", "화", "수", "목", "금", "토"];
-  let html = '<div class="cal-grid-head">';
-  for (let i = 0; i < 7; i++) {
-    const cls = i === 0 ? "sun" : i === 6 ? "sat" : "";
-    html += `<div class="cal-dow ${cls}">${dows[i]}</div>`;
-  }
-  html += "</div>";
+  let html = '<div class="cal-grid-head">' +
+    dows.map((d, i) => `<div class="cal-dow ${i === 0 ? "sun" : i === 6 ? "sat" : ""}">${d}</div>`).join("") +
+    "</div><div class='cal-weeks'>";
 
-  // 월 전체 단일 그리드 — 일정은 글자(이벤트 이름) 칩으로 표시
-  const MAX_CHIPS = 3;
-  html += '<div class="cal-grid">';
-  for (const ci of cellInfo) {
-    const dowCls = ci.dow === 0 ? "sun" : ci.dow === 6 ? "sat" : "";
-    const holidayCls = ci.holiday ? (ci.off ? "holiday-soft" : "holiday") : "";
-    const classes = [
-      "cal-cell",
-      ci.off ? "off" : "",
-      ci.isToday ? "today" : "",
-      dowCls,
-      holidayCls,
-    ].filter(Boolean).join(" ");
-    const evList = dotByDate[ci.dateStr] || [];
-    const chips = evList.slice(0, MAX_CHIPS).map(d => {
-      if (d.type === "event") {
-        const ev = d.ev;
-        return `<span class="cal-ev k-${d.kind}" data-event-id="${escapeHtml(ev.id)}" data-ref-kind="${escapeHtml(ev.ref_kind || "")}" data-ref-id="${escapeHtml(ev.ref_id || "")}" data-auto="${ev.auto ? "1" : "0"}" title="${escapeHtml(d.title)}"><i class="cal-ev-dot"></i><span class="cal-ev-txt">${escapeHtml(ev.title || "일정")}</span></span>`;
-      }
-      const c = d.camp;
-      const txt = `${c.seller_name || ""} ${c.round ? c.round + "차" : ""} 라이브`.trim();
-      return `<span class="cal-ev k-live" data-campaign-id="${escapeHtml(c.id)}" title="${escapeHtml(d.title)}"><i class="cal-ev-dot"></i><span class="cal-ev-txt">${escapeHtml(txt)}</span></span>`;
+  for (const wk of weeks) {
+    const wkStart = wk[0].dateStr, wkEnd = wk[6].dateStr;
+    // 이 주에 걸치는 공구 세그먼트
+    const segs = [];
+    for (const c of campaigns) {
+      if (c.live_end < wkStart || c.live_start > wkEnd) continue;   // ISO 문자열 비교
+      let s = 0; while (s < 7 && wk[s].dateStr < c.live_start) s++;
+      let en = 6; while (en > 0 && wk[en].dateStr > c.live_end) en--;
+      if (s > en) continue;
+      segs.push({ c, startCol: s + 1, endCol: en + 1, span: en - s + 1, rl: c.live_start >= wkStart, rr: c.live_end <= wkEnd });
+    }
+    segs.sort((a, b) => a.startCol - b.startCol || b.span - a.span);
+    // 레인 배치(겹침 방지)
+    const laneEnd = [];
+    for (const s of segs) {
+      let placed = false;
+      for (let i = 0; i < laneEnd.length; i++) { if (s.startCol > laneEnd[i]) { s.lane = i; laneEnd[i] = s.endCol; placed = true; break; } }
+      if (!placed) { s.lane = laneEnd.length; laneEnd.push(s.endCol); }
+    }
+    const lanes = laneEnd.length;
+
+    const cells = wk.map(ci => {
+      const dowCls = ci.dow === 0 ? "sun" : ci.dow === 6 ? "sat" : "";
+      const holidayCls = ci.holiday ? (ci.off ? "holiday-soft" : "holiday") : "";
+      const cls = ["cal-cell", ci.off ? "off" : "", ci.isToday ? "today" : "", dowCls, holidayCls].filter(Boolean).join(" ");
+      const evs = evByDate[ci.dateStr] || [];
+      const chips = evs.slice(0, 2).map(ev =>
+        `<span class="cal-ev k-${ev.kind || "other"}" data-event-id="${escapeHtml(ev.id)}" data-ref-kind="${escapeHtml(ev.ref_kind || "")}" data-ref-id="${escapeHtml(ev.ref_id || "")}" data-auto="${ev.auto ? "1" : "0"}" title="${escapeHtml(ev.title || "")}"><i class="cal-ev-dot"></i><span class="cal-ev-txt">${escapeHtml(ev.title || "일정")}</span></span>`).join("");
+      const more = evs.length > 2 ? `<span class="cal-ev-more">+${evs.length - 2}</span>` : "";
+      return `<div class="${cls}" data-date="${ci.dateStr}"><span class="cal-day">${ci.day}</span>${ci.holiday ? `<span class="cal-holiday-label">${escapeHtml(ci.holiday)}</span>` : ""}<div class="cal-cell-evs">${chips}${more}</div></div>`;
     }).join("");
-    const more = evList.length > MAX_CHIPS ? `<span class="cal-ev-more">+${evList.length - MAX_CHIPS}</span>` : "";
-    html += `
-      <div class="${classes}" data-date="${ci.dateStr}">
-        <span class="cal-day">${ci.day}</span>
-        ${ci.holiday ? `<span class="cal-holiday-label">${escapeHtml(ci.holiday)}</span>` : ""}
-        <div class="cal-evs">${chips}${more}</div>
-      </div>`;
+
+    const bars = segs.map(s => {
+      const c = s.c, b = brandById[c.brand_id] || {}, st = statusMeta(c.status);
+      const name = (c.title && c.title.trim()) || `${c.seller_name || ""} ${c.round ? c.round + "차" : ""} 공구`.trim();
+      const tip = `[${c.brand || ""}] ${name} · ${c.live_start}~${c.live_end}${c.status ? " · " + c.status : ""}`;
+      return `<div class="cal-bar ${s.rl ? "rl" : ""} ${s.rr ? "rr" : ""}" style="grid-column:${s.startCol}/span ${s.span};grid-row:${s.lane + 1};--bc:${b.color || "#0071e3"}" data-campaign-id="${escapeHtml(c.id)}" title="${escapeHtml(tip)}"><span class="cb-emoji">${b.emoji || "🛒"}</span><span class="cb-name">${escapeHtml(name)}</span><span class="cb-st st-${st.cls}">${st.label}</span></div>`;
+    }).join("");
+
+    html += `<div class="cal-week" style="--lanes:${lanes}"><div class="cal-wk-cells">${cells}</div><div class="cal-wk-bars">${bars}</div></div>`;
   }
   html += "</div>";
-
   root.innerHTML = html;
 }
 
@@ -1727,8 +1732,8 @@ document.addEventListener("click", async (e) => {
     if (c) showCampaignDialog(c);
     return;
   }
-  // 일정 칩 클릭
-  const dotEl = e.target.closest(".cal-ev");
+  // 일정 칩 / 공구 바 클릭
+  const dotEl = e.target.closest(".cal-ev, .cal-bar");
   if (dotEl) {
     e.stopPropagation();
     // 캠페인 라이브 점 → 캠페인 다이얼로그
