@@ -13,6 +13,7 @@ const state = {
   calEvents: [],
   today: null,
   campaigns: [],
+  campaignsV2: [],   // v2 캠페인(캠페인→세트→마켓) — 캘린더 공구 스팬 소스
   meetings: [],
   currentMeetingId: null,
   brands: [],
@@ -826,10 +827,11 @@ async function loadCalendar() {
     state.calMonth = { year: now.getFullYear(), month: now.getMonth() };
   }
   try {
-    const { events } = await api("/api/calendar");
-    state.calEvents = events || [];
+    const [cal, cv2] = await Promise.all([api("/api/calendar"), api("/api/campaigns_v2")]);
+    state.calEvents = cal.events || [];
+    state.campaignsV2 = cv2.campaigns || [];
   } catch (e) {
-    state.calEvents = [];
+    state.calEvents = state.calEvents || [];
   }
   renderCalendar();
 }
@@ -889,9 +891,25 @@ function renderCalendar() {
   const weeks = [];
   for (let i = 0; i < cellInfo.length; i += 7) weeks.push(cellInfo.slice(i, i + 7));
 
-  // 캠페인(공구) — 브랜드 필터 + 라이브 기간 있는 것
-  let campaigns = (state.campaigns || []).filter(c => c.live_start && c.live_end);
-  campaigns = filterByBrand(campaigns, campaignBrandId);
+  // v2 마켓(공구) → 캘린더 스팬 카드 (캠페인→세트→마켓, 마켓의 scheduling 기간)
+  const markets = [];
+  for (const cam of (state.campaignsV2 || [])) {
+    const bid = cam.brand_id || _brandIdFromName(cam.brand || "");
+    for (const set of (cam.sets || [])) {
+      for (const ad of (set.ads || [])) {
+        const sc = ad.scheduling || {};
+        if (!sc.start_date || !sc.end_date) continue;
+        markets.push({
+          id: cam.id, brand: cam.brand || "", brand_id: bid,
+          seller_name: cam.seller_name || "",
+          title: (ad.name && ad.name.trim()) || `${cam.seller_name || ""} ${set.label || ""} 공구`.trim(),
+          live_start: sc.start_date, live_end: sc.end_date,
+          status: ad.status || cam.status || "",
+        });
+      }
+    }
+  }
+  let campaigns = filterByBrand(markets, m => m.brand_id);
   const brandById = {}; (state.brands || []).forEach(b => { brandById[b.id] = b; });
 
   // 단일일 이벤트(미팅/발송 등) — 날짜별
@@ -1742,8 +1760,9 @@ document.addEventListener("click", async (e) => {
   const dotEl = e.target.closest(".cal-ev, .cal-bar");
   if (dotEl) {
     e.stopPropagation();
-    // 캠페인 라이브 점 → 캠페인 다이얼로그
+    // 공구 바(v2) → 셀러 캠페인 탭으로
     if (dotEl.dataset.campaignId) {
+      if (dotEl.classList.contains("cal-bar")) { switchTab("campaigns"); return; }
       const c = state.campaigns.find(x => x.id === dotEl.dataset.campaignId);
       if (c) showCampaignDialog(c);
       return;
