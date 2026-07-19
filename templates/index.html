@@ -42,11 +42,9 @@
         })();
       </script>
 
-      <div class="brand-switcher" id="brandSwitcher">
+      <div class="brand-switcher" id="brandSwitcher" hidden>
         <div class="bs-label">브랜드</div>
-        <div class="bs-list" id="brandList">
-          <div class="bs-item active" data-brand-id="">전체</div>
-        </div>
+        <div class="bs-list" id="brandList"></div>
       </div>
 
       <!-- 노션식 브랜드 편집 팝오버 -->
@@ -145,6 +143,11 @@
 
     <!-- MAIN -->
     <main class="main">
+
+      <!-- 상단 브랜드 바 (전체 / 브랜드들 · 추가 가능) -->
+      <div class="topbrands" id="topbrands">
+        <div class="tb-list" id="brandTabs"></div>
+      </div>
 
       <!-- TAB: HOME (big calendar + today widget) -->
       <section class="tab-pane active" id="tab-home">

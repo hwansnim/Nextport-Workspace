@@ -182,20 +182,17 @@ async function loadBrands() {
 }
 
 function renderBrandSwitcher() {
-  const root = $("#brandList");
+  const root = $("#brandTabs");
   if (!root) return;
-  const totalCount = state.brands.reduce((s, b) => s + (b.campaign_count || 0), 0);
-  const items = [{ id: "", emoji: "📊", name: "전체", campaign_count: totalCount }, ...state.brands];
+  const items = [{ id: "", emoji: "📊", name: "전체" }, ...state.brands];
   root.innerHTML = items.map(b => {
     const active = state.activeBrandId === b.id ? "active" : "";
-    const edit = b.id ? `<span class="bs-edit" data-edit-brand="${escapeHtml(b.id)}" title="브랜드 편집">✎</span>` : "";
-    return `<button class="bs-item ${active}" data-brand-id="${escapeHtml(b.id)}" title="${escapeHtml(b.name)}">
-      <span class="bs-emoji">${b.emoji || "🏷️"}</span>
-      <span class="bs-name">${escapeHtml(b.name)}</span>
-      ${edit}
-      <span class="bs-count">${b.campaign_count || 0}</span>
+    const cnt = b.campaign_count ? `<span class="tb-count">${b.campaign_count}</span>` : "";
+    const edit = b.id ? `<span class="tb-edit" data-edit-brand="${escapeHtml(b.id)}" title="브랜드 편집">✎</span>` : "";
+    return `<button class="tb-item ${active}" data-brand-id="${escapeHtml(b.id)}" title="${escapeHtml(b.name)}">
+      <span class="tb-emoji">${b.emoji || "🏷️"}</span><span class="tb-name">${escapeHtml(b.name)}</span>${cnt}${edit}
     </button>`;
-  }).join("") + `<button class="bs-add" id="bsAdd" type="button">＋ 브랜드 추가</button>`;
+  }).join("") + `<button class="tb-add" id="bsAdd" type="button" title="브랜드 추가">＋</button>`;
 }
 
 function populateCampaignBrandSelect() {
@@ -221,10 +218,10 @@ document.addEventListener("click", (e) => {
   const editEl = e.target.closest("[data-edit-brand]");
   if (editEl) { e.stopPropagation(); openBrandEditor(state.brands.find(b => b.id === editEl.dataset.editBrand) || null); return; }
   if (e.target.closest("#bsAdd")) { openBrandEditor(null); return; }
-  const bs = e.target.closest(".bs-item[data-brand-id]");
+  const bs = e.target.closest(".tb-item[data-brand-id]");
   if (bs) { switchBrand(bs.dataset.brandId); return; }
   // 팝오버 바깥 클릭 → 닫기
-  if (!e.target.closest("#brandPop")) closeBrandPop();
+  if (!e.target.closest("#brandPop") && !e.target.closest("#bsAdd") && !e.target.closest("[data-edit-brand]")) closeBrandPop();
 });
 
 /* ─── 노션식 브랜드 추가/편집 + 이모지 피커 ─── */
@@ -246,12 +243,12 @@ function openBrandEditor(brand) {
   $("#bpEmoji").textContent = brandEdit.emoji;
   $("#bpName").value = brand ? (brand.name || "") : "";
   $("#bpNotes").value = brand ? (brand.notes || "") : "";
-  $("#bpDelete").hidden = !brand;
+  $("#bpDelete").hidden = true;   // 삭제 막음 (사용자 요청)
   $("#emojiPick").hidden = true;
-  // 위치: 브랜드 스위처 아래
-  const anchor = $("#brandSwitcher").getBoundingClientRect();
-  pop.style.top = Math.round(anchor.bottom + 4) + "px";
-  pop.style.left = Math.round(anchor.left + 8) + "px";
+  // 위치: 상단 브랜드 바 아래
+  const anchor = ($("#topbrands") || $("#brandTabs")).getBoundingClientRect();
+  pop.style.top = Math.round(anchor.bottom + 6) + "px";
+  pop.style.left = Math.round(Math.min(anchor.left + 16, window.innerWidth - 280)) + "px";
   pop.hidden = false;
   setTimeout(() => $("#bpName").focus(), 30);
 }
@@ -1223,8 +1220,19 @@ function getValueAtPath(camp, path) {
 }
 
 function renderDashboard(data) {
-  // 총합 카드들
-  const t = data.totals || {};
+  // 표·총합 모두 브랜드 필터 적용 (브랜드 누르면 그 브랜드만)
+  const camps = filterByBrand(data.campaigns || [], c => c.brand_id || _brandIdFromName(c.brand));
+
+  // 총합 카드 = 필터된 완료 캠페인 기준으로 재계산 (서버 전체값 대신)
+  const completed = camps.filter(c => c.status === "완료");
+  const sumRev = completed.reduce((s, c) => s + Number((c.financials || {}).revenue || 0), 0);
+  const sumProfit = completed.reduce((s, c) => s + Number((c.calc || {}).contribution_profit || 0), 0);
+  const t = {
+    completed_count: completed.length,
+    total_revenue: sumRev,
+    total_profit: sumProfit,
+    avg_rate: sumRev > 0 ? Math.round(sumProfit / sumRev * 10000) / 100 : 0,
+  };
   $("#dashTotals").innerHTML = `
     <div class="dash-stat">
       <div class="ds-label">완료 캠페인</div>
@@ -1244,8 +1252,6 @@ function renderDashboard(data) {
     </div>
   `;
 
-  // 표: 행 = 메트릭, 열 = 캠페인 (브랜드 필터 적용)
-  const camps = filterByBrand(data.campaigns || [], c => c.brand_id || _brandIdFromName(c.brand));
   if (!camps.length) {
     $("#dashTable").innerHTML = `<tbody><tr><td class="empty">캠페인 없음</td></tr></tbody>`;
     return;

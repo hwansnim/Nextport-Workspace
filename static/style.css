@@ -184,6 +184,22 @@ body {
 .eg-cell { border: none; background: transparent; font-size: 19px; padding: 4px 0; border-radius: 7px; cursor: pointer; line-height: 1; }
 .eg-cell:hover { background: var(--hover); }
 
+/* ─── 상단 브랜드 바 (전체/브랜드들, 노션식 가로 탭) ─── */
+.topbrands { padding: 12px 28px 0; background: var(--bg); position: sticky; top: 0; z-index: 20; }
+.tb-list { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding-bottom: 11px; border-bottom: 1px solid var(--hairline); scrollbar-width: none; }
+.tb-list::-webkit-scrollbar { display: none; }
+.tb-item { display: inline-flex; align-items: center; gap: 6px; flex: none; background: transparent; border: 1px solid transparent; color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; padding: 6px 13px; border-radius: 980px; cursor: pointer; white-space: nowrap; transition: background .12s, color .12s; }
+.tb-item:hover { background: var(--hover); }
+.tb-item.active { background: var(--accent-soft); color: var(--accent); }
+.tb-emoji { font-size: 15px; }
+.tb-count { font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--track); padding: 0 6px; border-radius: 980px; }
+.tb-item.active .tb-count { color: var(--accent); background: rgba(0,113,227,.12); }
+.tb-edit { opacity: 0; font-size: 11px; color: var(--muted); margin-left: -2px; transition: opacity .12s; }
+.tb-item:hover .tb-edit { opacity: .65; }
+.tb-edit:hover { opacity: 1; color: var(--accent); }
+.tb-add { flex: none; width: 30px; height: 30px; border: 1px dashed var(--border-strong); background: transparent; color: var(--muted); border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1; }
+.tb-add:hover { color: var(--accent); border-color: var(--accent); }
+
 .side-nav {
   padding: 8px 10px 12px;
   flex: 1;
