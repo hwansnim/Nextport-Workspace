@@ -200,6 +200,25 @@ body {
 .tb-add { flex: none; width: 30px; height: 30px; border: 1px dashed var(--border-strong); background: transparent; color: var(--muted); border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1; }
 .tb-add:hover { color: var(--accent); border-color: var(--accent); }
 
+/* ─── 홈: 캘린더 아래 공구 캠페인 리스트 ─── */
+.home-campaigns { margin-top: 22px; }
+.hc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hc-head h2 { font-size: 17px; font-weight: 700; margin: 0; }
+.hc-sub { font-size: 12px; color: var(--muted); font-weight: 600; }
+.hc-spacer { flex: 1; }
+#homeCampList { background: #fff; border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+.hc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hc-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--hover); padding: 10px 14px; border-bottom: 1px solid var(--hairline); }
+.hc-table td { padding: 11px 14px; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
+.hc-table tbody tr:last-child td { border-bottom: none; }
+.hc-row { cursor: pointer; transition: background .1s; }
+.hc-row:hover { background: var(--accent-soft); }
+.hc-brand { white-space: nowrap; }
+.hc-type { font-size: 11px; font-weight: 700; color: var(--text2); background: var(--track); padding: 2px 8px; border-radius: 980px; }
+.hc-period { color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hc-none { color: var(--muted); }
+#homeCampList .empty { padding: 30px; text-align: center; color: var(--muted); }
+
 .side-nav {
   padding: 8px 10px 12px;
   flex: 1;

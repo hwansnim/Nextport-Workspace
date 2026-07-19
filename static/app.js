@@ -209,7 +209,7 @@ async function switchBrand(brandId) {
   state.activeBrandId = brandId;
   renderBrandSwitcher();
   // 모든 뷰 새로고침
-  if ($("#tab-home").classList.contains("active")) { renderCalendar(); loadToday(); }
+  if ($("#tab-home").classList.contains("active")) { renderCalendar(); renderHomeCampaigns(); loadToday(); }
   if ($("#tab-campaigns").classList.contains("active")) renderCampaigns();
   if ($("#tab-dashboard").classList.contains("active")) loadDashboard();
   if ($("#tab-meetings").classList.contains("active")) renderMeetings();
@@ -834,6 +834,39 @@ async function loadCalendar() {
     state.calEvents = state.calEvents || [];
   }
   renderCalendar();
+  renderHomeCampaigns();
+}
+
+// 홈: 캘린더 아래 공구 캠페인 리스트 (v2, 상단 브랜드 탭 필터 공유)
+function renderHomeCampaigns() {
+  const root = $("#homeCampList"); if (!root) return;
+  const cams = filterByBrand(state.campaignsV2 || [], c => c.brand_id || _brandIdFromName(c.brand || ""));
+  const sub = $("#hcSub"); if (sub) sub.textContent = `${cams.length}개`;
+  if (!cams.length) {
+    root.innerHTML = `<div class="empty">캠페인이 없습니다. <b>[+ 캠페인]</b>으로 추가하세요.</div>`;
+    return;
+  }
+  const brandById = {}; (state.brands || []).forEach(b => { brandById[b.id] = b; });
+  const stCls = s => /진행/.test(s) ? "go" : /완료/.test(s) ? "done" : /취소|보류|중단|드랍|홀드/.test(s) ? "off" : "plan";
+  const rows = cams.map(c => {
+    const b = brandById[c.brand_id || _brandIdFromName(c.brand || "")] || {};
+    const ad = (((c.sets || [])[0] || {}).ads || [])[0] || {};
+    const sc = ad.scheduling || {};
+    const period = sc.start_date ? `${sc.start_date}${sc.end_date ? " ~ " + sc.end_date : ""}` : "<span class='hc-none'>미정</span>";
+    const stat = c.status || ad.status || "";
+    return `<tr class="hc-row" data-cam="${escapeHtml(c.id)}">
+      <td class="hc-seller"><b>${escapeHtml(c.seller_name || "(무명)")}</b></td>
+      <td class="hc-brand">${b.emoji || "🏷️"} ${escapeHtml(c.brand || "")}</td>
+      <td>${escapeHtml(c.product || "")}</td>
+      <td>${c.type ? `<span class="hc-type">${escapeHtml(c.type)}</span>` : ""}</td>
+      <td><span class="cb-st st-${stCls(stat)}">${escapeHtml(stat || "—")}</span></td>
+      <td class="hc-period">${period}</td>
+    </tr>`;
+  }).join("");
+  root.innerHTML = `<table class="hc-table"><thead><tr>
+    <th>셀러</th><th>브랜드</th><th>제품</th><th>타입</th><th>상태</th><th>공구 기간</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  root.querySelectorAll(".hc-row").forEach(tr => tr.addEventListener("click", () => switchTab("campaigns")));
 }
 
 function parseYmd(s) {
@@ -1790,6 +1823,8 @@ document.addEventListener("click", async (e) => {
     showEventDialog({ date: ymdLocal(new Date()) });
     return;
   }
+  // 홈 공구 캠페인 [+ 캠페인] → 셀러 캠페인 탭
+  if (e.target.closest("#hcAdd")) { switchTab("campaigns"); return; }
 
   // 캘린더 빈 셀 클릭 = 새 이벤트
   const cell = e.target.closest(".cal-cell");
