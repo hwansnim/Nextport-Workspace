@@ -185,7 +185,7 @@ body {
 .eg-cell:hover { background: var(--hover); }
 
 /* ─── 상단 브랜드 바 (전체/브랜드들, 노션식 가로 탭) ─── */
-.topbrands { padding: 14px 28px 0; background: var(--bg); position: relative; z-index: 20; }
+.topbrands { padding: 14px 28px 0; background: var(--bg); position: sticky; top: 0; z-index: 60; }
 .tb-list { display: flex; align-items: center; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 7px 2px 11px; border-bottom: 1px solid var(--hairline); scrollbar-width: none; }
 .tb-list::-webkit-scrollbar { display: none; }
 .tb-item { display: inline-flex; align-items: center; gap: 6px; flex: none; background: transparent; border: 1px solid transparent; color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; padding: 6px 13px; border-radius: 980px; cursor: pointer; white-space: nowrap; transition: background .12s, color .12s; }
@@ -318,18 +318,18 @@ body.mobile-mode .topclock { display: none; }
   display: flex; align-items: center; justify-content: space-between;
   gap: 16px;
   min-height: 64px;
-  margin: -28px -32px 24px;
+  margin: 0 -32px 24px;
   padding: 12px 32px;
   border-bottom: 1px solid var(--hairline);
   background: rgba(251,251,253,.88);
   backdrop-filter: saturate(180%) blur(12px);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: var(--brandbar-h, 66px); z-index: 50;
 }
 .page-head h1 { font-size: 19px; margin: 0; font-weight: 600; letter-spacing: -.01em; }
 .page-sub { color: var(--muted); font-size: 12px; margin: 1px 0 0; }
 /* 캠페인 디테일/리스트는 자체 page-head 가짐 */
-#camV2ListView .page-head, #camV2DetailView .page-head { margin: -28px -32px 24px; }
+#camV2ListView .page-head, #camV2DetailView .page-head { margin: 0 -32px 24px; }
 
 /* PANEL */
 .panel {

@@ -194,6 +194,11 @@ function renderBrandSwitcher() {
       <span class="tb-emoji">${b.emoji || "🏷️"}</span><span class="tb-name">${escapeHtml(b.name)}</span>${cnt}${edit}
     </button>`;
   }).join("") + `<button class="tb-add" id="bsAdd" type="button" title="브랜드 추가">＋</button>`;
+  // 브랜드 바 실제 높이를 CSS 변수로 → page-head sticky가 브랜드 바 바로 아래에 붙도록
+  requestAnimationFrame(() => {
+    const tb = document.getElementById("topbrands");
+    if (tb) document.documentElement.style.setProperty("--brandbar-h", tb.offsetHeight + "px");
+  });
 }
 
 function populateCampaignBrandSelect() {
