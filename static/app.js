@@ -113,6 +113,7 @@ function switchTab(name) {
   if (name === "campaigns") loadCampaigns();
   if (name === "meetings") loadMeetings();
   if (name === "dashboard") loadDashboard();
+  if (name === "team") loadTeam();
 }
 
 document.addEventListener("click", (e) => {
@@ -3097,6 +3098,154 @@ const Tower = (function () {
 })();
 
 // init
+/* ═══════════════════ 팀원 인증 + 실시간 접속 현황 ═══════════════════ */
+const auth = { me: null, teamTimer: null };
+
+async function initAuth() {
+  try {
+    auth.me = await api("/api/me");
+  } catch (e) {
+    // 세션 없으면 게이트가 이미 /login 으로 보냄 — 방어적으로 처리
+    return;
+  }
+  const isAdmin = auth.me.role === "admin";
+  const navTeam = document.getElementById("navTeam");
+  if (navTeam) navTeam.hidden = !isAdmin;
+
+  // 사이드바 사용자 칩
+  const su = document.getElementById("sideUser");
+  if (su) {
+    su.hidden = false;
+    document.getElementById("suAvatar").textContent = (auth.me.name || "?").slice(0, 1);
+    document.getElementById("suName").textContent = auth.me.name || "";
+    const roleEl = document.getElementById("suRole");
+    roleEl.textContent = isAdmin ? "관리자" : "팀원";
+    roleEl.className = "su-role" + (isAdmin ? " admin" : "");
+  }
+  document.getElementById("btnLogout")?.addEventListener("click", async () => {
+    try { await fetch("/api/logout", { method: "POST" }); } catch {}
+    location.href = "/login";
+  });
+
+  // heartbeat — 20초마다 접속중 신호
+  const ping = () => { fetch("/api/presence/ping", { method: "POST" }).catch(() => {}); };
+  ping();
+  setInterval(ping, 20000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
+}
+
+async function loadTeam() {
+  if (!auth.me || auth.me.role !== "admin") return;
+  await renderTeam();
+  // 접속 현황 실시간 갱신 (탭 열려있는 동안만)
+  clearInterval(auth.teamTimer);
+  auth.teamTimer = setInterval(() => {
+    if (document.getElementById("tab-team")?.classList.contains("active")) renderTeam(true);
+    else { clearInterval(auth.teamTimer); auth.teamTimer = null; }
+  }, 8000);
+}
+
+async function renderTeam(silent) {
+  let data;
+  try { data = await api("/api/team"); }
+  catch (e) { if (!silent) window.showToast?.({ icon: "⚠️", title: "팀원 로드 실패", body: e.message }); return; }
+  const body = document.getElementById("tmBody");
+  const empty = document.getElementById("tmEmpty");
+  const cnt = document.getElementById("tmCount");
+  if (!body) return;
+  const members = data.members || [];
+  cnt.textContent = members.length ? `${members.length}명` : "";
+  empty.hidden = members.length > 0;
+
+  body.innerHTML = members.map(m => {
+    const dot = `<span class="dot ${m.online ? "on" : ""}" title="${m.online ? "접속중" : (m.ago != null ? m.ago + "초 전" : "접속 기록 없음")}"></span>`;
+    const status = m.online ? "접속중" : (m.ago != null ? `${teamAgo(m.ago)}` : "—");
+    const roleBadge = m.role === "admin"
+      ? `<span class="role-badge admin">관리자</span>`
+      : `<span class="role-badge">팀원</span>`;
+    const meMark = m.is_me ? ` <span class="me-mark">나</span>` : "";
+    return `<tr data-id="${escapeHtml(m.id)}">
+      <td class="tm-status">${dot}<span class="tm-status-txt">${status}</span></td>
+      <td class="tm-name">${escapeHtml(m.name)}${meMark}</td>
+      <td>${roleBadge}</td>
+      <td><code class="tm-pw">${escapeHtml(m.password || "")}</code></td>
+      <td class="tm-link-cell">
+        <input class="tm-link" readonly value="${escapeHtml(m.link)}" title="${escapeHtml(m.link)}" />
+        <button class="tm-copy" data-copy="${escapeHtml(m.link)}" type="button">복사</button>
+      </td>
+      <td class="tm-actions">
+        <button class="tm-edit" data-edit="${escapeHtml(m.id)}" type="button" title="이름·비밀번호 수정">수정</button>
+        ${m.is_me ? "" : `<button class="tm-del" data-del="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}" type="button" title="삭제">삭제</button>`}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function teamAgo(sec) {
+  if (sec == null) return "—";
+  if (sec < 60) return `${sec}초 전`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}분 전`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}시간 전`;
+  return `${Math.floor(sec / 86400)}일 전`;
+}
+
+// 팀원 추가 / 수정 / 삭제 / 복사 (이벤트 위임)
+document.addEventListener("click", async (e) => {
+  const addBtn = e.target.closest("#tmAdd");
+  if (addBtn) {
+    const name = document.getElementById("tmName").value.trim();
+    const pw = document.getElementById("tmPw").value.trim();
+    const role = document.getElementById("tmRole").value;
+    if (!name) return window.showToast?.({ icon: "✋", title: "이름을 입력하세요" });
+    if (pw.length < 4) return window.showToast?.({ icon: "✋", title: "비밀번호는 4자 이상" });
+    addBtn.disabled = true;
+    try {
+      const r = await api("/api/team", { method: "POST", body: JSON.stringify({ name, password: pw, role }) });
+      document.getElementById("tmName").value = "";
+      document.getElementById("tmPw").value = "";
+      document.getElementById("tmRole").value = "member";
+      await renderTeam();
+      window.showToast?.({ icon: "🔑", title: `${r.member.name} 추가됨`, body: "전용 링크가 생성됐어요. 링크+비번을 전달하세요.", accent: true });
+    } catch (err) { window.showToast?.({ icon: "⚠️", title: "추가 실패", body: err.message }); }
+    finally { addBtn.disabled = false; }
+    return;
+  }
+  const copyBtn = e.target.closest(".tm-copy");
+  if (copyBtn) {
+    const link = copyBtn.dataset.copy;
+    try { await navigator.clipboard.writeText(link); copyBtn.textContent = "복사됨!"; setTimeout(() => copyBtn.textContent = "복사", 1400); }
+    catch { window.prompt("이 링크를 복사하세요:", link); }
+    return;
+  }
+  const editBtn = e.target.closest(".tm-edit");
+  if (editBtn) {
+    const tr = editBtn.closest("tr"); const id = editBtn.dataset.edit;
+    const curName = tr.querySelector(".tm-name").childNodes[0].textContent.trim();
+    const curPw = tr.querySelector(".tm-pw").textContent;
+    const name = window.prompt("이름", curName);
+    if (name === null) return;
+    const pw = window.prompt("비밀번호 (비우면 유지, 바꾸려면 4자 이상)", curPw);
+    if (pw === null) return;
+    try {
+      await api(`/api/team/${id}`, { method: "PATCH", body: JSON.stringify({ name, password: pw }) });
+      await renderTeam();
+      window.showToast?.({ icon: "✏️", title: "수정됨", accent: true });
+    } catch (err) { window.showToast?.({ icon: "⚠️", title: "수정 실패", body: err.message }); }
+    return;
+  }
+  const delBtn = e.target.closest(".tm-del");
+  if (delBtn) {
+    const id = delBtn.dataset.del; const name = delBtn.dataset.name;
+    if (!window.confirm(`'${name}' 팀원을 삭제할까요?\n삭제하면 그 사람의 링크로는 더 이상 접속할 수 없어요.`)) return;
+    try {
+      await api(`/api/team/${id}`, { method: "DELETE" });
+      await renderTeam();
+      window.showToast?.({ icon: "🗑️", title: `${name} 삭제됨` });
+    } catch (err) { window.showToast?.({ icon: "⚠️", title: "삭제 실패", body: err.message }); }
+    return;
+  }
+});
+
 (async function init() {
   // 페이지 로드 시 모든 dialog 강제 닫기 (잔여 방지)
   try {
@@ -3106,6 +3255,7 @@ const Tower = (function () {
     });
   } catch (e) { console.warn("[init] dialog cleanup", e); }
 
+  await initAuth();
   await loadHolidays();
   await loadBrands();
   refreshConfigStatus();

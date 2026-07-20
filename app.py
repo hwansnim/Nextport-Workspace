@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, make_response, redirect, render_template, request, send_from_directory
+from flask import Flask, jsonify, make_response, redirect, render_template, request, send_from_directory, session
 from flask_cors import CORS
 
 # Project paths
@@ -165,6 +165,222 @@ def run_archive_job(job_id: str, seller: dict[str, Any]) -> None:
 app = Flask(__name__, template_folder=str(ROOT / "templates"), static_folder=str(ROOT / "static"))
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0  # 정적파일 장기 캐시 방지
 CORS(app)
+
+# ─────────────────────────────────────────────────────────────────
+# 팀원 인증 / 로그인 게이트 / 실시간 접속 현황
+# ─────────────────────────────────────────────────────────────────
+from modules import team_auth  # noqa: E402
+
+app.secret_key = team_auth.get_secret()
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),  # Render(HTTPS)에서만 Secure
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+)
+
+# 로그인 없이도 접근 가능한 엔드포인트 (셀러 외부 뷰 + 인증 화면)
+PUBLIC_ENDPOINTS = {
+    # 셀러 / 외부 공개 라우트
+    "seller_page", "api_seller_data", "api_archive_img",
+    "api_campaigns_v2_campaign_share", "api_campaigns_v2_share_link",
+    "seller_view", "api_sv_track", "api_sv_slot", "api_seller_track",
+    "api_seller_tracking_get", "api_campaigns_v2_patch_slot",
+    # 인증 화면 / API
+    "static", "setup_page", "login_page", "login_page_token",
+    "api_setup", "api_login",
+}
+# 관리자 전용 엔드포인트 (팀원 관리 + 접속 현황)
+ADMIN_ENDPOINTS = {
+    "api_team_list", "api_team_add", "api_team_update",
+    "api_team_delete", "api_team_regen", "api_presence_list",
+}
+
+
+@app.before_request
+def _auth_gate():
+    ep = request.endpoint
+    path = request.path or ""
+    if ep is None:
+        return  # 404 등은 그대로
+    if ep in PUBLIC_ENDPOINTS or path.startswith("/static/") or path == "/favicon.ico":
+        return
+    # 관리자 계정이 아직 없으면 → 최초 설정 화면으로
+    if not team_auth.has_admin():
+        if path.startswith("/api/"):
+            return jsonify({"error": "setup_required"}), 401
+        return redirect("/setup")
+    # 로그인 세션 확인
+    member = team_auth.member_by_id(session.get("member_id"))
+    if not member:
+        if path.startswith("/api/"):
+            return jsonify({"error": "auth_required"}), 401
+        return redirect("/login")
+    # 관리자 전용 보호
+    if ep in ADMIN_ENDPOINTS and member.get("role") != "admin":
+        return jsonify({"error": "forbidden"}), 403
+    request.member = member  # 이후 핸들러에서 사용
+
+
+def _current_member():
+    return getattr(request, "member", None) or team_auth.member_by_id(session.get("member_id"))
+
+
+def _base_url() -> str:
+    return request.host_url.rstrip("/")
+
+
+def _member_public(m: dict, with_password: bool = False) -> dict:
+    out = {
+        "id": m["id"], "name": m["name"], "role": m.get("role", "member"),
+        "token": m["token"], "created_at": m.get("created_at"),
+        "link": f"{_base_url()}/enter/{m['token']}",
+    }
+    if with_password:
+        out["password"] = m.get("password", "")
+    return out
+
+
+# ── 인증 화면 ──
+@app.route("/setup")
+def setup_page():
+    if team_auth.has_admin():
+        return redirect("/login")
+    return render_template("login.html", mode="setup", ver=_asset_ver())
+
+
+@app.route("/login")
+def login_page():
+    if not team_auth.has_admin():
+        return redirect("/setup")
+    return render_template("login.html", mode="login", token="", member_name="", ver=_asset_ver())
+
+
+@app.route("/enter/<token>")
+def login_page_token(token):
+    if not team_auth.has_admin():
+        return redirect("/setup")
+    m = team_auth.member_by_token(token)
+    if not m:
+        return render_template("login.html", mode="invalid", token="", member_name="", ver=_asset_ver())
+    if session.get("member_id") == m["id"]:
+        return redirect("/")
+    return render_template("login.html", mode="login", token=token, member_name=m["name"], ver=_asset_ver())
+
+
+# ── 인증 API ──
+@app.route("/api/setup", methods=["POST"])
+def api_setup():
+    if team_auth.has_admin():
+        return jsonify({"error": "이미 관리자가 설정되어 있습니다"}), 400
+    p = request.get_json(force=True, silent=True) or {}
+    name = (p.get("name") or "관리자").strip()
+    pw = (p.get("password") or "").strip()
+    if len(pw) < 4:
+        return jsonify({"error": "비밀번호는 4자 이상이어야 합니다"}), 400
+    m = team_auth.add_member(name, pw, role="admin")
+    session.permanent = True
+    session["member_id"] = m["id"]
+    team_auth.touch_presence(m["id"])
+    return jsonify({"ok": True, "link": f"{_base_url()}/enter/{m['token']}"})
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    p = request.get_json(force=True, silent=True) or {}
+    m = team_auth.member_by_token(p.get("token") or "")
+    if not m or m.get("password", "") != (p.get("password") or ""):
+        return jsonify({"error": "링크 또는 비밀번호가 올바르지 않습니다"}), 401
+    session.permanent = True
+    session["member_id"] = m["id"]
+    team_auth.touch_presence(m["id"])
+    return jsonify({"ok": True, "role": m.get("role", "member")})
+
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    m = _current_member()
+    if m:
+        team_auth.drop_presence(m["id"])
+    session.clear()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/me")
+def api_me():
+    m = _current_member()
+    if not m:
+        return jsonify({"error": "auth_required"}), 401
+    return jsonify(_member_public(m, with_password=(m.get("role") == "admin")))
+
+
+# ── 팀원 관리 (관리자 전용) ──
+@app.route("/api/team")
+def api_team_list():
+    pres = team_auth.presence_status()
+    members = []
+    for m in team_auth.list_members():
+        row = _member_public(m, with_password=True)
+        st = pres.get(m["id"], {"online": False, "ago": None})
+        row["online"] = st["online"]
+        row["ago"] = st["ago"]
+        row["is_me"] = (m["id"] == session.get("member_id"))
+        members.append(row)
+    return jsonify({"members": members})
+
+
+@app.route("/api/team", methods=["POST"])
+def api_team_add():
+    p = request.get_json(force=True, silent=True) or {}
+    name = (p.get("name") or "").strip()
+    pw = (p.get("password") or "").strip()
+    role = "admin" if p.get("role") == "admin" else "member"
+    if not name:
+        return jsonify({"error": "이름을 입력하세요"}), 400
+    if len(pw) < 4:
+        return jsonify({"error": "비밀번호는 4자 이상이어야 합니다"}), 400
+    m = team_auth.add_member(name, pw, role=role)
+    return jsonify({"ok": True, "member": _member_public(m, with_password=True)})
+
+
+@app.route("/api/team/<mid>", methods=["PATCH"])
+def api_team_update(mid):
+    p = request.get_json(force=True, silent=True) or {}
+    m, msg = team_auth.update_member(
+        mid, name=p.get("name"), password=p.get("password"), role=p.get("role"))
+    if not m:
+        return jsonify({"error": msg}), 400
+    return jsonify({"ok": True, "member": _member_public(m, with_password=True)})
+
+
+@app.route("/api/team/<mid>/regen", methods=["POST"])
+def api_team_regen(mid):
+    m = team_auth.regen_token(mid)
+    if not m:
+        return jsonify({"error": "멤버를 찾을 수 없습니다"}), 404
+    return jsonify({"ok": True, "member": _member_public(m, with_password=True)})
+
+
+@app.route("/api/team/<mid>", methods=["DELETE"])
+def api_team_delete(mid):
+    if mid == session.get("member_id"):
+        return jsonify({"error": "본인 계정은 삭제할 수 없습니다"}), 400
+    ok, msg = team_auth.delete_member(mid)
+    return (jsonify({"ok": True}) if ok else (jsonify({"error": msg}), 400))
+
+
+# ── 실시간 접속 현황 ──
+@app.route("/api/presence/ping", methods=["POST"])
+def api_presence_ping():
+    m = _current_member()
+    if m:
+        team_auth.touch_presence(m["id"])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/presence")
+def api_presence_list():
+    return jsonify({"presence": team_auth.presence_status()})
 
 
 def _asset_ver() -> str:
@@ -800,7 +1016,7 @@ def api_generate_captions(cid: str):
     if not c:
         return jsonify({"error": "캠페인 없음"}), 404
 
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     day_index = payload.get("day_index")
     day = payload.get("day") or {}
     if day_index is None:
@@ -2583,7 +2799,7 @@ def api_dm_import_preview():
 
 @app.route("/api/dm/import/influencers", methods=["POST"])
 def api_dm_import_influencers():
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     fname = (payload.get("filename") or "").strip()
     if not fname:
         return jsonify({"error": "filename 필수"}), 400
@@ -2614,7 +2830,7 @@ def api_dm_import_influencers():
 
 @app.route("/api/dm/import/accounts", methods=["POST"])
 def api_dm_import_accounts():
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     fname = (payload.get("filename") or "").strip()
     if not fname:
         return jsonify({"error": "filename 필수"}), 400
@@ -2720,7 +2936,7 @@ def api_dm_queue_today():
 @app.route("/api/dm/templates_v2", methods=["GET", "POST"])
 def api_dm_templates_v2():
     if request.method == "POST":
-        payload = request.get_json(force=True) or {}
+        payload = request.get_json(force=True, silent=True) or {}
         items = payload.get("templates") or []
         _save_dm_templates_v2(items)
         return jsonify({"ok": True, "count": len(items)})
@@ -2734,7 +2950,7 @@ def api_dm_send_one():
     if (load_config() or {}).get("env_mode") == "cloud":
         return jsonify({"error": "클라우드 환경에서는 DM 발송 비활성화"}), 403
 
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     inf_id = payload.get("influencer_id")
     acc_id = payload.get("account_id")
     message = (payload.get("message") or "").strip()
@@ -3009,7 +3225,7 @@ def api_dm_inbox_reply(conv_id):
     if (load_config() or {}).get("env_mode") == "cloud":
         return jsonify({"error": "클라우드 환경에서는 DM 발송 비활성화"}), 403
 
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     message = (payload.get("message") or "").strip()
     if not message:
         return jsonify({"error": "message 필수"}), 400
@@ -3228,7 +3444,7 @@ def api_dm_replies():
 def api_dm_replies_patch(inf_id):
     """회신 현황 표에서 인라인 편집 → influencer record 업데이트.
     status가 '미팅 fix' / '회신중' / '카톡 소통중' 으로 바뀌면 pipeline_stage 자동 전이."""
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     allowed = {"status", "owner", "first_reply_date", "reply_account", "email",
                "phone", "kakao_id", "notes", "follower_count", "pipeline_stage"}
     influencers = _load_influencers()
@@ -3259,7 +3475,7 @@ def api_dm_replies_patch(inf_id):
 @app.route("/api/dm/replies/<inf_id>/meeting", methods=["POST"])
 def api_dm_replies_add_meeting(inf_id):
     """회신 현황에서 [📅 미팅 박기] → 인플루언서.meetings 추가 + pipeline=미팅예약 + 캘린더 등록."""
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     date = (payload.get("date") or "").strip()
     note = (payload.get("note") or "").strip()
     if not date:
@@ -3319,7 +3535,7 @@ def api_pipeline_meeting_one(inf_id, idx):
         _save_influencers(influencers)
         return jsonify({"ok": True})
 
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     for k in ("date", "note", "transcript", "audio_file", "outcome"):
         if k in payload:
             meetings[idx][k] = payload[k]
@@ -3427,7 +3643,7 @@ def api_pipeline_list():
 @app.route("/api/pipeline/manual", methods=["POST"])
 def api_pipeline_manual_add():
     """수동으로 진행 예정 셀러 추가 — 인플루언서 DB에 없어도 박을 수 있음."""
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     seller_name = (payload.get("seller_name") or "").strip()
     instagram_id = (payload.get("instagram_id") or "").strip().lstrip("@")
     if not seller_name and not instagram_id:
@@ -3491,7 +3707,7 @@ def api_pipeline_manual_add():
 @app.route("/api/pipeline/<inf_id>", methods=["PATCH"])
 def api_pipeline_patch(inf_id):
     """파이프라인 단계 변경 / next_action 수정."""
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     allowed = {"pipeline_stage", "next_action", "owner", "campaign_id", "campaign_name"}
     influencers = _load_influencers()
     inf = next((x for x in influencers if x.get("id") == inf_id), None)
@@ -3507,7 +3723,7 @@ def api_pipeline_patch(inf_id):
 @app.route("/api/pipeline/<inf_id>/meeting", methods=["POST"])
 def api_pipeline_add_meeting(inf_id):
     """미팅 1건 추가 + 캘린더에도 박기."""
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     date = (payload.get("date") or "").strip()
     note = (payload.get("note") or "").strip()
     if not date:
@@ -3703,7 +3919,7 @@ def _generate_content_schedule(start_date: str, end_date: str = "", prep_start: 
 def api_campaigns_v2_list():
     items = _load_campaigns_v2()
     if request.method == "POST":
-        payload = request.get_json(force=True) or {}
+        payload = request.get_json(force=True, silent=True) or {}
         # linked_handle 로 인플루언서 매칭
         linked_inf_id = payload.get("linked_influencer_id")
         linked_handle = (payload.get("linked_handle") or "").strip().lstrip("@")
@@ -3791,7 +4007,7 @@ def api_campaigns_v2_one(cam_id):
         items = [c for c in items if c["id"] != cam_id]
         _save_campaigns_v2(items)
         return jsonify({"ok": True})
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     for k in ["seller_name", "brand", "product", "type", "market_schedule", "status",
               "linked_influencer_id", "instagram_url", "seller_traits", "notes",
               "settlement_done"]:
@@ -3843,7 +4059,7 @@ def api_campaigns_v2_settlement(cam_id):
     cam = next((c for c in items if c["id"] == cam_id), None)
     if not cam:
         return jsonify({"error": "캠페인 없음"}), 404
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     stl = cam.setdefault("settlement", {"settings": {}, "rows": []})
     if "settings" in payload and isinstance(payload["settings"], dict):
         stl.setdefault("settings", {}).update(payload["settings"])
@@ -3913,7 +4129,7 @@ def api_campaigns_v2_add_set(cam_id):
     cam = next((c for c in items if c["id"] == cam_id), None)
     if not cam:
         return jsonify({"error": "캠페인 없음"}), 404
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     sets = cam.setdefault("sets", [])
     round_num = payload.get("round") or len(sets) + 1
     # 기능 토글 (기본 전부 ON)
@@ -4025,7 +4241,7 @@ def api_campaigns_v2_patch_set(cam_id, set_id):
     st = next((s for s in cam.get("sets", []) if s["id"] == set_id), None)
     if not st:
         return jsonify({"error": "세트 없음"}), 404
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     for k in ["label", "memo", "last_ship_date"]:
         if k in payload:
             st[k] = payload[k]
@@ -4050,7 +4266,7 @@ def api_campaigns_v2_patch_ad(cam_id, set_id, ad_id):
     if not ad:
         return jsonify({"error": "광고 없음"}), 404
 
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     for k in ["name", "product_sent_date", "status", "revenue", "cost", "expected_revenue"]:
         if k in payload:
             ad[k] = payload[k]
@@ -4096,7 +4312,7 @@ def api_campaigns_v2_generate_content(cam_id, set_id, ad_id):
     if not ad:
         return jsonify({"error": "세트/광고 없음"}), 404
 
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     sched = ad.get("scheduling") or {}
     start_date = payload.get("start_date") or sched.get("start_date") or cam.get("market_schedule") or ""
     if not start_date:
@@ -4456,7 +4672,7 @@ def api_sv_slot(code):
     cam = next((c for c in items if c.get("seller_access_code") == code), None)
     if not cam:
         return jsonify({"error": "잘못된 코드"}), 404
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     if p.get("preview"):
         return jsonify({"ok": True, "skipped": "preview"})  # 미리보기는 셀러 데이터 변경 X
     field = p.get("field")
@@ -4516,7 +4732,7 @@ def api_campaigns_v2_patch_slot(cam_id, set_id, ad_id):
     ad = next((a for a in (st or {}).get("ads", []) if a["id"] == ad_id), None) if st else None
     if not ad:
         return jsonify({"error": "광고 없음"}), 404
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     di, si, field = p.get("day_index"), p.get("slot_index"), p.get("field")
     days = ad.get("content_days") or []
     if di is None or si is None or di >= len(days) or si >= len(days[di].get("slots", [])):
@@ -4794,7 +5010,7 @@ def api_dashboard_v2():
 @app.route("/api/dashboard_v2/cell", methods=["PATCH"])
 def api_dashboard_v2_cell():
     """대시보드 셀 인라인 편집 — 캠페인의 첫 광고 revenue/cost 수정."""
-    payload = request.get_json(force=True) or {}
+    payload = request.get_json(force=True, silent=True) or {}
     cam_id = payload.get("campaign_id")
     field = payload.get("field")  # revenue | cost
     value = payload.get("value")
@@ -5361,7 +5577,7 @@ def _save_content_plans(items: list[dict]) -> None:
 def api_content_plan():
     """레퍼런스 분석 + 제품(USP) → 새 기획안 생성.
     product_id가 오면 그 제품의 '확정 기획안'들을 학습 참고로 함께 넣는다(누적 학습)."""
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     try:
         from modules import content_studio
         history = []
@@ -5384,7 +5600,7 @@ def api_content_plans():
     GET: ?product_id= / ?brand= / ?op_type= 필터. POST: 확정본 저장."""
     items = _load_content_plans()
     if request.method == "POST":
-        p = request.get_json(force=True) or {}
+        p = request.get_json(force=True, silent=True) or {}
         final = p.get("final") or []
         if not final:
             return jsonify({"error": "확정할 기획안이 비어 있습니다."}), 400
@@ -5432,7 +5648,7 @@ def api_content_plan_item_delete(plan_id):
 @app.route("/api/content/shoot", methods=["POST"])
 def api_content_shoot():
     """기획안 → 컷별 촬영 콘티(샷 리스트)."""
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     try:
         from modules import content_studio
         shots = content_studio.generate_shoot_plan(load_config(), p.get("plan") or [], p.get("product") or {})
@@ -5445,7 +5661,7 @@ def api_content_shoot():
 @app.route("/api/content/shoot/schedule", methods=["POST"])
 def api_content_shoot_schedule():
     """여러 기획안 → 장소별 동선 촬영 스케줄."""
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     try:
         from modules import content_studio
         sched = content_studio.generate_shoot_schedule(load_config(), p.get("plans") or [], p.get("product") or {})
@@ -5458,7 +5674,7 @@ def api_content_shoot_schedule():
 @app.route("/api/content/shoot/docx", methods=["POST"])
 def api_content_shoot_docx():
     """촬영 스케줄(JSON) → Word(.docx) 다운로드."""
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     try:
         from modules import shoot_docx
         data = shoot_docx.build_docx(p.get("schedule") or {}, p.get("meta") or {})
@@ -5495,7 +5711,7 @@ def api_content_productions():
     """제작 관리 테이블 — 제목/날짜/사용자/브랜드/제품/분류(shoot|noshoot)/비고."""
     rows = _load_content_productions()
     if request.method == "POST":
-        p = request.get_json(force=True) or {}
+        p = request.get_json(force=True, silent=True) or {}
         rid = p.get("id")
         rec = next((x for x in rows if x.get("id") == rid), None) if rid else None
         if not rec:
@@ -5548,7 +5764,7 @@ def api_meta_config():
     """메타 연결 설정. GET은 토큰 원문 대신 연결여부만 반환. POST로 토큰/계정 저장."""
     cfg = _load_meta_config()
     if request.method == "POST":
-        p = request.get_json(force=True) or {}
+        p = request.get_json(force=True, silent=True) or {}
         if "token" in p and (p.get("token") or "").strip():
             cfg["token"] = p["token"].strip()  # 새 토큰 들어오면 교체
         if p.get("clear_token"):
@@ -5568,7 +5784,7 @@ def api_meta_config():
 def api_meta_verify():
     """현재 저장된 토큰(또는 요청에 담긴 토큰)으로 접근 가능한 광고계정 목록 확인."""
     from modules import meta_ads
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     token = (p.get("token") or "").strip() or _load_meta_config().get("token", "")
     try:
         return jsonify(meta_ads.verify_token(token))
@@ -5580,7 +5796,7 @@ def api_meta_verify():
 def api_content_perf():
     """메타 광고 성과 조회 (지출·ROAS·CTR·구매·CPA 등)."""
     from modules import meta_ads
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     cfg = _load_meta_config()
     try:
         rows = meta_ads.fetch_insights(
@@ -5612,7 +5828,7 @@ def api_content_products():
     """콘텐츠용 제품 정보 — 브랜드·제품·소구점(USP)·특이사항."""
     items = _load_content_products()
     if request.method == "POST":
-        p = request.get_json(force=True) or {}
+        p = request.get_json(force=True, silent=True) or {}
         pid = p.get("id")
         rec = next((x for x in items if x.get("id") == pid), None) if pid else None
         if not rec:
@@ -5820,7 +6036,7 @@ def api_dm_sender_accounts():
     """내 인스타 발신 계정 저장. POST{username,password,name}. GET은 비번 마스킹."""
     items = _load_sender_accounts()
     if request.method == "POST":
-        p = request.get_json(force=True) or {}
+        p = request.get_json(force=True, silent=True) or {}
         username = (p.get("username") or "").strip().lstrip("@")
         password = (p.get("password") or "").strip()
         name = (p.get("name") or "").strip()
@@ -5853,7 +6069,7 @@ def api_dm_manual_run():
     """수동 발송 — 저장계정 선택(or 인라인) + 받는사람 + 메시지 → 안전엔진 재사용."""
     if (load_config() or {}).get("env_mode") == "cloud":
         return jsonify({"error": "DM 발송은 로컬 PC에서만 됩니다. PC에서 워크스페이스를 켜고 실행하세요."}), 400
-    p = request.get_json(force=True) or {}
+    p = request.get_json(force=True, silent=True) or {}
     # 발신 계정 — 저장된 것 또는 인라인
     username = (p.get("username") or "").strip().lstrip("@")
     password = (p.get("password") or "").strip()

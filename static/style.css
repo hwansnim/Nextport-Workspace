@@ -4401,3 +4401,69 @@ input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="
   background: var(--hover); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
 }
 .ts-cnt { max-width: 90px; }
+
+/* ═══════════════════ 팀원 인증 / 사이드바 사용자 / 접속현황 ═══════════════════ */
+.side-user {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--hairline);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.su-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.su-avatar {
+  width: 26px; height: 26px; flex: none; border-radius: 50%;
+  background: linear-gradient(135deg, #ff8a3d, #ff6a00); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 12px;
+}
+.su-name { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.su-role { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--track); padding: 1px 6px; border-radius: 980px; flex: none; }
+.su-role.admin { color: var(--accent); background: var(--accent-soft); }
+.su-logout {
+  flex: none; font-size: 11px; font-family: inherit; color: var(--muted);
+  background: transparent; border: 1px solid var(--border-strong); border-radius: 8px;
+  padding: 4px 9px; cursor: pointer; transition: color .12s, border-color .12s;
+}
+.su-logout:hover { color: var(--red); border-color: var(--red); }
+
+/* 접속 점 */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); vertical-align: middle; }
+.dot.on { background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+
+/* 팀원 추가 폼 */
+.team-add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.team-add-row input { flex: 1 1 160px; padding: 10px 13px; font-size: 14px; font-family: inherit;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fafafa; }
+.team-add-row input:focus { outline: none; border-color: var(--accent); background: #fff; }
+.team-add-row select { padding: 10px 13px; font-size: 14px; font-family: inherit;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fafafa; cursor: pointer; }
+.team-add-row .btn-primary { flex: none; padding: 10px 18px; font-size: 14px; font-weight: 700;
+  color: #fff; background: var(--accent); border: none; border-radius: var(--radius-sm); cursor: pointer; }
+.team-add-row .btn-primary:hover { background: var(--accent-hover); }
+.team-add-row .btn-primary:disabled { opacity: .5; }
+
+.team-legend { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; }
+.team-count { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+
+/* 팀원 표 */
+.team-table-wrap { overflow-x: auto; }
+.team-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.team-table th { text-align: left; font-size: 11.5px; font-weight: 600; color: var(--muted);
+  padding: 8px 10px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+.team-table td { padding: 11px 10px; border-bottom: 1px solid var(--hairline-row); vertical-align: middle; }
+.team-table tr:last-child td { border-bottom: none; }
+.tm-status { white-space: nowrap; }
+.tm-status .dot { margin-right: 7px; }
+.tm-status-txt { font-size: 12px; color: var(--muted); }
+.tm-name { font-weight: 600; color: var(--text); white-space: nowrap; }
+.me-mark { font-size: 10px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 1px 6px; border-radius: 980px; margin-left: 4px; }
+.role-badge { font-size: 11px; font-weight: 700; color: var(--text2); background: var(--track); padding: 2px 9px; border-radius: 980px; }
+.role-badge.admin { color: var(--accent); background: var(--accent-soft); }
+.tm-pw { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--text); background: var(--track); padding: 2px 8px; border-radius: 6px; }
+.tm-link-cell { display: flex; align-items: center; gap: 6px; }
+.tm-link { width: 210px; max-width: 32vw; padding: 6px 9px; font-size: 12px; font-family: inherit;
+  color: var(--text2); border: 1px solid var(--border); border-radius: 8px; background: #fafafa; }
+.tm-copy, .tm-edit, .tm-del { font-size: 12px; font-family: inherit; cursor: pointer;
+  border: 1px solid var(--border-strong); background: #fff; border-radius: 8px; padding: 5px 11px; color: var(--text2); transition: all .12s; }
+.tm-copy:hover, .tm-edit:hover { border-color: var(--accent); color: var(--accent); }
+.tm-del:hover { border-color: var(--red); color: var(--red); }
+.tm-actions { white-space: nowrap; }
+.tm-actions button { margin-left: 5px; }

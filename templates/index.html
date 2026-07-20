@@ -129,6 +129,9 @@
         <button class="side-item" data-tab="guide">
           <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg></span><span>공동구매 가이드</span>
         </button>
+        <button class="side-item" data-tab="team" id="navTeam" hidden>
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>팀원</span>
+        </button>
       </nav>
 
       <div class="side-status">
@@ -138,6 +141,10 @@
         <div class="status-row" id="pillGemini">Gemini…</div>
         <div class="status-row" id="driveSyncStatus" style="cursor:pointer" onclick="triggerDriveSync(true)" title="클릭 = 지금 sync">Drive sync · 대기</div>
         <button id="btnIgLogin" class="btn-secondary side-btn">인스타 로그인</button>
+        <div class="side-user" id="sideUser" hidden>
+          <div class="su-info"><span class="su-avatar" id="suAvatar">N</span><span class="su-name" id="suName">—</span><span class="su-role" id="suRole"></span></div>
+          <button class="su-logout" id="btnLogout" type="button" title="로그아웃">로그아웃</button>
+        </div>
       </div>
     </aside>
 
@@ -1697,6 +1704,51 @@
           </div>
           <div class="path-row">C:\Users\user\Documents\harufix-cowork-tool\config.json</div>
           <p class="hint" style="margin-top:8px">메모장으로 열어 직접 수정 가능</p>
+        </section>
+      </section>
+
+      <!-- ══════════ 팀원 (관리자 전용) ══════════ -->
+      <section class="tab-pane" id="tab-team">
+        <div class="page-head">
+          <div>
+            <h1>팀원</h1>
+            <p class="page-sub">전용 링크와 비밀번호를 발급해 팀원 접속을 관리합니다. 이 화면은 관리자만 볼 수 있어요.</p>
+          </div>
+          <div class="head-actions">
+            <span class="team-legend"><i class="dot on"></i> 접속중 <i class="dot" style="margin-left:10px"></i> 오프라인</span>
+          </div>
+        </div>
+
+        <section class="panel team-add-panel">
+          <div class="panel-head"><h2>팀원 추가</h2></div>
+          <div class="team-add-row">
+            <input id="tmName" type="text" placeholder="이름 (예: 김담당)" autocomplete="off" />
+            <input id="tmPw" type="text" placeholder="비밀번호 (4자 이상)" autocomplete="off" />
+            <select id="tmRole">
+              <option value="member">팀원</option>
+              <option value="admin">관리자</option>
+            </select>
+            <button id="tmAdd" class="btn-primary" type="button">＋ 추가하고 링크 생성</button>
+          </div>
+          <p class="hint">추가하면 그 사람 전용 링크가 만들어집니다. 링크와 비밀번호를 함께 전달하세요. 그 링크로만 접속할 수 있어요.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>팀원 목록 <span class="team-count" id="tmCount"></span></h2>
+            <span class="hint" id="tmLiveHint">실시간 접속 현황 · 자동 새로고침</span>
+          </div>
+          <div class="team-table-wrap">
+            <table class="team-table" id="tmTable">
+              <thead>
+                <tr>
+                  <th>접속</th><th>이름</th><th>역할</th><th>비밀번호</th><th>전용 링크</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="tmBody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="tmEmpty" hidden>아직 추가된 팀원이 없습니다.</div>
         </section>
       </section>
 

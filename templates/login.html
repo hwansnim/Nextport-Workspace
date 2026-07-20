@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>넥스트포트 공동구매 워크스페이스 — 로그인</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <style>
+    :root {
+      --bg: #f5f5f7; --panel: #fff; --text: #1d1d1f; --muted: #86868b;
+      --hairline: #e5e5e7; --accent: #ff6a00; --accent-d: #e85f00;
+      --danger: #ff3b30; --radius: 18px;
+      --shadow: 0 10px 40px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg);
+      font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
+      color: var(--text); display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 380px; background: var(--panel);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 40px 32px 32px; text-align: center;
+    }
+    .logo {
+      width: 54px; height: 54px; border-radius: 14px; margin: 0 auto 18px;
+      background: linear-gradient(135deg, #ff8a3d, var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 28px; letter-spacing: -.02em;
+      box-shadow: 0 6px 18px rgba(255,106,0,.35);
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; font-weight: 700; letter-spacing: -.02em; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0 0 26px; line-height: 1.5; }
+    .who {
+      background: #fff6ef; border: 1px solid #ffe0c7; color: var(--accent-d);
+      font-weight: 700; font-size: 14px; border-radius: 12px;
+      padding: 11px 14px; margin-bottom: 16px;
+    }
+    label { display: block; text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px 2px; }
+    input {
+      width: 100%; padding: 13px 15px; font-size: 15px; font-family: inherit;
+      border: 1px solid var(--hairline); border-radius: 12px; background: #fafafa;
+      margin-bottom: 14px; transition: border-color .12s, background .12s;
+    }
+    input:focus { outline: none; border-color: var(--accent); background: #fff; }
+    button {
+      width: 100%; padding: 14px; font-size: 15px; font-weight: 700; font-family: inherit;
+      color: #fff; background: var(--accent); border: none; border-radius: 12px;
+      cursor: pointer; transition: background .12s, transform .06s;
+    }
+    button:hover { background: var(--accent-d); }
+    button:active { transform: scale(.99); }
+    button:disabled { opacity: .5; cursor: default; }
+    .err { color: var(--danger); font-size: 13px; margin: 10px 2px 0; min-height: 18px; text-align: left; }
+    .foot { color: var(--muted); font-size: 11.5px; margin-top: 22px; line-height: 1.6; }
+    .invalid-box { color: var(--danger); font-size: 14px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">N</div>
+
+    {% if mode == "invalid" %}
+      <h1>잘못된 링크입니다</h1>
+      <p class="sub">유효하지 않은 접속 링크예요.<br>관리자에게 전용 링크를 다시 받아 주세요.</p>
+    {% elif mode == "setup" %}
+      <h1>관리자 계정 만들기</h1>
+      <p class="sub">처음 접속이에요. 관리자(사장님) 계정을 먼저 만들어 주세요.<br>이후 팀원은 관리자 페이지에서 추가합니다.</p>
+      <form id="form" autocomplete="off">
+        <label for="name">이름</label>
+        <input id="name" type="text" placeholder="예: 홍길동" value="관리자" />
+        <label for="pw">비밀번호 (4자 이상)</label>
+        <input id="pw" type="password" placeholder="비밀번호" />
+        <label for="pw2">비밀번호 확인</label>
+        <input id="pw2" type="password" placeholder="비밀번호 다시 입력" />
+        <button id="btn" type="submit">관리자 계정 생성</button>
+        <div class="err" id="err"></div>
+      </form>
+    {% else %}
+      <h1>로그인</h1>
+      {% if member_name %}
+        <p class="sub">전용 링크로 접속했어요.</p>
+        <div class="who">👤 {{ member_name }} 님</div>
+      {% else %}
+        <p class="sub">관리자에게 받은 <b>전용 링크</b>로 접속해 주세요.<br>링크 없이는 로그인할 수 없습니다.</p>
+      {% endif %}
+      <form id="form" autocomplete="off">
+        {% if not member_name %}
+        <label for="tok">접속 링크의 코드 (링크 맨 뒤 부분)</label>
+        <input id="tok" type="text" placeholder="전용 링크로 접속하면 자동 입력됩니다" />
+        {% endif %}
+        <label for="pw">비밀번호</label>
+        <input id="pw" type="password" placeholder="비밀번호" autofocus />
+        <button id="btn" type="submit">들어가기</button>
+        <div class="err" id="err"></div>
+      </form>
+    {% endif %}
+
+    <div class="foot">넥스트포트 공동구매 워크스페이스 · 관계자 외 접속 불가</div>
+  </div>
+
+  <script>
+    (function () {
+      var MODE = "{{ mode }}";
+      var TOKEN = "{{ token }}";
+      var form = document.getElementById("form");
+      if (!form) return;
+      var err = document.getElementById("err");
+      var btn = document.getElementById("btn");
+
+      function fail(msg) { err.textContent = msg || "오류가 발생했습니다"; btn.disabled = false; }
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        err.textContent = "";
+        btn.disabled = true;
+
+        if (MODE === "setup") {
+          var name = document.getElementById("name").value.trim();
+          var pw = document.getElementById("pw").value;
+          var pw2 = document.getElementById("pw2").value;
+          if (pw.length < 4) return fail("비밀번호는 4자 이상이어야 합니다");
+          if (pw !== pw2) return fail("비밀번호가 서로 다릅니다");
+          try {
+            var r = await fetch("/api/setup", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: name, password: pw }),
+            });
+            var d = await r.json();
+            if (!r.ok) return fail(d.error);
+            location.href = "/";
+          } catch (_) { fail("네트워크 오류"); }
+          return;
+        }
+
+        // login
+        var tokEl = document.getElementById("tok");
+        var token = TOKEN || (tokEl ? tokEl.value.trim() : "");
+        var pwv = document.getElementById("pw").value;
+        if (!token) return fail("전용 링크로 접속해 주세요");
+        try {
+          var r2 = await fetch("/api/login", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token, password: pwv }),
+          });
+          var d2 = await r2.json();
+          if (!r2.ok) return fail(d2.error);
+          location.href = "/";
+        } catch (_) { fail("네트워크 오류"); }
+      });
+    })();
+  </script>
+</body>
+</html>
