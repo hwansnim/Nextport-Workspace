@@ -4848,6 +4848,10 @@ def api_dashboard_v2():
     매출 = 마켓.revenue 합산, 비용 = 마켓.cost 합산. 일자 = 마켓.scheduling.start_date.
     """
     campaigns = _load_campaigns_v2()
+    # 상단 브랜드 바 필터 (브랜드명) — 있으면 그 브랜드 캠페인만 집계
+    brand_filter = (request.args.get("brand") or "").strip()
+    if brand_filter:
+        campaigns = [c for c in campaigns if (c.get("brand") or "") == brand_filter]
     now = datetime.now()
     today_str = now.strftime("%Y-%m-%d")
 

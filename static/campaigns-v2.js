@@ -12,6 +12,7 @@
 
   const s = {
     campaigns: [],
+    brands: [],
     activeMetaTab: "campaigns",
     activeCamId: null,
     activeSetId: null,
@@ -27,7 +28,39 @@
       renderAll();
       loadGrandTotal();
     } catch (e) { console.error(e); }
+    // 노션식 드롭다운용 브랜드·제품 목록 (한 번만)
+    if (!s.brands.length) { try { s.brands = (await api("/api/brands")).brands || []; } catch { s.brands = []; } }
+    if (!s.productList) { try { s.productList = (await api("/api/products")).products || []; } catch { s.productList = []; } }
   }
+
+  // 노션식 컬러 pill 드롭다운 옵션 빌더 (미등록 값도 보존)
+  function brandOptions(current) {
+    let out = `<option value="">브랜드 선택</option>`;
+    let found = false;
+    for (const b of (s.brands || [])) {
+      const sel = b.name === current ? "selected" : ""; if (sel) found = true;
+      out += `<option value="${esc(b.name)}" ${sel}>${b.emoji ? esc(b.emoji) + " " : ""}${esc(b.name)}</option>`;
+    }
+    if (current && !found) out += `<option value="${esc(current)}" selected>${esc(current)} (미등록)</option>`;
+    return out;
+  }
+  function productOptions(current) {
+    let out = `<option value="">제품 선택</option>`;
+    let found = false;
+    for (const p of (s.productList || [])) {
+      const sel = p.name === current ? "selected" : ""; if (sel) found = true;
+      out += `<option value="${esc(p.name)}" ${sel}>${esc(p.name)}</option>`;
+    }
+    if (current && !found) out += `<option value="${esc(current)}" selected>${esc(current)} (미등록)</option>`;
+    return out;
+  }
+  // 닫힌 select 를 값에 따라 컬러 pill 로 (data-v 갱신)
+  function paintPills(root) {
+    (root || document).querySelectorAll("select.npill").forEach(el => { el.dataset.v = el.value; });
+  }
+  document.addEventListener("change", (e) => {
+    if (e.target.classList && e.target.classList.contains("npill")) e.target.dataset.v = e.target.value;
+  });
 
   function filtered() {
     return s.campaigns.filter(c => {
@@ -420,14 +453,20 @@
     const sd = c.market_schedule || (c.sets?.[0]?.ads?.[0]?.scheduling?.start_date) || "-";
     const ed = (c.sets?.[0]?.ads?.[0]?.scheduling?.end_date) || c.market_end || "-";
     const inp = (f, v, ph) => `<input class="cam-edit-inp" data-v2="cam-edit-field" data-f="${f}" value="${esc(v || "")}" placeholder="${esc(ph || "")}" />`;
+    const brandEmoji = (s.brands || []).find(b => b.name === c.brand)?.emoji || "";
     $("#camMetaBody").innerHTML = `
       <div class="cam-meta-row"><span class="lbl">셀러명</span><span class="val">${edit ? inp("seller_name", c.seller_name, "셀러명") : `<b>${esc(c.seller_name || "-")}</b>`}</span></div>
-      <div class="cam-meta-row"><span class="lbl">브랜드 / 제품</span><span class="val">${edit ? inp("brand", c.brand, "브랜드") + ' <span class="hint">/</span> ' + inp("product", c.product, "제품") : `${esc(c.brand || "-")} / ${esc(c.product || "-")}`}</span></div>
+      <div class="cam-meta-row"><span class="lbl">브랜드</span><span class="val">${edit
+        ? `<select class="npill np-brand" data-kind="brand" data-v2="cam-edit-field" data-f="brand">${brandOptions(c.brand)}</select>`
+        : (c.brand ? `<span class="brand-pill">${brandEmoji ? esc(brandEmoji) + " " : ""}${esc(c.brand)}</span>` : "-")}</span></div>
+      <div class="cam-meta-row"><span class="lbl">제품</span><span class="val">${edit
+        ? `<select class="npill np-prod" data-kind="prod" data-v2="cam-edit-field" data-f="product">${productOptions(c.product)}</select>`
+        : esc(c.product || "-")}</span></div>
       <div class="cam-meta-row"><span class="lbl">타입</span><span class="val">${edit
-        ? `<select class="cam-edit-sel" data-v2="cam-edit-field" data-f="type">${["마이크로", "메가", "벤더"].map(v => `<option ${v === c.type ? "selected" : ""}>${v}</option>`).join("")}</select>`
+        ? `<select class="npill" data-kind="type" data-v2="cam-edit-field" data-f="type">${["마이크로", "메가", "벤더"].map(v => `<option ${v === c.type ? "selected" : ""}>${v}</option>`).join("")}</select>`
         : `<span class="cam-type cam-type-${esc(c.type || "")}">${esc(c.type || "-")}</span>`}</span></div>
       <div class="cam-meta-row"><span class="lbl">상태</span><span class="val">
-        <select data-v2="cam-edit-status" class="cam-edit-sel" ${edit ? "" : "disabled"}>${["준비중", "진행중", "완료", "중단"].map(v => `<option ${v === c.status ? "selected" : ""}>${v}</option>`).join("")}</select>
+        <select data-v2="cam-edit-status" class="npill" data-kind="status" ${edit ? "" : "disabled"}>${["준비중", "진행중", "완료", "중단"].map(v => `<option ${v === c.status ? "selected" : ""}>${v}</option>`).join("")}</select>
       </span></div>
       <div class="cam-meta-row"><span class="lbl">인스타</span><span class="val">${edit
         ? inp("instagram_url", c.instagram_url, "https://instagram.com/...")
@@ -441,6 +480,7 @@
       </div>
       ${edit ? `<div class="cam-meta-edit-hint">✏️ 편집 중 — 칸을 벗어나면 자동 저장됩니다</div>` : ""}
     `;
+    paintPills($("#camMetaBody"));
   }
 
   function renderCamDetail(c) {
@@ -1243,6 +1283,13 @@
         s.productList.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") +
         `<option value="__none">(목록에 없음 — 제품 정보에서 먼저 추가)</option>`;
     } catch (e) { /* noop */ }
+    // 브랜드 드롭다운 채우기 (등록된 브랜드)
+    try {
+      if (!s.brands.length) s.brands = (await api("/api/brands")).brands || [];
+      const bsel = $("#cnfBrand");
+      if (bsel) bsel.innerHTML = brandOptions("");
+    } catch (e) { /* noop */ }
+    paintPills(dlg);
     if (typeof dlg.showModal === "function") dlg.showModal();
     else dlg.setAttribute("open", "");
   }

@@ -211,13 +211,20 @@ function populateCampaignBrandSelect() {
   if (prev) sel.value = prev;
 }
 
+// 현재 상단 브랜드 바에서 선택된 브랜드명 (전체=빈 문자열) — dashboard-v2 등 다른 모듈에서 사용
+window.activeBrandName = function () {
+  if (!state.activeBrandId) return "";
+  const b = (state.brands || []).find(x => x.id === state.activeBrandId);
+  return b ? b.name : "";
+};
+
 async function switchBrand(brandId) {
   state.activeBrandId = brandId;
   renderBrandSwitcher();
   // 모든 뷰 새로고침
   if ($("#tab-home").classList.contains("active")) { renderCalendar(); renderHomeCampaigns(); loadToday(); }
   if ($("#tab-campaigns").classList.contains("active")) renderCampaigns();
-  if ($("#tab-dashboard").classList.contains("active")) loadDashboard();
+  if ($("#tab-dashboard").classList.contains("active")) window.dashboardV2Reload?.();
   if ($("#tab-meetings").classList.contains("active")) renderMeetings();
 }
 

@@ -46,6 +46,8 @@
       }
       const q = new URLSearchParams({ start: st.start, end: st.end });
       if (st.gran) q.set("gran", st.gran);
+      const brand = (window.activeBrandName && window.activeBrandName()) || "";
+      if (brand) q.set("brand", brand);
       const r = await api("/api/dashboard_v2?" + q.toString());
       st.data = r;
       // 날짜 입력 동기화
@@ -53,7 +55,7 @@
       if (si && !si.value) si.value = st.start;
       if (ei && !ei.value) ei.value = st.end;
       const lab = $("#dvPeriodLabel");
-      if (lab) lab.textContent = `정산 · 매출 · ${st.start} ~ ${st.end}`;
+      if (lab) lab.textContent = `정산 · 매출 · ${st.start} ~ ${st.end}` + (brand ? ` · ${brand}` : " · 전체 브랜드");
       renderStats();
       renderChart();
       renderSheet();
@@ -581,6 +583,9 @@
     const t = e.target.closest('.side-item[data-tab="dashboard"]');
     if (t) setTimeout(load, 80);
   });
+
+  // 상단 브랜드 바 필터 변경 시 app.js switchBrand 가 호출
+  window.dashboardV2Reload = load;
 
   setTimeout(load, 900);
 })();

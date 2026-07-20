@@ -1771,15 +1771,15 @@
           </label>
           <label class="cnf-field">
             <span>브랜드</span>
-            <input name="brand" placeholder="예: thefashion" />
+            <select name="brand" id="cnfBrand" class="npill np-brand" data-kind="brand"><option value="">브랜드 선택</option></select>
           </label>
           <label class="cnf-field">
             <span>제품 <span class="hint" style="font-weight:400">('제품 정보'에 등록된 것만 선택)</span></span>
-            <select name="product_id" id="cnfProduct"><option value="">제품 선택…</option></select>
+            <select name="product_id" id="cnfProduct" class="npill np-prod" data-kind="prod"><option value="">제품 선택…</option></select>
           </label>
           <label class="cnf-field">
             <span>타입 <em>*</em></span>
-            <select name="type">
+            <select name="type" class="npill" data-kind="type">
               <option value="마이크로">마이크로</option>
               <option value="메가">메가</option>
               <option value="벤더">벤더</option>
@@ -1787,7 +1787,7 @@
           </label>
           <label class="cnf-field">
             <span>상태</span>
-            <select name="status">
+            <select name="status" class="npill" data-kind="status">
               <option value="준비중">준비중</option>
               <option value="진행중">진행중</option>
               <option value="완료">완료</option>

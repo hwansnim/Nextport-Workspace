@@ -4467,3 +4467,38 @@ input[type="search"], input[type="text"].search, .dm-table-wrap + * input[type="
 .tm-del:hover { border-color: var(--red); color: var(--red); }
 .tm-actions { white-space: nowrap; }
 .tm-actions button { margin-left: 5px; }
+
+/* ═══════════════════ 노션식 컬러 pill 드롭다운 (native select) ═══════════════════ */
+select.npill {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.2;
+  border: 1px solid transparent; border-radius: 980px;
+  padding: 5px 27px 5px 12px; cursor: pointer; max-width: 100%;
+  color: var(--text2); background-color: var(--track);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238a8a8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  transition: background-color .12s, color .12s, box-shadow .12s;
+}
+select.npill:hover { filter: brightness(.97); }
+select.npill:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+select.npill:disabled { opacity: 1; cursor: default; background-image: none; padding-right: 12px; }
+/* 상태 */
+select.npill[data-kind="status"][data-v="준비중"] { color:#6b6b70; background-color:#ececef; }
+select.npill[data-kind="status"][data-v="진행중"] { color:var(--green); background-color:var(--green-bg); }
+select.npill[data-kind="status"][data-v="완료"]   { color:#7d3cc0; background-color:#f1e8fb; }
+select.npill[data-kind="status"][data-v="중단"]   { color:var(--red); background-color:var(--red-bg); }
+/* 타입 */
+select.npill[data-kind="type"][data-v="마이크로"] { color:#0071e3; background-color:#eaf3fe; }
+select.npill[data-kind="type"][data-v="메가"]     { color:#b8006a; background-color:#fdeaf4; }
+select.npill[data-kind="type"][data-v="벤더"]     { color:#8a6d00; background-color:#faf1d3; }
+/* 브랜드/제품 (중립) */
+select.npill.np-brand, select.npill.np-prod { color: var(--text); background-color: var(--hover); }
+select.npill.np-brand[data-v=""], select.npill.np-prod[data-v=""] { color: var(--muted); }
+
+/* 브랜드 표시용 pill (편집 아닐 때) */
+.brand-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12.5px; font-weight: 700; color: var(--text);
+  background: var(--hover); border: 1px solid var(--hairline);
+  border-radius: 980px; padding: 3px 11px;
+}
