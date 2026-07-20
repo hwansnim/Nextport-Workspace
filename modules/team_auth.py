@@ -17,7 +17,7 @@ TEAM_FILE = ROOT / "data" / "team.json"
 
 _LOCK = threading.RLock()
 _PRESENCE: dict[str, float] = {}   # member_id -> last ping (epoch)
-ONLINE_WINDOW = 45                 # 초: 마지막 핑 이후 이 시간 안이면 접속중
+ONLINE_WINDOW = 35                 # 초: 마지막 핑 이후 이 시간 안이면 접속중 (핑 15초 × 2 + 여유)
 
 
 def _now_iso() -> str:

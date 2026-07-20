@@ -378,6 +378,15 @@ def api_presence_ping():
     return jsonify({"ok": True})
 
 
+@app.route("/api/presence/leave", methods=["POST"])
+def api_presence_leave():
+    """워크스페이스를 나갈 때(탭 닫기/이동) sendBeacon 으로 호출 → 즉시 오프라인."""
+    m = _current_member()
+    if m:
+        team_auth.drop_presence(m["id"])
+    return jsonify({"ok": True})
+
+
 @app.route("/api/presence")
 def api_presence_list():
     return jsonify({"presence": team_auth.presence_status()})

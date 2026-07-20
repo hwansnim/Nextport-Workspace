@@ -3127,11 +3127,21 @@ async function initAuth() {
     location.href = "/login";
   });
 
-  // heartbeat — 20초마다 접속중 신호
-  const ping = () => { fetch("/api/presence/ping", { method: "POST" }).catch(() => {}); };
+  // heartbeat — 15초마다 접속중 신호
+  const ping = () => { fetch("/api/presence/ping", { method: "POST", keepalive: true }).catch(() => {}); };
+  const leave = () => {
+    // 워크스페이스 나갈 때(탭 닫기/이동/새로고침) 즉시 오프라인 처리
+    try { navigator.sendBeacon("/api/presence/leave"); }
+    catch { fetch("/api/presence/leave", { method: "POST", keepalive: true }).catch(() => {}); }
+  };
   ping();
-  setInterval(ping, 20000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
+  setInterval(ping, 15000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) leave();   // 다른 앱/탭으로 가면 오프라인
+    else ping();                    // 돌아오면 다시 접속중
+  });
+  window.addEventListener("pagehide", leave);
+  window.addEventListener("beforeunload", leave);
 }
 
 async function loadTeam() {
