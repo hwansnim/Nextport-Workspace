@@ -6,11 +6,35 @@ from __future__ import annotations
 
 import json
 import logging
+import mimetypes
 import time
 from pathlib import Path
 from typing import Any
 
 log = logging.getLogger("meeting_analyzer")
+
+# 확장자 → MIME (서버 OS mime DB가 m4a 등을 모를 수 있어 명시 지정)
+# Gemini 지원 오디오 타입 기준. m4a(=MPEG-4 AAC 컨테이너)는 audio/mp4.
+_AUDIO_MIME = {
+    ".mp3": "audio/mp3",
+    ".wav": "audio/wav",
+    ".m4a": "audio/mp4",
+    ".mp4": "audio/mp4",
+    ".aac": "audio/aac",
+    ".ogg": "audio/ogg",
+    ".opus": "audio/ogg",
+    ".flac": "audio/flac",
+    ".aiff": "audio/aiff",
+    ".aif": "audio/aiff",
+    ".webm": "audio/webm",
+    ".mpeg": "audio/mpeg",
+    ".mpga": "audio/mpeg",
+}
+
+
+def _audio_mime(path) -> str:
+    ext = Path(str(path)).suffix.lower()
+    return _AUDIO_MIME.get(ext) or mimetypes.guess_type(str(path))[0] or "audio/mp4"
 
 
 PROMPT = """너는 비즈니스 미팅 녹음 파일을 분석하는 도우미야. 한국어 미팅이다.
@@ -110,10 +134,12 @@ class MeetingAnalyzer:
             on_progress(message="파일 업로드 중...", progress=1, total=10)
 
         # Files API 로 업로드 (큰 오디오 처리)
+        # mime_type 을 확장자로 명시 → 리눅스 서버가 .m4a 등을 몰라 실패하던 문제 해결
+        mime = _audio_mime(audio_path)
         try:
-            uploaded = self.genai.upload_file(path=str(audio_path))
+            uploaded = self.genai.upload_file(path=str(audio_path), mime_type=mime)
         except Exception as e:  # noqa: BLE001
-            log.exception("upload_file 실패")
+            log.exception("upload_file 실패 (mime=%s)", mime)
             return {"_error": f"업로드 실패: {e}"}
 
         # 처리 완료 대기 (오디오는 'ACTIVE' 될 때까지 시간 걸림)
