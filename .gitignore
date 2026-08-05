@@ -52,3 +52,4 @@ data/meta_config.json
 # 팀원 로그인 자격증명 + 세션 시크릿 (절대 git 금지, 드라이브만 동기화)
 data/team.json
 data/team.tmp
+data/workhub_data.json

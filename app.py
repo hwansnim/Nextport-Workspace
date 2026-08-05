@@ -189,6 +189,8 @@ PUBLIC_ENDPOINTS = {
     # 인증 화면 / API
     "static", "setup_page", "login_page", "login_page_token",
     "api_setup", "api_login",
+    # work-hub 데이터 저장 (별도 앱, 비밀키로 보호)
+    "api_workhub_data",
 }
 # 관리자 전용 엔드포인트 (팀원 관리 + 접속 현황)
 ADMIN_ENDPOINTS = {
@@ -390,6 +392,41 @@ def api_presence_leave():
 @app.route("/api/presence")
 def api_presence_list():
     return jsonify({"presence": team_auth.presence_status()})
+
+
+# ─────────────────────────────────────────────────────────────────
+# work-hub 데이터 저장소 (별도 앱이 이 서버의 드라이브 연동을 재사용)
+# data/workhub_data.json 에 저장 → 드라이브 워처가 자동 영속.
+# 비밀키(URL)로 보호. work-hub 서버(비공개 repo)만 이 URL을 앎.
+# ─────────────────────────────────────────────────────────────────
+WORKHUB_SECRET = "wh_9244bc83332337bfe9d8d773b5f3d3b8c906af18"
+WORKHUB_FILE = DATA_DIR / "workhub_data.json"
+
+
+@app.route("/api/wh/<secret>/data", methods=["GET", "PUT", "OPTIONS"])
+def api_workhub_data(secret):
+    if request.method == "OPTIONS":
+        return ("", 204)
+    if secret != WORKHUB_SECRET:
+        return jsonify({"error": "forbidden"}), 403
+    if request.method == "PUT":
+        body = request.get_json(force=True, silent=True) or {}
+        try:
+            WORKHUB_FILE.write_text(
+                json.dumps({"data": body.get("data"), "updatedAt": body.get("updatedAt") or 0}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": True})
+    # GET
+    if WORKHUB_FILE.exists():
+        try:
+            d = json.loads(WORKHUB_FILE.read_text(encoding="utf-8"))
+            return jsonify({"data": d.get("data"), "updatedAt": d.get("updatedAt") or 0})
+        except Exception:  # noqa: BLE001
+            pass
+    return jsonify({"data": None, "updatedAt": 0})
 
 
 def _asset_ver() -> str:
